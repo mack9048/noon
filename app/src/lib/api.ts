@@ -6,8 +6,21 @@ export const USE_MOCK = process.env.EXPO_PUBLIC_USE_MOCK === '1' || !BASE;
 export const TOKEN_KEY = 'noon.token';
 
 export class ApiError extends Error {
-  constructor(public status: number, message: string, public errors?: Record<string, string[]>) {
+  constructor(
+    public status: number,
+    message: string,
+    public errors?: Record<string, string[]>,
+    /** Machine-readable reason, e.g. 'tenant_required' or 'otp_required'. */
+    public code?: string,
+    public body?: any,
+  ) {
     super(message);
+  }
+
+  /** First field error, else the message. */
+  get friendly(): string {
+    const first = this.errors && Object.values(this.errors)[0]?.[0];
+    return first ?? this.message;
   }
 }
 
@@ -30,7 +43,7 @@ async function request<T>(method: Method, path: string, body?: unknown): Promise
 
   if (res.status === 204) return undefined as T;
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new ApiError(res.status, data.message ?? 'Request failed', data.errors);
+  if (!res.ok) throw new ApiError(res.status, data.message ?? 'Request failed', data.errors, data.code, data);
   // Laravel API resources wrap payloads in { data: ... }
   return (data && typeof data === 'object' && 'data' in data && Object.keys(data).length <= 3 ? data.data : data) as T;
 }
