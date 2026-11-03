@@ -74,3 +74,32 @@ export function GuestMoreScreen() {
     </Screen>
   );
 }
+
+export type MoreLink = [label: string, href: string, icon: keyof typeof Ionicons.glyphMap, pastel: readonly [string, string]];
+
+/** "More" tab for teacher, admin and super admin: shortcuts to their other screens, and log out. */
+export function RoleMoreScreen({ links }: { links: MoreLink[] }) {
+  const { user, logout } = useAuth();
+  return (
+    <Screen>
+      <Header title="More" back={false} />
+      <Grid cols={{ phone: 2, tablet: 3, desktop: 4 }}>
+        {links.map(([label, href, icon, pastel]) => (
+          <Card key={href} onPress={() => router.push(href as any)} style={{ gap: 10, minHeight: 100 }}>
+            <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: pastel[0], alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name={icon} size={22} color={pastel[1]} />
+            </View>
+            <T v="h3">{label}</T>
+          </Card>
+        ))}
+        <Card onPress={() => logout().then(() => router.replace('/'))} style={{ gap: 10, minHeight: 100 }}>
+          <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: '#FBD9DC', alignItems: 'center', justifyContent: 'center' }}>
+            <Ionicons name="log-out-outline" size={22} color={colors.red} />
+          </View>
+          <T v="h3">Log out</T>
+          {user ? <T v="small">Signed in as {user.name}</T> : null}
+        </Card>
+      </Grid>
+    </Screen>
+  );
+}

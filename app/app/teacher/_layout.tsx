@@ -3,10 +3,11 @@ import { AppShell, NavItem } from '@/components/AppShell';
 import { RoleGate } from '@/components/RoleGate';
 
 const items: NavItem[] = [
-  { href: '/teacher', label: 'Home', icon: 'home' },
-  { href: '/teacher/course/1', label: 'Course', icon: 'school', match: ['/teacher/course'] },
-  { href: '/teacher/leave', label: 'Leave', icon: 'calendar' },
-  { href: '/teacher/chat', label: 'Chat', icon: 'chatbubbles' },
+  { href: '/teacher', label: 'Home', icon: 'home-outline' },
+  { href: '/teacher/classes', label: 'Classes', icon: 'book-outline', match: ['/teacher/course'] },
+  { href: '/teacher/attendance', label: 'Attendance', icon: 'calendar-outline' },
+  { href: '/teacher/chat', label: 'Chat', icon: 'chatbubble-outline' },
+  { href: '/teacher/more', label: 'More', icon: 'apps-outline', match: ['/teacher/leave'] },
 ];
 
 export default function Layout() {

@@ -12,6 +12,8 @@ export interface NavItem {
   href: string;
   label: string;
   icon: keyof typeof Ionicons.glyphMap;
+  /** Text shown instead of the icon, e.g. '₹' (Ionicons has no rupee sign). */
+  glyph?: string;
   /** Extra path prefixes that should highlight this item. */
   match?: string[];
 }
@@ -45,8 +47,8 @@ export function AppShell({ items }: { items: NavItem[] }) {
             return (
               <Pressable key={it.href} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => router.navigate(it.href as any)}
                 style={[styles.bottomItem, on && { backgroundColor: colors.teal }]}>
-                <Ionicons name={it.icon} size={21} color={on ? '#FFF' : colors.muted} />
-                <Text style={[styles.bottomLabel, { color: on ? '#FFF' : colors.muted }]}>{it.label}</Text>
+                <NavIcon item={it} size={21} color={on ? '#FFF' : colors.muted} />
+                <Text numberOfLines={1} style={[styles.bottomLabel, { color: on ? '#FFF' : colors.muted }]}>{it.label}</Text>
               </Pressable>
             );
           })}
@@ -67,7 +69,7 @@ export function AppShell({ items }: { items: NavItem[] }) {
           return (
             <Pressable key={it.href} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => router.navigate(it.href as any)}
               style={({ hovered }: any) => [styles.sideItem, wide ? styles.sideItemWide : styles.sideItemRail, on ? { backgroundColor: colors.teal } : hovered && { backgroundColor: colors.bg }]}>
-              <Ionicons name={it.icon} size={22} color={on ? '#FFF' : colors.muted} />
+              <NavIcon item={it} size={22} color={on ? '#FFF' : colors.muted} />
               <Text style={{ color: on ? '#FFF' : colors.ink, fontFamily: on ? fonts.semibold : fonts.medium, fontSize: wide ? 15 : 11 }}>{it.label}</Text>
             </Pressable>
           );
@@ -89,6 +91,13 @@ export function AppShell({ items }: { items: NavItem[] }) {
       <View style={{ flex: 1 }}><Slot /></View>
     </View>
   );
+}
+
+function NavIcon({ item, size, color }: { item: NavItem; size: number; color: string }) {
+  if (item.glyph) {
+    return <Text style={{ fontFamily: fonts.medium, fontSize: size, lineHeight: size + 2, color }}>{item.glyph}</Text>;
+  }
+  return <Ionicons name={item.icon} size={size} color={color} />;
 }
 
 const styles = StyleSheet.create({
