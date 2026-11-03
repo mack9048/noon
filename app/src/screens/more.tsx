@@ -78,66 +78,99 @@ export function GuestMoreScreen() {
 
 export type MoreLink = [label: string, href: string, icon: keyof typeof Ionicons.glyphMap, pastel: readonly [string, string]];
 
-/** "More" tab for teacher, admin and super admin: shortcuts to their other screens, and log out. */
-export function RoleMoreScreen({ links }: { links: MoreLink[] }) {
+const roleName: Record<string, string> = { student: 'Student', parent: 'Parent', teacher: 'Teacher', admin: 'Institute admin', super_admin: 'Super admin', guest: 'Guest' };
+
+export const STUDENT_MORE: MoreLink[] = [
+  ['Profile', '/student/profile', 'person-outline', colors.lav],
+  ['Fees', '/student/fees', 'card-outline', colors.mint],
+  ['Attendance', '/student/attendance', 'calendar-outline', colors.butter],
+  ['Audio Book', '/student/audio', 'headset-outline', colors.pink],
+  ['Settings', '/student/settings', 'settings-outline', colors.sky],
+  ['Help', '/student/help', 'help-circle-outline', ['#FFFFFF', colors.ink]],
+];
+export const TEACHER_MORE: MoreLink[] = [
+  ['Live class', '/teacher/course/1', 'videocam-outline', colors.pink],
+  ['Review work', '/teacher/review', 'clipboard-outline', colors.sky],
+  ['Assess Salah', '/teacher/assess', 'ribbon-outline', colors.mint],
+  ['Leave', '/teacher/leave', 'calendar-outline', colors.lav],
+];
+export const ADMIN_MORE: MoreLink[] = [
+  ['Attendance', '/admin/attendance', 'stats-chart-outline', colors.mint],
+  ['Bulk add', '/admin/bulk', 'cloud-upload-outline', colors.sky],
+  ['Courses', '/admin/courses', 'school-outline', colors.lav],
+  ['Leave', '/admin/leave', 'calendar-outline', colors.butter],
+];
+export const SUPER_MORE: MoreLink[] = [
+  ['Courses', '/super/courses', 'school-outline', colors.lav],
+  ['Study tools', '/super/tools', 'document-text-outline', colors.butter],
+];
+
+/**
+ * The "More" menu (design: More menu): profile card, then tiles in rows of 3.
+ * Used as the phone pop-up above the tab bar, and as the More page on tablet/desktop.
+ */
+export function MoreMenu({ links, onNavigate, profileHref, logout: withLogout }: {
+  links: MoreLink[]; onNavigate?: () => void; profileHref?: string; logout?: boolean;
+}) {
   const { user, logout } = useAuth();
+  const go = (href: string) => { onNavigate?.(); router.push(href as any); };
+  const signOut = () => { onNavigate?.(); logout().then(() => router.replace('/')); };
+  const tiles = withLogout ? [...links, ['Log out', '#logout', 'log-out-outline', ['#FBD9DC', colors.red]] as MoreLink] : links;
+  const rows: (MoreLink | null)[][] = [];
+  for (let i = 0; i < tiles.length; i += 3) {
+    const row: (MoreLink | null)[] = tiles.slice(i, i + 3);
+    while (row.length < 3) row.push(null);
+    rows.push(row);
+  }
+  const name = user?.role === 'parent' ? 'Ayisha Abdulla' : user?.name ?? 'Ayisha Abdulla';
+  const sub = user?.role === 'student' || user?.role === 'parent' ? `Madrasa 5 · ${roleName[user.role]}` : roleName[user?.role ?? ''] ?? '';
+  return (
+    <View style={{ gap: 12 }}>
+      <Card onPress={profileHref ? () => go(profileHref) : undefined} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, minHeight: 72 }}>
+        <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: colors.pink[0], alignItems: 'center', justifyContent: 'center' }}>
+          <T style={{ color: colors.pink[1], fontSize: 20 }}>{name[0]}</T>
+        </View>
+        <View style={{ flex: 1 }}>
+          <T v="h3" numberOfLines={1}>{name}</T>
+          <T v="small" numberOfLines={1}>{sub}</T>
+        </View>
+        {profileHref ? (
+          <View style={{ width: 40, height: 40, borderRadius: 20, borderWidth: 1.5, borderColor: colors.line, alignItems: 'center', justifyContent: 'center' }}>
+            <Ionicons name="chevron-forward" size={18} color={colors.ink} />
+          </View>
+        ) : null}
+      </Card>
+      {rows.map((row, r) => (
+        <View key={r} style={{ flexDirection: 'row', gap: 8 }}>
+          {row.map((t, c) => t ? (
+            <Card key={t[1]} onPress={() => (t[1] === '#logout' ? signOut() : go(t[1]))} tint={t[3][0]}
+              style={{ flex: 1, height: 84, padding: 10, paddingHorizontal: 12, justifyContent: 'space-between' }}>
+              <Ionicons name={t[2]} size={22} color={t[3][1]} />
+              <T numberOfLines={1} style={{ color: t[3][1], fontSize: 14 }}>{t[0]}</T>
+            </Card>
+          ) : <View key={`e${c}`} style={{ flex: 1, paddingHorizontal: 12 }} />)}
+        </View>
+      ))}
+      <InstallAppButton />
+    </View>
+  );
+}
+
+/** More page for tablet/desktop (on phones the tab opens the pop-up instead). */
+export function MorePage(props: { links: MoreLink[]; profileHref?: string; logout?: boolean }) {
   return (
     <Screen>
       <Header title="More" back={false} />
-      <Grid cols={{ phone: 2, tablet: 3, desktop: 4 }}>
-        {links.map(([label, href, icon, pastel]) => (
-          <Card key={href} onPress={() => router.push(href as any)} style={{ gap: 10, minHeight: 100 }}>
-            <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: pastel[0], alignItems: 'center', justifyContent: 'center' }}>
-              <Ionicons name={icon} size={22} color={pastel[1]} />
-            </View>
-            <T v="h3">{label}</T>
-          </Card>
-        ))}
-        <Card onPress={() => logout().then(() => router.replace('/'))} style={{ gap: 10, minHeight: 100 }}>
-          <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: '#FBD9DC', alignItems: 'center', justifyContent: 'center' }}>
-            <Ionicons name="log-out-outline" size={22} color={colors.red} />
-          </View>
-          <T v="h3">Log out</T>
-          {user ? <T v="small">Signed in as {user.name}</T> : null}
-        </Card>
-      </Grid>
+      <MoreMenu {...props} />
     </Screen>
   );
 }
 
-/** Student "More" menu (design: More menu). Used as the phone pop-up and as the More page on tablet/desktop. */
+/** Kept for older imports. */
+export function RoleMoreScreen({ links }: { links: MoreLink[] }) {
+  return <MorePage links={links} logout />;
+}
+
 export function StudentMoreMenu({ onNavigate }: { onNavigate?: () => void }) {
-  const { user } = useAuth();
-  const go = (href: string) => { onNavigate?.(); router.push(href as any); };
-  const tiles: [string, string, keyof typeof Ionicons.glyphMap, readonly [string, string]][] = [
-    ['Profile', '/student/profile', 'person-outline', colors.lav],
-    ['Fees', '/student/fees', 'card-outline', colors.mint],
-    ['Attendance', '/student/attendance', 'calendar-outline', colors.butter],
-    ['Audio Book', '/student/audio', 'headset-outline', colors.pink],
-    ['Settings', '/student/settings', 'settings-outline', colors.sky],
-    ['Help', '/student/help', 'help-circle-outline', ['#FFFFFF', colors.ink]],
-  ];
-  return (
-    <View style={{ gap: 12 }}>
-      <Card onPress={() => go('/student/profile')} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 }}>
-        <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: colors.pink[0], alignItems: 'center', justifyContent: 'center' }}>
-          <T style={{ color: colors.pink[1], fontSize: 20 }}>{(user?.name ?? 'A')[0]}</T>
-        </View>
-        <View style={{ flex: 1 }}>
-          <T v="h3">{user?.role === 'parent' ? 'Ayisha Abdulla' : user?.name ?? 'Ayisha Abdulla'}</T>
-          <T v="small">Madrasa 5 · {user?.role === 'parent' ? 'Parent' : 'Student'}</T>
-        </View>
-        <Ionicons name="chevron-forward" size={18} color={colors.ink} />
-      </Card>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-        {tiles.map(([label, href, icon, tint]) => (
-          <Card key={href} onPress={() => go(href)} tint={tint[0]} style={{ width: '31.5%', height: 84, padding: 10, justifyContent: 'space-between' }}>
-            <Ionicons name={icon} size={22} color={tint[1]} />
-            <T style={{ color: tint[1], fontSize: 14 }}>{label}</T>
-          </Card>
-        ))}
-      </View>
-      <InstallAppButton />
-    </View>
-  );
+  return <MoreMenu links={STUDENT_MORE} onNavigate={onNavigate} profileHref="/student/profile" />;
 }

@@ -1,14 +1,7 @@
 import React from 'react';
-import { RoleMoreScreen } from '@/screens/more';
-import { colors } from '@/theme/tokens';
+import { MorePage, ADMIN_MORE } from '@/screens/more';
 
+/** Tablet / desktop: More opens as a page. On phones the tab bar shows it as a pop-up instead. */
 export default function Page() {
-  return (
-    <RoleMoreScreen links={[
-      ['Attendance report', '/admin/attendance', 'stats-chart-outline', colors.mint],
-      ['Bulk add', '/admin/bulk', 'cloud-upload-outline', colors.sky],
-      ['Noon Courses', '/admin/courses', 'school-outline', colors.lav],
-      ['Leave approvals', '/admin/leave', 'calendar-outline', colors.butter],
-    ]} />
-  );
+  return <MorePage links={ADMIN_MORE} logout />;
 }

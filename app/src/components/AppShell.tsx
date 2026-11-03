@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, Text, View, StyleSheet } from 'react-native';
+import { Pressable, Text, View, StyleSheet, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Slot, router, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -30,6 +30,7 @@ export function AppShell({ items }: { items: NavItem[] }) {
   const { device } = useLayout();
   const path = usePathname();
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   const { user, logout } = useAuth();
   const [sheetFor, setSheetFor] = React.useState<string | null>(null);
   React.useEffect(() => setSheetFor(null), [path]);
@@ -42,6 +43,9 @@ export function AppShell({ items }: { items: NavItem[] }) {
   if (fullScreen) return <Slot />;
 
   if (device === 'phone') {
+    // The pop-up's little arrow points at the tab that opened it.
+    const tabW = (Math.min(width, 592) - 32 - 16) / items.length;
+    const arrowLeft = 8 + tabW * Math.max(0, items.findIndex((it) => it.href === sheetFor)) + tabW / 2 - 9;
     return (
       <View style={{ flex: 1, backgroundColor: colors.bg }}>
         <Slot />
@@ -50,6 +54,7 @@ export function AppShell({ items }: { items: NavItem[] }) {
             <Pressable accessibilityLabel="Close menu" onPress={() => setSheetFor(null)} style={styles.scrim} />
             <View accessibilityRole="menu" style={[styles.sheet, { bottom: Math.max(insets.bottom, 12) + 92 }]}>
               {items.find((it) => it.href === sheetFor)?.sheet?.(() => setSheetFor(null))}
+              <View pointerEvents="none" style={[styles.arrow, { left: arrowLeft }]} />
             </View>
           </>
         ) : null}
@@ -120,6 +125,7 @@ const styles = StyleSheet.create({
     position: 'absolute', left: 16, right: 16, height: 72, borderRadius: 36, backgroundColor: '#FFF',
     flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, gap: 2, maxWidth: 560, alignSelf: 'center', ...shadow.lifted,
   },
+  arrow: { position: 'absolute', bottom: -8, width: 18, height: 18, borderRadius: 3, backgroundColor: colors.bg, transform: [{ rotate: '45deg' }] },
   scrim: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: 'rgba(11,42,53,0.42)' },
   sheet: { position: 'absolute', left: 16, right: 16, maxWidth: 560, alignSelf: 'center', borderRadius: 32, backgroundColor: colors.bg, padding: 16, gap: 12, ...shadow.lifted },
   bottomItem: { flex: 1, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', gap: 2 },

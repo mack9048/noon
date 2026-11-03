@@ -1,14 +1,7 @@
 import React from 'react';
-import { RoleMoreScreen } from '@/screens/more';
-import { colors } from '@/theme/tokens';
+import { MorePage, TEACHER_MORE } from '@/screens/more';
 
+/** Tablet / desktop: More opens as a page. On phones the tab bar shows it as a pop-up instead. */
 export default function Page() {
-  return (
-    <RoleMoreScreen links={[
-      ['Course & live class', '/teacher/course/1', 'videocam-outline', colors.pink],
-      ['Review work', '/teacher/review', 'clipboard-outline', colors.sky],
-      ['Assess Salah', '/teacher/assess', 'ribbon-outline', colors.mint],
-      ['Leave approvals', '/teacher/leave', 'calendar-outline', colors.lav],
-    ]} />
-  );
+  return <MorePage links={TEACHER_MORE} logout />;
 }
