@@ -5,7 +5,8 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, usePathname } from 'expo-router';
+import { Logo } from './Logo';
 import { colors, contentType, ContentKind, fonts, radius, shadow, scriptFont } from '@/theme/tokens';
 import { useLayout } from '@/lib/useLayout';
 
@@ -26,14 +27,49 @@ export function T({ v = 'body', style, auto, children, ...rest }: TextProps & { 
 }
 
 /* ---------- Layout ---------- */
-export function Screen({ children, scroll = true, padded = true, bottomSpace = 120, style, overlay }: {
+// Main tab pages: no back button there (the tab bar is the way around).
+const TAB_ROOTS = new Set([
+  '/', '/student', '/student/classroom', '/student/chat', '/student/games', '/student/more',
+  '/guest', '/guest/demo-classes', '/guest/demo-course', '/guest/games', '/guest/unlock',
+  '/teacher', '/teacher/classes', '/teacher/attendance', '/teacher/chat', '/teacher/more',
+  '/admin', '/admin/students', '/admin/fees', '/admin/teachers', '/admin/more',
+  '/super', '/super/tenants', '/super/content', '/super/billing', '/super/more',
+]);
+
+/** Goes back, or to the role's home page when there is no history (opened from a link or a refresh). */
+export function goBack(path: string) {
+  if (router.canGoBack()) return router.back();
+  const first = path.split('/')[1];
+  router.replace((['student', 'guest', 'teacher', 'admin', 'super'].includes(first) ? `/${first}` : '/') as any);
+}
+
+/** Top of every page: back button (except on main tab pages) and the Noon logo on phones. */
+function TopBar({ back }: { back?: boolean }) {
+  const path = usePathname();
+  const { isPhone } = useLayout();
+  const showBack = back ?? !TAB_ROOTS.has(path.replace(/\/$/, '') || '/');
+  if (!showBack && !isPhone) return null; // tablet/desktop show the logo in the side menu
+  return (
+    <Row gap={10} style={{ minHeight: 44, marginBottom: 8 }}>
+      {showBack ? <IconButton name="chevron-back" label="Back" size={44} onPress={() => goBack(path)} /> : null}
+      {isPhone ? <Logo height={30} /> : null}
+    </Row>
+  );
+}
+
+export function Screen({ children, scroll = true, padded = true, bottomSpace = 120, style, overlay, bar = true, back }: {
   children: React.ReactNode; scroll?: boolean; padded?: boolean; bottomSpace?: number; style?: StyleProp<ViewStyle>;
   /** Floating content that stays put while the page scrolls (e.g. the Ask AI button). */
   overlay?: React.ReactNode;
+  /** false: the page draws its own top (logo / back). */
+  bar?: boolean;
+  /** Force the back button on or off (default: off on main tab pages, on everywhere else). */
+  back?: boolean;
 }) {
   const { gutter, isPhone } = useLayout();
   const inner = (
     <View style={[{ width: '100%', maxWidth: 1200, alignSelf: 'center', paddingHorizontal: padded ? gutter : 0, paddingBottom: isPhone ? bottomSpace : 40 }, style]}>
+      {bar ? <TopBar back={back} /> : null}
       {children}
     </View>
   );
@@ -63,10 +99,10 @@ export function Grid({ children, cols, gap = 10 }: { children: React.ReactNode; 
   );
 }
 
-export function Header({ title, subtitle, back = true, right }: { title: string; subtitle?: string; back?: boolean; right?: React.ReactNode }) {
+/** Page title. `back` is kept for older calls; the back button is drawn by Screen's top bar. */
+export function Header({ title, subtitle, right }: { title: string; subtitle?: string; back?: boolean; right?: React.ReactNode }) {
   return (
     <Row gap={12} style={{ minHeight: 56, marginBottom: 12 }}>
-      {back && <IconButton name="chevron-back" label="Back" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />}
       <View style={{ flex: 1 }}>
         {subtitle ? <T v="label">{subtitle.toUpperCase()}</T> : null}
         <T v="h1" auto>{title}</T>

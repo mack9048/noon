@@ -29,7 +29,7 @@ export function HomeScreen({ guest = false }: { guest?: boolean }) {
   const firstCourse = mine.data?.[0];
 
   return (
-    <Screen overlay={<AskAiButton base={base} />}>
+    <Screen bar={false} overlay={<AskAiButton base={base} />}>
       <Row style={{ height: 52 }}>
         {device === 'phone' ? <Logo /> : <T v="h2">Home</T>}
         {guest ? <Pill text="GUEST" tint={colors.butter[0]} ink={colors.butter[1]} /> : null}

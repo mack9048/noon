@@ -14,7 +14,7 @@ export function SuperOverviewScreen() {
   return (
     <Screen>
       <Row style={{ justifyContent: 'space-between' }}>
-        <View><T v="small">noon Learn · Super admin</T><T v="h1">Platform overview</T></View>
+        <View><T v="small">Super admin</T><T v="h1">Platform overview</T></View>
         <Pressable accessibilityLabel="Notifications, 5 new" style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: '#FFF', alignItems: 'center', justifyContent: 'center' }}>
           <Ionicons name="notifications-outline" size={22} color={colors.ink} /><View style={{ position: 'absolute', top: 10, right: 12, width: 9, height: 9, borderRadius: 5, backgroundColor: '#D6336C' }} />
         </Pressable>

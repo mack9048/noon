@@ -225,7 +225,7 @@ export function StudyToolsScreen() {
   const [t, setT] = useState<ToolType>((type as ToolType) ?? 'chart');
   const list = useApi<StudyTool[]>(`/study-tools?type=${t}`);
   return (
-    <Screen>
+    <Screen back={false}>
       <GradientCard colors={gradients.brand} style={{ marginBottom: 14, gap: 12 }}>
         <Row gap={12}>
           <IconButton name="arrow-back" label="Back" tint="rgba(255,255,255,0.2)" color="#FFF" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />

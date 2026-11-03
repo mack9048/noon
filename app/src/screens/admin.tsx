@@ -24,7 +24,7 @@ export function AdminDashboardScreen() {
   return (
     <Screen>
       <Row style={{ justifyContent: 'space-between' }}>
-        <View><T v="small">noon Learn · Institute admin</T><T v="h1">Assalamu alaikum</T></View>
+        <View><T v="small">Institute admin</T><T v="h1">Assalamu alaikum</T></View>
         <Pressable accessibilityLabel="Notifications, 4 new" style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: '#FFF', alignItems: 'center', justifyContent: 'center' }}>
           <Ionicons name="notifications-outline" size={22} color={colors.ink} /><View style={{ position: 'absolute', top: 10, right: 12, width: 9, height: 9, borderRadius: 5, backgroundColor: '#D6336C' }} />
         </Pressable>
