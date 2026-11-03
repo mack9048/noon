@@ -5,6 +5,9 @@
 
     RewriteEngine On
 
+    # Uploaded files are never run as code.
+    RewriteRule ^storage/.*\.(php|phtml|phar|pl|py|cgi|sh)$ - [F,L]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]

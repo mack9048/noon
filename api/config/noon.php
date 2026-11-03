@@ -3,6 +3,9 @@
 return [
     'version' => env('APP_VERSION', '0.2.0'),
 
+    // true on hosting without Supervisor: cron (schedule:run) then also runs the queue.
+    'queue_via_scheduler' => (bool) env('QUEUE_VIA_SCHEDULER', false),
+
     // Added to local numbers (10 digits for India, 9 for UAE) that arrive without a country code.
     'default_country_code' => env('DEFAULT_COUNTRY_CODE', '91'),
 

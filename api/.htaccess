@@ -1,0 +1,11 @@
+# For Hostinger web/cloud hosting when this folder IS public_html.
+# Sends every request into Laravel's public/ folder, so .env, app code and
+# storage are never reachable from the web.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
