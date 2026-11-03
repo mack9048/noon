@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { Button, Card, T, Header } from '@/components/ui';
 import { Logo } from '@/components/Logo';
+import { InstallAppButton } from '@/components/InstallApp';
 import { useAuth, homeFor } from '@/lib/auth';
 import { ApiError, USE_MOCK } from '@/lib/api';
 import { useLayout } from '@/lib/useLayout';
@@ -41,6 +42,7 @@ export function WelcomeScreen() {
           <View style={{ flex: wide ? 0.8 : undefined, gap: 12 }}>
             <Button title="Explore as a guest" kind="yellow" icon="arrow-forward" loading={busy} onPress={explore} />
             <Button title="I have a madrasa login" kind="ghost" onPress={() => router.push('/login')} style={{ borderColor: 'rgba(255,255,255,0.6)' }} />
+            <InstallAppButton light />
           </View>
         </View>
       </ScrollView>

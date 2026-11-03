@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Button, Card, Grid, Header, Screen, T } from '@/components/ui';
 import { Field } from './auth';
+import { InstallAppButton } from '@/components/InstallApp';
 import { api, ApiError } from '@/lib/api';
 import { homeFor, useAuth } from '@/lib/auth';
 import type { User } from '@/lib/types';
@@ -136,6 +137,7 @@ export function StudentMoreMenu({ onNavigate }: { onNavigate?: () => void }) {
           </Card>
         ))}
       </View>
+      <InstallAppButton />
     </View>
   );
 }
