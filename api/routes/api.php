@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CatalogController;
 use App\Http\Controllers\Api\ChatController;
 use App\Http\Controllers\Api\CourseController;
+use App\Http\Controllers\Api\LearnController;
 use App\Http\Controllers\Api\LeaveController;
 use App\Http\Controllers\Api\StudyToolController;
 use App\Http\Controllers\Api\TenantController;
@@ -51,6 +52,10 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::post('/courses/{course}/enroll', [CourseController::class, 'enroll']);
     Route::post('/course-items/{item}/complete', [CourseController::class, 'complete']);
 
+    // A student's subjects and courses, and each one's materials, syllabus, assessments, exams, results, report card
+    Route::get('/learn', [LearnController::class, 'index']);
+    Route::get('/learn/{type}/{id}', [LearnController::class, 'show'])->whereIn('type', ['subject', 'course'])->whereNumber('id');
+
     Route::get('/study-tools', [StudyToolController::class, 'index']);
     Route::post('/study-tools/{tool}/open', [StudyToolController::class, 'open']);
 
@@ -69,6 +74,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/staff/leave-requests', [LeaveController::class, 'staffIndex']);
         Route::patch('/staff/leave-requests/{leave}', [LeaveController::class, 'decide']);
         Route::post('/teacher/courses/{course}/items', [CourseController::class, 'teacherAddItem']);
+        Route::post('/staff/assessments', [LearnController::class, 'store']);
+        Route::post('/staff/assessments/{assessment}/results', [LearnController::class, 'storeResults']);
     });
 
     // Institute admin

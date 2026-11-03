@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Assessment;
 use App\Models\Board;
 use App\Models\Conversation;
 use App\Models\Course;
@@ -56,7 +57,7 @@ class DatabaseSeeder extends Seeder
         User::create(['name' => 'Super Admin', 'email' => 'super@noon.test', 'password' => 'password', 'role' => 'super']);
         User::create(['tenant_id' => $tenant->id, 'name' => 'Office Admin', 'email' => 'admin@noon.test', 'password' => 'password', 'role' => 'admin']);
         $teacher = User::create(['tenant_id' => $tenant->id, 'name' => 'Ustad Ahmed', 'email' => 'teacher@noon.test', 'password' => 'password', 'role' => 'teacher']);
-        User::create(['tenant_id' => $tenant->id, 'name' => 'Muhammed', 'email' => 'parent@noon.test', 'password' => 'password', 'role' => 'parent']);
+        $parent = User::create(['tenant_id' => $tenant->id, 'name' => 'Muhammed', 'email' => 'parent@noon.test', 'password' => 'password', 'role' => 'parent']);
         $student = User::create([
             'tenant_id' => $tenant->id, 'name' => 'Ayisha', 'email' => 'student@noon.test', 'admission_no' => 'NM-0014',
             'password' => 'password', 'role' => 'student', 'board_id' => $boards[0]->id, 'class_id' => $ap5->id,
@@ -85,6 +86,29 @@ class DatabaseSeeder extends Seeder
             if ($i < 3) {
                 $student->courses()->attach($course->id, ['progress' => [40, 65, 15][$i]]);
             }
+        }
+
+        $student->forceFill(['parent_id' => $parent->id])->save();
+
+        // ---- Assessments, exams and marks ----
+        // Noon-made ones on the student's courses, madrasa-made ones on the class subjects.
+        $make = function (array $where, string $type, string $title, int $days, ?float $marks, int $max = 50) use ($student, $teacher) {
+            $a = Assessment::create($where + ['type' => $type, 'title' => $title, 'due_at' => now()->addDays($days)->setTime(10, 0), 'max_marks' => $max, 'created_by' => $teacher->id]);
+            if ($marks !== null) {
+                $a->results()->create(['student_id' => $student->id, 'marks' => $marks, 'marked_by' => $teacher->id, 'remarks' => $marks / $max >= 0.8 ? 'Excellent, keep it up' : 'Good effort']);
+            }
+        };
+        foreach ($student->courses()->get() as $n => $course) {
+            $make(['course_id' => $course->id], 'assessment', 'Unit 1 assessment', -20, [46, 41, 38][$n] ?? null);
+            $make(['course_id' => $course->id], 'assessment', 'Unit 2 assessment', 4, null);
+            $make(['course_id' => $course->id], 'exam', 'Term 1 exam', -10, [88, 79, 72][$n] ?? null, 100);
+            $make(['course_id' => $course->id], 'exam', 'Term 2 exam', 30, null, 100);
+        }
+        foreach ($ap5->subjects()->get() as $n => $subject) {
+            $make(['tenant_id' => $tenant->id, 'subject_id' => $subject->id], 'assessment', 'Weekly test 3', -6, 35 + ($n * 3) % 15);
+            $make(['tenant_id' => $tenant->id, 'subject_id' => $subject->id], 'assessment', 'Weekly test 4', 3, null);
+            $make(['tenant_id' => $tenant->id, 'subject_id' => $subject->id], 'exam', 'Onam exam', -14, 70 + ($n * 7) % 30, 100);
+            $make(['tenant_id' => $tenant->id, 'subject_id' => $subject->id], 'exam', 'Half-yearly exam', 40, null, 100);
         }
 
         // ---- Study tools ----

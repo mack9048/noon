@@ -41,7 +41,7 @@ export function WelcomeScreen() {
           </View>
           <View style={{ flex: wide ? 0.8 : undefined, gap: 12 }}>
             <Button title="Explore as a guest" kind="yellow" icon="arrow-forward" loading={busy} onPress={explore} />
-            <Button title="I have a madrasa login" kind="ghost" onPress={() => router.push('/login')} style={{ borderColor: 'rgba(255,255,255,0.6)' }} />
+            <Button title="Sign in" kind="outlineLight" icon="log-in-outline" onPress={() => router.push('/login')} />
             <InstallAppButton light />
           </View>
         </View>

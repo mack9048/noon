@@ -97,7 +97,7 @@ export function GradientCard({ colors: g, children, style, onPress }: { colors: 
 
 /* ---------- Controls ---------- */
 export function Button({ title, onPress, kind = 'primary', icon, loading, disabled, style }: {
-  title: string; onPress?: () => void; kind?: 'primary' | 'yellow' | 'ghost' | 'danger' | 'white';
+  title: string; onPress?: () => void; kind?: 'primary' | 'yellow' | 'ghost' | 'danger' | 'white' | 'outlineLight';
   icon?: keyof typeof Ionicons.glyphMap; loading?: boolean; disabled?: boolean; style?: StyleProp<ViewStyle>;
 }) {
   const palette = {
@@ -106,6 +106,7 @@ export function Button({ title, onPress, kind = 'primary', icon, loading, disabl
     ghost: { bg: 'transparent', fg: colors.ink, border: colors.line },
     danger: { bg: colors.red, fg: '#FFF', border: 'transparent' },
     white: { bg: '#FFF', fg: colors.ink, border: 'transparent' },
+    outlineLight: { bg: 'transparent', fg: '#FFF', border: 'rgba(255,255,255,0.6)' }, // on dark/gradient backgrounds
   }[kind];
   const inner = (
     <Row gap={8} style={{ justifyContent: 'center' }}>

@@ -59,3 +59,25 @@ export interface Message {
   id: number; conversation_id: number; mine: boolean; sender_name: string;
   kind: 'text' | 'voice' | 'file' | 'image'; body: string; created_at: string; seen?: boolean;
 }
+
+/* ---------- Learning spaces: a class subject or a Noon Course the student has ---------- */
+export interface LearnSpace {
+  key: string; // "subject-12" | "course-3"
+  type: 'subject' | 'course'; id: number;
+  title: string; title_ar?: string | null; subtitle: string; cover?: string | null;
+}
+export interface LearnMaterial { id: string; kind: 'live' | 'video' | 'audio' | 'pdf'; title: string; meta?: string | null; url?: string | null; item_id?: number }
+export interface LearnAssessment {
+  id: string; title: string; meta?: string | null; due_at?: string | null; max_marks?: number | null;
+  status: 'upcoming' | 'awaiting' | 'marked' | 'open' | 'done'; marks?: number | null; item_id?: number;
+}
+export interface LearnResult { id: string; title: string; type: 'assessment' | 'exam'; marks: number; max_marks: number; percent: number; grade: string; remarks?: string | null; date: string }
+export interface LearnDetail {
+  space: LearnSpace;
+  materials: LearnMaterial[];
+  syllabus: { position: number; title: string; done: boolean }[];
+  assessments: LearnAssessment[];
+  exams: LearnAssessment[];
+  results: LearnResult[];
+  report: { student?: string | null; average: number | null; grade: string | null; count: number; exam_average: number | null; assessment_average: number | null };
+}

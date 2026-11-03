@@ -200,6 +200,7 @@ export function GuestCourseDemoScreen() {
         <ListRow left={<Glyph text="+" size={44} tint={['#E3ECEF', colors.muted]} />} title="Lesson 3 and 20 more" sub="Full course" onPress={() => setLocked(true)} right={<Ionicons name="lock-closed" size={18} color={colors.muted} />} />
       </View>
       {locked ? <LockedCard text={`Unlock ${title}: every lesson, live class with ${teacher}, PDF notes and tests.`} /> : null}
+      <Button title="See all courses and enrol" icon="school-outline" kind="ghost" style={{ marginTop: 14 }} onPress={() => router.push('/guest/courses' as any)} />
     </Screen>
   );
 }

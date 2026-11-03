@@ -2,7 +2,7 @@
 // Mirrors the routes in api/routes/api.php.
 import type {
   Board, SchoolClass, Subject, SubjectDetail, Course, CourseDetail, StudyTool,
-  LeaveSummary, Conversation, Message, User, Role,
+  LeaveSummary, Conversation, Message, User, Role, LearnDetail, LearnSpace, LearnResult,
 } from './types';
 
 const wait = (ms = 250) => new Promise((r) => setTimeout(r, ms));
@@ -70,6 +70,58 @@ function demoUser(role: Role, name: string): User {
   return { id: 1, name, role, tenant_id: role === 'guest' || role === 'super' ? null : 1, tenant_name: 'Noon Madrasa', board_id: 1, class_id: 105, avatar_initial: name[0] };
 }
 
+// ---- Learning spaces (GET /learn, /learn/{type}/{id}) ----
+const grade = (p: number) => (p >= 90 ? 'A+' : p >= 80 ? 'A' : p >= 70 ? 'B+' : p >= 60 ? 'B' : p >= 50 ? 'C' : p >= 40 ? 'D' : 'E');
+const day = (d: number) => new Date(Date.now() + d * 86400000).toISOString();
+function learnSpaces(): LearnSpace[] {
+  if (!me || !['student', 'parent', 'guest'].includes(me.role)) return [];
+  const cls = classes.find((c) => c.id === me!.class_id);
+  const subs: LearnSpace[] = cls ? subjectNames.map(([name, ar], i) => ({ key: `subject-${cls.id * 10 + i}`, type: 'subject', id: cls.id * 10 + i, title: name, title_ar: ar,
+    subtitle: `${boards.find((b) => b.id === cls.board_id)?.code} board · Class ${cls.label}`, cover: null })) : [];
+  const crs: LearnSpace[] = courses.filter((c) => c.enrolled && c.status === 'published').map((c) => ({ key: `course-${c.id}`, type: 'course', id: c.id, title: c.title, subtitle: `Noon Course · ${c.teacher_name ?? c.category}`, cover: c.cover }));
+  return [...subs, ...crs];
+}
+function learnDetail(type: string, id: number): LearnDetail {
+  const space = learnSpaces().find((s) => s.key === `${type}-${id}`);
+  if (!space) throw new Error(type === 'course' ? 'Enrol in this course to see its materials.' : 'This subject is not in your class.');
+  const seed = id % 7;
+  const mk = (kind: 'assessment' | 'exam', title: string, d: number, max: number, marks: number | null) =>
+    ({ id: `a${id}${title}`, title, type: kind, due_at: day(d), max_marks: max, marks, status: marks != null ? 'marked' : d < 0 ? 'awaiting' : 'upcoming' } as const);
+  const list = type === 'course'
+    ? [mk('assessment', 'Unit 1 assessment', -20, 50, 36 + seed), mk('assessment', 'Unit 2 assessment', 4, 50, null), mk('exam', 'Term 1 exam', -10, 100, 70 + seed * 3), mk('exam', 'Term 2 exam', 30, 100, null)]
+    : [mk('assessment', 'Weekly test 3', -6, 50, 35 + seed * 2), mk('assessment', 'Weekly test 4', 3, 50, null), mk('exam', 'Onam exam', -14, 100, 68 + seed * 4), mk('exam', 'Half-yearly exam', 40, 100, null)];
+  const results: LearnResult[] = list.filter((a) => a.marks != null).map((a) => {
+    const percent = Math.round((a.marks! / a.max_marks) * 100);
+    return { id: a.id, title: a.title, type: a.type, marks: a.marks!, max_marks: a.max_marks, percent, grade: grade(percent), remarks: percent >= 80 ? 'Excellent, keep it up' : 'Good effort', date: a.due_at.slice(0, 10) };
+  });
+  const avg = (r: LearnResult[]) => (r.length ? Math.round(r.reduce((n, x) => n + x.percent, 0) / r.length) : null);
+  const row = ({ type: _t, ...a }: (typeof list)[number]) => a;
+  let materials: LearnDetail['materials']; let syllabus: LearnDetail['syllabus']; let quizzes: LearnDetail['assessments'] = [];
+  if (type === 'course') {
+    const c = courses.find((x) => x.id === id)!;
+    materials = c.items.filter((i) => i.kind !== 'test').map((i) => ({ id: `i${i.id}`, kind: i.kind as any, title: i.title, meta: i.meta, url: i.url, item_id: i.id }));
+    syllabus = c.items.map((i, n) => ({ position: n + 1, title: i.title, done: !!i.done }));
+    quizzes = c.items.filter((i) => i.kind === 'test').map((i) => ({ id: `q${i.id}`, title: i.title, meta: i.meta, status: i.done ? 'done' : 'open', item_id: i.id }));
+  } else {
+    materials = [{ id: 't', kind: 'pdf', title: 'Textbook', meta: 'Textbook · PDF', url: '#' },
+      ...lessonTitles.flatMap((t, i) => [
+        { id: `v${i}`, kind: 'video' as const, title: `Lesson ${i + 1} · ${t}`, meta: `Video class · ${6 + i}:10`, url: '#' },
+        { id: `a${i}`, kind: 'audio' as const, title: `Lesson ${i + 1} · ${t}`, meta: `Audio class · ${4 + (i % 3)}:05`, url: '#' },
+        { id: `n${i}`, kind: 'pdf' as const, title: `Lesson ${i + 1} · ${t}`, meta: 'Class note · PDF', url: '#' },
+      ])];
+    syllabus = lessonTitles.map((t, i) => ({ position: i + 1, title: t, done: i < 3 }));
+  }
+  const average = avg(results);
+  return {
+    space, materials, syllabus,
+    assessments: [...quizzes, ...list.filter((a) => a.type === 'assessment').map(row)],
+    exams: list.filter((a) => a.type === 'exam').map(row),
+    results,
+    report: { student: me?.role === 'parent' ? 'Ayisha' : me?.name, average, grade: average == null ? null : grade(average), count: results.length,
+      exam_average: avg(results.filter((r) => r.type === 'exam')), assessment_average: avg(results.filter((r) => r.type === 'assessment')) },
+  };
+}
+
 type Handler = (m: RegExpMatchArray, body: any) => unknown;
 const routes: [string, RegExp, Handler][] = [
   ['POST', /^\/auth\/login$/, (_, b) => {
@@ -103,6 +155,9 @@ const routes: [string, RegExp, Handler][] = [
       board_name: boards.find((b) => b.id === cls?.board_id)?.code, class_label: cls?.label,
       lessons: lessonTitles.map((t, i) => ({ id: id * 100 + i, subject_id: id, position: i + 1, title: t, video_url: '#', video_duration: `${6 + i}:1${i}`, audio_url: '#', audio_duration: `${4 + (i % 3)}:0${i}`, note_pdf_url: '#' })) };
   }],
+
+  ['GET', /^\/learn$/, () => learnSpaces()],
+  ['GET', /^\/learn\/(subject|course)\/(\d+)$/, (m) => learnDetail(m[1], +m[2])],
 
   ['GET', /^\/courses(\?scope=(\w+))?$/, (m) => {
     const scope = m[2] ?? 'all';

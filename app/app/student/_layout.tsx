@@ -5,7 +5,7 @@ import { StudentMoreMenu } from '@/screens/more';
 
 const items: NavItem[] = [
   { href: '/student', label: 'Home', icon: 'home-outline' },
-  { href: '/student/classroom', label: 'Classroom', icon: 'book-outline', match: ['/student/salah-report', '/student/report-pdf'] },
+  { href: '/student/classroom', label: 'Classroom', icon: 'book-outline', match: ['/student/learn', '/student/salah-report', '/student/report-pdf'] },
   { href: '/student/chat', label: 'Chat', icon: 'chatbubble-outline' },
   { href: '/student/games', label: 'Games', icon: 'game-controller-outline' },
   {

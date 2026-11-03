@@ -6,6 +6,8 @@ import { Button, Card, ErrorBox, GradientCard, Grid, Header, IconButton, Loading
 import { api } from '@/lib/api';
 import { useApi } from '@/lib/useApi';
 import { useBase } from '@/lib/useBase';
+import { setLearnSpace, useLearnSpaces } from '@/lib/learnSpace';
+import { LearnTiles } from './learnspace';
 import type { Board, Course, CourseDetail, SchoolClass, Subject, SubjectDetail, StudyTool, ToolType } from '@/lib/types';
 import { colors, ContentKind, fonts, gradients, scriptFont } from '@/theme/tokens';
 
@@ -61,7 +63,9 @@ export function CourseDetailScreen() {
     <Screen>
       <Header title={c.title} subtitle={`${c.teacher_name ?? c.category} · ${c.lessons_count} lessons`} />
       {c.progress != null ? <Progress value={c.progress} /> : null}
-      {!c.enrolled ? <Button title="Enrol in this course" kind="yellow" style={{ marginTop: 12 }} onPress={async () => { await api.post(`/courses/${c.id}/enroll`); course.reload(); }} /> : null}
+      {!c.enrolled ? <Button title="Enrol in this course" kind="yellow" style={{ marginTop: 12 }} onPress={async () => { await api.post(`/courses/${c.id}/enroll`); setLearnSpace(`course-${c.id}`); course.reload(); }} /> : (
+        <View style={{ marginTop: 14 }}><LearnTiles space={{ key: `course-${c.id}`, type: 'course', id: c.id, title: c.title, subtitle: 'Noon Course' }} /></View>
+      )}
       {live ? (
         <Card tint={colors.pink[0]} onPress={() => router.push(`${base}/live/${live.id}` as any)} style={{ marginTop: 14, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <TypeIcon kind="live" />
@@ -177,6 +181,8 @@ export function SubjectsScreen() {
 export function SubjectScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const subject = useApi<SubjectDetail>(`/subjects/${id}`);
+  const { spaces } = useLearnSpaces();
+  const mine = spaces.find((x) => x.key === `subject-${id}`) ?? null; // only the student's own class has tests and marks
   const [tab, setTab] = useState<'video' | 'audio' | 'pdf'>('video');
   if (subject.loading) return <Screen><Loading /></Screen>;
   if (!subject.data) return <Screen><ErrorBox message={subject.error ?? 'Not found'} onRetry={subject.reload} /></Screen>;
@@ -184,6 +190,7 @@ export function SubjectScreen() {
   return (
     <Screen>
       <Header title={s.name} subtitle={`${s.board_name ?? ''} board · Class ${s.class_label ?? ''}`} />
+      {mine ? <View style={{ marginBottom: 14 }}><LearnTiles space={mine} /></View> : null}
       <Grid cols={{ phone: 2, tablet: 2, desktop: 2 }}>
         <Card tint={colors.butter[0]} onPress={() => open(s.textbook_pdf_url)}><T v="label" style={{ color: colors.butter[1] }}>PDF</T><T v="h3">Textbook</T></Card>
         <Card tint={colors.pink[0]} onPress={() => setTab('pdf')}><T v="label" style={{ color: colors.pink[1] }}>PDF</T><T v="h3">Class notes</T></Card>

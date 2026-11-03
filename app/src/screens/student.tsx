@@ -7,6 +7,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Button, Card, Grid, Header, Row, Screen, Segmented, T } from '@/components/ui';
 import { Avatar, Band, Chips, demoNote, Glyph, ListRow, pastel, Progress, Section, SmallButton, Stat, Tabs, Tag, Tile } from '@/components/kit';
 import { useAuth } from '@/lib/auth';
+import { useLearnSpaces } from '@/lib/learnSpace';
+import { LearnTiles, SpacePicker } from './learnspace';
 import { useBase } from '@/lib/useBase';
 import { ATTENDANCE, AUDIO_BOOKS, CLASSROOM, FEES, HELP_FAQ, PROFILE, SALAH_SCORES } from '@/lib/demo';
 import { colors, fonts } from '@/theme/tokens';
@@ -18,13 +20,11 @@ export function ClassroomScreen() {
   const base = useBase();
   const [tab, setTab] = useState<'up' | 'pend' | 'done'>('up');
   const rows = { up: CLASSROOM.upcoming, pend: CLASSROOM.pending, done: CLASSROOM.done }[tab];
+  const learn = useLearnSpaces();
   return (
     <Screen>
       <Row style={{ justifyContent: 'space-between', minHeight: 56 }}>
-        <Pressable accessibilityRole="button" accessibilityLabel={`Change class, current ${CLASSROOM.className}`} onPress={() => demoNote('Demo: students in more than one class will pick it here.')}
-          style={{ height: 48, borderRadius: 24, borderWidth: 1.5, borderColor: colors.line, backgroundColor: '#FFF', flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16 }}>
-          <T style={{ fontFamily: fonts.medium }}>{CLASSROOM.className}</T><Ionicons name="chevron-down" size={18} color={colors.ink} />
-        </Pressable>
+        <SpacePicker spaces={learn.spaces} selected={learn.selected} onSelect={(sp) => learn.select(sp.key)} />
         <Pressable accessibilityLabel="Profile" onPress={() => router.push(`${base}/profile` as any)}><Avatar name="Ayisha" size={52} tint={pastel.white} /></Pressable>
       </Row>
       <T v="h1" style={{ marginTop: 12 }}>My Classroom</T>
@@ -52,14 +52,8 @@ export function ClassroomScreen() {
       </View>
 
       <View style={{ marginTop: 14 }}>
-        <Grid cols={{ phone: 3, tablet: 6, desktop: 6 }} gap={8}>
-          <Tile label="Materials" icon="folder" tint={pastel.lav} href={`${base}/support`} />
-          <Tile label="Syllabus" icon="list" tint={pastel.mint} href={`${base}/support`} />
-          <Tile label="Assessment" icon="clipboard-outline" tint={pastel.butter} href={`${base}/courses`} />
-          <Tile label="Exam" icon="create-outline" tint={pastel.pink} onPress={() => demoNote('Demo: exam timetable comes in step 2.')} />
-          <Tile label="Result" icon="bar-chart-outline" tint={pastel.sky} href={`${base}/salah-report`} />
-          <Tile label="Report card" icon="ribbon-outline" tint={pastel.white} href={`${base}/salah-report`} />
-        </Grid>
+        {learn.selected ? <T v="small" style={{ marginBottom: 8 }}>Showing {learn.selected.title} · {learn.selected.subtitle}</T> : null}
+        <LearnTiles space={learn.selected} />
       </View>
     </Screen>
   );
