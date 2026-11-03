@@ -74,8 +74,9 @@ type Handler = (m: RegExpMatchArray, body: any) => unknown;
 const routes: [string, RegExp, Handler][] = [
   ['POST', /^\/auth\/login$/, (_, b) => {
     const id = String(b?.login ?? '').toLowerCase();
-    const role: Role = id.startsWith('super') ? 'super' : id.startsWith('admin') ? 'admin' : id.startsWith('teacher') ? 'teacher' : 'student';
-    me = demoUser(role, role === 'student' ? 'Ayisha' : role[0].toUpperCase() + role.slice(1));
+    const role: Role = id.startsWith('super') ? 'super' : id.startsWith('admin') ? 'admin' : id.startsWith('teacher') ? 'teacher' : id.startsWith('parent') ? 'parent' : 'student';
+    const names: Record<string, string> = { student: 'Ayisha', parent: 'Muhammed', teacher: 'Ustad Ahmed', admin: 'Office Admin', super: 'Super Admin' };
+    me = demoUser(role, names[role] ?? 'Ayisha');
     return { token: 'demo-token', user: me };
   }],
   ['POST', /^\/auth\/guest$/, (_, b) => {
