@@ -1,3 +1,3 @@
-import React from 'react';
-import { HomeScreen } from '@/screens/home';
-export default function Page() { return <HomeScreen guest />; }
+import { GuestHomeScreen } from '@/screens/guest';
+
+export default GuestHomeScreen;

@@ -1,3 +1,3 @@
-import React from 'react';
-import { StaffHome } from '@/screens/staff';
-export default function Page() { return <StaffHome role="admin" />; }
+import { AdminDashboardScreen } from '@/screens/admin';
+
+export default AdminDashboardScreen;

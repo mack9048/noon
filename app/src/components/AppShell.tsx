@@ -16,6 +16,8 @@ export interface NavItem {
   glyph?: string;
   /** Extra path prefixes that should highlight this item. */
   match?: string[];
+  /** Phone only: open this as a pop-up over the screen instead of navigating (student "More"). */
+  sheet?: (close: () => void) => React.ReactNode;
 }
 
 /**
@@ -29,6 +31,8 @@ export function AppShell({ items }: { items: NavItem[] }) {
   const path = usePathname();
   const insets = useSafeAreaInsets();
   const { user, logout } = useAuth();
+  const [sheetFor, setSheetFor] = React.useState<string | null>(null);
+  React.useEffect(() => setSheetFor(null), [path]);
 
   const isActive = (it: NavItem) =>
     [it.href, ...(it.match ?? [])].some((p) => (p === items[0].href ? path === p : path === p || path.startsWith(p + '/')));
@@ -41,14 +45,25 @@ export function AppShell({ items }: { items: NavItem[] }) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.bg }}>
         <Slot />
+        {sheetFor ? (
+          <>
+            <Pressable accessibilityLabel="Close menu" onPress={() => setSheetFor(null)} style={styles.scrim} />
+            <View accessibilityRole="menu" style={[styles.sheet, { bottom: Math.max(insets.bottom, 12) + 92 }]}>
+              {items.find((it) => it.href === sheetFor)?.sheet?.(() => setSheetFor(null))}
+            </View>
+          </>
+        ) : null}
         <View accessibilityRole="tablist" style={[styles.bottom, { bottom: Math.max(insets.bottom, 12) + 8 }]}>
           {items.map((it) => {
-            const on = isActive(it);
+            const open = sheetFor === it.href;
+            const on = open || (!sheetFor && isActive(it));
+            const shown: NavItem = open ? { ...it, label: 'Close', icon: 'close', glyph: undefined } : it;
             return (
-              <Pressable key={it.href} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => router.navigate(it.href as any)}
-                style={[styles.bottomItem, on && { backgroundColor: colors.teal }]}>
-                <NavIcon item={it} size={21} color={on ? '#FFF' : colors.muted} />
-                <Text numberOfLines={1} style={[styles.bottomLabel, { color: on ? '#FFF' : colors.muted }]}>{it.label}</Text>
+              <Pressable key={it.href} accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={open ? `Close ${it.label}` : it.label}
+                onPress={() => (it.sheet ? setSheetFor(open ? null : it.href) : router.navigate(it.href as any))}
+                style={[styles.bottomItem, on && { backgroundColor: open ? colors.ink : colors.teal }]}>
+                <NavIcon item={shown} size={21} color={on ? '#FFF' : colors.muted} />
+                <Text numberOfLines={1} style={[styles.bottomLabel, { color: on ? '#FFF' : colors.muted }]}>{shown.label}</Text>
               </Pressable>
             );
           })}
@@ -105,6 +120,8 @@ const styles = StyleSheet.create({
     position: 'absolute', left: 16, right: 16, height: 72, borderRadius: 36, backgroundColor: '#FFF',
     flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, gap: 2, maxWidth: 560, alignSelf: 'center', ...shadow.lifted,
   },
+  scrim: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: 'rgba(11,42,53,0.42)' },
+  sheet: { position: 'absolute', left: 16, right: 16, maxWidth: 560, alignSelf: 'center', borderRadius: 32, backgroundColor: colors.bg, padding: 16, gap: 12, ...shadow.lifted },
   bottomItem: { flex: 1, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', gap: 2 },
   bottomLabel: { fontFamily: fonts.medium, fontSize: 11 },
   side: { backgroundColor: '#FFF', paddingBottom: 20, borderRightWidth: 1, borderRightColor: colors.line, gap: 4 },

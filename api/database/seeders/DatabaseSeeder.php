@@ -12,7 +12,7 @@ use Illuminate\Database\Seeder;
 
 /**
  * Demo data matching the design canvas.
- * Logins (password: "password"): super@noon.test, admin@noon.test, teacher@noon.test, student@noon.test
+ * Logins (password: "password"): super@noon.test, admin@noon.test, teacher@noon.test, parent@noon.test, student@noon.test
  * Change these passwords before going live!
  */
 class DatabaseSeeder extends Seeder
@@ -56,6 +56,7 @@ class DatabaseSeeder extends Seeder
         User::create(['name' => 'Super Admin', 'email' => 'super@noon.test', 'password' => 'password', 'role' => 'super']);
         User::create(['tenant_id' => $tenant->id, 'name' => 'Office Admin', 'email' => 'admin@noon.test', 'password' => 'password', 'role' => 'admin']);
         $teacher = User::create(['tenant_id' => $tenant->id, 'name' => 'Ustad Ahmed', 'email' => 'teacher@noon.test', 'password' => 'password', 'role' => 'teacher']);
+        User::create(['tenant_id' => $tenant->id, 'name' => 'Muhammed', 'email' => 'parent@noon.test', 'password' => 'password', 'role' => 'parent']);
         $student = User::create([
             'tenant_id' => $tenant->id, 'name' => 'Ayisha', 'email' => 'student@noon.test', 'admission_no' => 'NM-0014',
             'password' => 'password', 'role' => 'student', 'board_id' => $boards[0]->id, 'class_id' => $ap5->id,

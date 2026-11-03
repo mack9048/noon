@@ -3,11 +3,11 @@ import { AppShell, NavItem } from '@/components/AppShell';
 import { RoleGate } from '@/components/RoleGate';
 
 const items: NavItem[] = [
-  { href: '/guest', label: 'Home', icon: 'home-outline' },
-  { href: '/guest/support', label: 'Madrasa', icon: 'book-outline', match: ['/guest/tools'] },
-  { href: '/guest/courses', label: 'Courses', icon: 'school-outline' },
+  { href: '/guest', label: 'Home', icon: 'home-outline', match: ['/guest/quran', '/guest/ai', '/guest/audio', '/guest/tools'] },
+  { href: '/guest/demo-classes', label: 'Madrasa', icon: 'book-outline', match: ['/guest/support'] },
+  { href: '/guest/demo-course', label: 'Courses', icon: 'school-outline', match: ['/guest/courses'] },
   { href: '/guest/games', label: 'Games', icon: 'game-controller-outline' },
-  { href: '/guest/more', label: 'More', icon: 'apps-outline', match: ['/guest/quran'] },
+  { href: '/guest/unlock', label: 'Unlock', icon: 'lock-open-outline', match: ['/guest/more'] },
 ];
 
 export default function Layout() {

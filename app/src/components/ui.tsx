@@ -26,8 +26,10 @@ export function T({ v = 'body', style, auto, children, ...rest }: TextProps & { 
 }
 
 /* ---------- Layout ---------- */
-export function Screen({ children, scroll = true, padded = true, bottomSpace = 120, style }: {
+export function Screen({ children, scroll = true, padded = true, bottomSpace = 120, style, overlay }: {
   children: React.ReactNode; scroll?: boolean; padded?: boolean; bottomSpace?: number; style?: StyleProp<ViewStyle>;
+  /** Floating content that stays put while the page scrolls (e.g. the Ask AI button). */
+  overlay?: React.ReactNode;
 }) {
   const { gutter, isPhone } = useLayout();
   const inner = (
@@ -38,6 +40,7 @@ export function Screen({ children, scroll = true, padded = true, bottomSpace = 1
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: colors.bg }}>
       {scroll ? <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: 12 }}>{inner}</ScrollView> : inner}
+      {overlay}
     </SafeAreaView>
   );
 }
