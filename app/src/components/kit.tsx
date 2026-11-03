@@ -26,9 +26,13 @@ export function Avatar({ name, size = 44, tint = colors.lav }: { name: string; s
 
 /** Rounded square with an Arabic letter or short glyph. */
 export function Glyph({ text, size = 52, tint = colors.lav }: { text: string; size?: number; tint?: Pastel }) {
+  // Shrink longer words (e.g. a surah name) so they stay inside the box. Vowel marks don't add width.
+  const letters = Math.max(1, text.replace(/[\u064B-\u0652\u0670\s]/g, '').length);
+  const fontSize = Math.min(size * 0.5, (size * 0.84) / (letters * 0.5));
   return (
-    <View style={{ width: size, height: size, borderRadius: size * 0.32, backgroundColor: tint[0], alignItems: 'center', justifyContent: 'center' }}>
-      <Text style={{ color: tint[1], fontFamily: scriptFont(text), fontSize: size * 0.5, lineHeight: size * 0.8 }}>{text}</Text>
+    <View style={{ width: size, height: size, borderRadius: size * 0.32, backgroundColor: tint[0], alignItems: 'center', justifyContent: 'center', overflow: 'hidden', paddingHorizontal: size * 0.06 }}>
+      <Text numberOfLines={1} adjustsFontSizeToFit
+        style={{ color: tint[1], fontFamily: scriptFont(text), fontSize, lineHeight: Math.max(fontSize * 1.6, size * 0.5) }}>{text}</Text>
     </View>
   );
 }
