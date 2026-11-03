@@ -7,6 +7,7 @@ const items: NavItem[] = [
   { href: '/guest/support', label: 'Madrasa', icon: 'library', match: ['/guest/tools'] },
   { href: '/guest/courses', label: 'Courses', icon: 'school' },
   { href: '/guest/games', label: 'Games', icon: 'game-controller' },
+  { href: '/guest/more', label: 'More', icon: 'grid', match: ['/guest/quran'] },
 ];
 
 export default function Layout() {

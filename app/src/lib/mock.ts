@@ -84,6 +84,11 @@ const routes: [string, RegExp, Handler][] = [
     return { token: 'demo-guest', user: me };
   }],
   ['GET', /^\/auth\/me$/, () => me],
+  ['POST', /^\/auth\/join-tenant$/, (_, b) => {
+    if (String(b?.code ?? '').trim().toUpperCase() !== 'NOON01') throw new Error('This madrasa code is not valid.');
+    me = { ...(me ?? demoUser('student', 'Guest')), role: 'student', tenant_id: 1, tenant_name: 'Noon Madrasa' };
+    return me;
+  }],
   ['POST', /^\/auth\/logout$/, () => { me = null; return {}; }],
   ['PUT', /^\/me\/learning$/, (_, b) => { if (me) Object.assign(me, { board_id: b.board_id, class_id: b.class_id }); return me; }],
 

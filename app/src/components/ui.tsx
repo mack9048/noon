@@ -88,7 +88,8 @@ export function GradientCard({ colors: g, children, style, onPress }: { colors: 
     </LinearGradient>
   );
   if (!onPress) return body;
-  return <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [shadow.lifted, pressed && { opacity: 0.9 }]}>{body}</Pressable>;
+  // The shadow wrapper is rounded like the card, so no square edges show behind it.
+  return <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [shadow.lifted, { borderRadius: radius.xl }, pressed && { opacity: 0.9 }]}>{body}</Pressable>;
 }
 
 /* ---------- Controls ---------- */

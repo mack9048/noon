@@ -79,7 +79,7 @@ export function HomeScreen({ guest = false }: { guest?: boolean }) {
       </Grid>
 
       {guest ? (
-        <Card style={{ marginTop: 16, gap: 10 }}>
+        <Card onPress={() => router.push('/guest/more' as any)} style={{ marginTop: 16, gap: 10 }}>
           <T v="h3">🔓 Join a madrasa to unlock more</T>
           <T v="small">Class chat · Attendance · Fees · Leave request · Report card</T>
         </Card>
