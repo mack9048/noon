@@ -5,7 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Button, Card, Grid, Header, Loading, Row, Screen, Segmented, T, Pill } from '@/components/ui';
 import { Field } from './auth';
 import { useApi } from '@/lib/useApi';
-import { useAuth } from '@/lib/auth';
+import { homeFor, useAuth } from '@/lib/auth';
+import { ApiError } from '@/lib/api';
 import type { Board, Course, SchoolClass } from '@/lib/types';
 import { colors, fonts } from '@/theme/tokens';
 
@@ -27,6 +28,10 @@ export function JoinScreen() {
   const [classId, setClassId] = useState<number | null>(null);
   const [picked, setPicked] = useState<number[]>([]);
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  // Shown when the parent phone already has an account: the SMS code proves it is theirs.
+  const [needOtp, setNeedOtp] = useState(false);
+  const [otp, setOtp] = useState('');
 
   const boards = useApi<Board[]>('/boards');
   const classes = useApi<SchoolClass[]>(boardId ? `/boards/${boardId}/classes` : null);
@@ -36,14 +41,23 @@ export function JoinScreen() {
   useEffect(() => { setTab(wantMadrasa ? 'madrasa' : 'course'); }, [wantMadrasa]);
 
   const finish = async () => {
-    setBusy(true);
+    setBusy(true); setErr(null);
     try {
-      await startGuest({
+      const u = await startGuest({
         name: name || 'Guest', age: Number(age) || undefined, parent_phone: phone || undefined,
+        otp: needOtp ? otp : undefined,
         board_id: wantMadrasa ? boardId : null, class_id: wantMadrasa ? classId : null,
         course_ids: wantCourses ? picked : [],
       });
-      router.replace('/guest');
+      // A verified number may belong to a madrasa account: open that app.
+      router.replace(homeFor(u.role) as any);
+    } catch (e: any) {
+      if (e instanceof ApiError && e.code === 'otp_required') {
+        setNeedOtp(true);
+        setErr(e.message);
+      } else {
+        setErr(e instanceof ApiError ? e.friendly : 'Something went wrong. Please try again.');
+      }
     } finally { setBusy(false); }
   };
 
@@ -130,7 +144,11 @@ export function JoinScreen() {
         <T v="small" style={{ textAlign: 'center' }}>
           {[wantMadrasa && chosenBoard ? `${chosenBoard.code} board${chosenClass ? ` · Class ${chosenClass.label}` : ''}` : null, wantCourses ? `${picked.length} course(s)` : null].filter(Boolean).join('  +  ')}
         </T>
-        <Button title="Start learning 🚀" kind="yellow" loading={busy} disabled={wantMadrasa && !classId && !picked.length} onPress={finish} />
+        {needOtp ? (
+          <Field label="SMS code" value={otp} onChangeText={(v) => setOtp(v.replace(/\D/g, '').slice(0, 6))} keyboardType="number-pad" placeholder="6 digits" />
+        ) : null}
+        {err ? <T style={{ color: colors.red, textAlign: 'center' }}>{err}</T> : null}
+        <Button title="Start learning 🚀" kind="yellow" loading={busy} disabled={(wantMadrasa && !classId && !picked.length) || (needOtp && otp.length !== 6)} onPress={finish} />
       </View>
     </Screen>
   );

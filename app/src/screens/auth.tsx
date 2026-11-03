@@ -5,7 +5,7 @@ import { router } from 'expo-router';
 import { Button, Card, T, Header } from '@/components/ui';
 import { Logo } from '@/components/Logo';
 import { useAuth, homeFor } from '@/lib/auth';
-import { USE_MOCK } from '@/lib/api';
+import { ApiError, USE_MOCK } from '@/lib/api';
 import { useLayout } from '@/lib/useLayout';
 import { colors, fonts, radius } from '@/theme/tokens';
 
@@ -41,14 +41,20 @@ export function LoginScreen() {
   const [pw, setPw] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  // Set when this login exists in more than one madrasa.
+  const [choices, setChoices] = useState<{ code: string; name: string }[] | null>(null);
 
-  const submit = async () => {
+  const submit = async (tenantCode?: string) => {
     setBusy(true); setErr(null);
     try {
-      const u = await login(id.trim(), pw);
+      const u = await login(id.trim(), pw, tenantCode);
       router.replace(homeFor(u.role) as any);
     } catch (e: any) {
-      setErr(e?.message ?? 'Login failed');
+      if (e instanceof ApiError && e.code === 'tenant_required') {
+        setChoices(e.body?.tenants ?? []);
+      } else {
+        setErr(e instanceof ApiError ? e.friendly : e?.message ?? 'Login failed');
+      }
     } finally { setBusy(false); }
   };
 
@@ -56,13 +62,24 @@ export function LoginScreen() {
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: colors.bg }}>
       <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24 }}>
         <View style={{ width: '100%', maxWidth: 440, alignSelf: 'center', gap: 14 }}>
-          <Header title="Madrasa login" />
-          <Card style={{ gap: 12, padding: 18 }}>
-            <Field label="Phone, email or admission no." value={id} onChangeText={setId} autoCapitalize="none" />
-            <Field label="Password" value={pw} onChangeText={setPw} secureTextEntry />
-            {err ? <T style={{ color: colors.red }}>{err}</T> : null}
-            <Button title="Log in" onPress={submit} loading={busy} disabled={!id || !pw} />
-          </Card>
+          <Header title={choices ? 'Choose your madrasa' : 'Madrasa login'} />
+          {choices ? (
+            <Card style={{ gap: 10, padding: 18 }}>
+              <T v="small">This login is used in more than one madrasa.</T>
+              {choices.map((c) => (
+                <Button key={c.code} title={c.name} kind="ghost" disabled={busy} onPress={() => submit(c.code)} />
+              ))}
+              {err ? <T style={{ color: colors.red }}>{err}</T> : null}
+              <Button title="Back" kind="ghost" onPress={() => setChoices(null)} />
+            </Card>
+          ) : (
+            <Card style={{ gap: 12, padding: 18 }}>
+              <Field label="Phone, email or admission no." value={id} onChangeText={setId} autoCapitalize="none" />
+              <Field label="Password" value={pw} onChangeText={setPw} secureTextEntry />
+              {err ? <T style={{ color: colors.red }}>{err}</T> : null}
+              <Button title="Log in" onPress={() => submit()} loading={busy} disabled={!id || !pw} />
+            </Card>
+          )}
           {USE_MOCK ? (
             <T v="small" style={{ textAlign: 'center' }}>
               Demo mode: type student / teacher / admin / super (any password) to try each app.

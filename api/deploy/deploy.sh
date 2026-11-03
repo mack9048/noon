@@ -3,9 +3,10 @@
 set -euo pipefail
 cd /var/www/noon-learn
 git pull --ff-only
-bash api/install.sh            # re-copies overlay files onto api/server
-cd api/server
-composer install --no-dev --optimize-autoloader
+cd api
+php artisan down --retry=15 || true
+trap 'php artisan up' EXIT           # always bring the API back up
+composer install --no-dev --optimize-autoloader --no-interaction
 php artisan migrate --force
 php artisan config:cache
 php artisan route:cache

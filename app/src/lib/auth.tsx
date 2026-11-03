@@ -4,6 +4,8 @@ import { storage } from './storage';
 import type { Role, User } from './types';
 
 interface GuestSignup {
+  /** SMS code, needed when the parent phone already has an account (ApiError code 'otp_required'). */
+  otp?: string;
   name: string; age?: number; parent_phone?: string;
   board_id?: number | null; class_id?: number | null; course_ids?: number[];
 }
@@ -11,7 +13,8 @@ interface GuestSignup {
 interface AuthState {
   user: User | null;
   loading: boolean;
-  login: (login: string, password: string) => Promise<User>;
+  /** Throws ApiError with code 'tenant_required' (and body.tenants) when the login exists in several madrasas. */
+  login: (login: string, password: string, tenantCode?: string) => Promise<User>;
   startGuest: (data: GuestSignup) => Promise<User>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
@@ -40,7 +43,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<AuthState>(() => ({
     user, loading, refresh,
-    login: async (login, password) => save(await api.post('/auth/login', { login, password, device_name: 'noon-app' })),
+    login: async (login, password, tenantCode) =>
+      save(await api.post('/auth/login', { login, password, tenant_code: tenantCode, device_name: 'noon-app' })),
     startGuest: async (data) => save(await api.post('/auth/guest', { ...data, device_name: 'noon-app' })),
     logout: async () => {
       try { await api.post('/auth/logout'); } catch { /* token may already be invalid */ }

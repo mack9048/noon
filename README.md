@@ -5,7 +5,7 @@ One codebase for the **Android app, iOS app and web app** (phone, tablet and des
 ```
 noon-learn/
 ├── app/   Expo (React Native + Expo Router, TypeScript)  → Play Store / App Store via EAS, Web on Vercel
-└── api/   Laravel 11 + Sanctum                           → Hostinger cloud server (VPS) + MySQL
+└── api/   Laravel 13 + Sanctum                           → Hostinger cloud server (VPS) + MySQL
 ```
 
 ```
@@ -52,16 +52,17 @@ Demo logins in mock mode: type `student`, `teacher`, `admin` or `super` (any pas
 
 ## 2. Run the API locally
 
-Needs PHP 8.2+, Composer and MySQL 8.
+Needs PHP 8.3+, Composer and MySQL 8.
 ```bash
 cd api
-bash install.sh               # creates api/server (Laravel 11 + Sanctum) and copies our code in
-cd server
-# edit .env → DB_DATABASE / DB_USERNAME / DB_PASSWORD (see .env.noon.example for the rest)
+composer install
+cp .env.example .env && php artisan key:generate   # then edit DB_* in .env
 php artisan migrate --seed
+php artisan storage:link
 php artisan serve             # http://127.0.0.1:8000/api/health
 ```
 Seeded logins (password `password`): `super@noon.test`, `admin@noon.test`, `teacher@noon.test`, `student@noon.test`. Madrasa code: `NOON01`.
+Details, tests and security notes: [`api/README.md`](api/README.md).
 
 Point the app at it: in `app/.env` set `EXPO_PUBLIC_API_URL=http://127.0.0.1:8000/api` and `EXPO_PUBLIC_USE_MOCK=0`.
 (On a real phone use your computer's LAN IP instead of 127.0.0.1.)
@@ -83,10 +84,11 @@ GRANT ALL PRIVILEGES ON noon_learn.* TO 'noon_user'@'localhost';
 ```bash
 # once
 apt install nginx php8.3-fpm php8.3-{mysql,mbstring,xml,curl,zip,gd,bcmath,intl} composer unzip supervisor certbot python3-certbot-nginx
-git clone <your repo> /var/www/noon-learn
-cd /var/www/noon-learn/api && bash install.sh
-cd server && cp .env.noon.example .env   # then fill in APP_KEY (php artisan key:generate), DB_*, CORS_*
-php artisan migrate --seed --force
+git clone https://github.com/mack9048/noon /var/www/noon-learn
+cd /var/www/noon-learn/api && composer install --no-dev --optimize-autoloader
+cp .env.example .env && php artisan key:generate   # then fill in DB_*, CORS_*, OTP_DRIVER + SMS keys; APP_ENV=production, APP_DEBUG=false
+php artisan migrate --force   # add --seed only for a demo server
+php artisan storage:link
 chown -R www-data:www-data storage bootstrap/cache
 cp ../deploy/nginx-noon-api.conf /etc/nginx/sites-available/noon-api   # edit server_name
 ln -s /etc/nginx/sites-available/noon-api /etc/nginx/sites-enabled/ && nginx -t && systemctl reload nginx
@@ -122,7 +124,7 @@ Set the production API URL in `eas.json` (`env.EXPO_PUBLIC_API_URL`).
 2. **Real-time chat** – add Laravel Reverb (`php artisan install:broadcasting`), broadcast a `MessageSent` event in `ChatController@send`; until then the app can poll.
 3. **Video/audio storage** – large files on the VPS disk work to start; move to Hostinger Object Storage / S3 (`FILESYSTEM_DISK=s3`) + a CDN when content grows.
 4. **Payments / subscriptions** for Noon Courses and tenant billing (Razorpay / Stripe) – tables `course_user.trial_ends_at` and `tenants.plan` are ready.
-5. OTP login for parents (MSG91 / Twilio) on `/auth/guest`.
+5. ~~OTP login~~ done in the API (`/auth/otp/*`, MSG91 or Twilio). The app still needs an OTP login screen.
 6. Push notifications (expo-notifications + Laravel job).
 7. Remaining screens from the design canvas: Games, Quran & Hifz, attendance, fees, report card.
 
