@@ -1,21 +1,14 @@
 import React from 'react';
-import { Text, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { colors, fonts } from '@/theme/tokens';
+import { Image } from 'react-native';
 
-/** Text logo. Swap for your PNG/SVG logo in assets/ when ready. */
-export function Logo({ compact = false, light = false }: { compact?: boolean; light?: boolean }) {
-  return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-      <LinearGradient colors={['#0B5166', '#5B43E0']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-        style={{ width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ fontFamily: fonts.arabic, fontSize: 24, color: '#FFF', marginTop: -6 }}>ن</Text>
-      </LinearGradient>
-      {!compact && (
-        <Text style={{ fontFamily: fonts.semibold, fontSize: 20, color: light ? '#FFF' : colors.ink }}>
-          Noon <Text style={{ color: light ? '#E4DDFF' : colors.violet }}>Learn</Text>
-        </Text>
-      )}
-    </View>
-  );
+const full = require('../../assets/logo.png');
+const white = require('../../assets/logo-white.png');
+const mark = require('../../assets/logo-mark.png');
+
+/** Noon Learn logo (from the UI design). `compact` shows only the diamond mark; `light` is the all-white version for dark backgrounds. */
+export function Logo({ compact = false, light = false, height = 36 }: { compact?: boolean; light?: boolean; height?: number }) {
+  if (compact) {
+    return <Image source={mark} accessibilityLabel="Noon Learn" style={{ width: height, height }} resizeMode="contain" />;
+  }
+  return <Image source={light ? white : full} accessibilityLabel="Noon Learn" style={{ width: height * (800 / 208), height }} resizeMode="contain" />;
 }

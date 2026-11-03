@@ -2,7 +2,7 @@
 // - App files (JS, CSS, fonts, icons) are cached after first use.
 // - Pages load from the network first and fall back to the cached app when offline.
 // - API calls (another domain) are never cached, so data is always fresh and private.
-const VERSION = 'noon-v2';
+const VERSION = 'noon-v3';
 const SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png'];
 
 self.addEventListener('install', (event) => {
