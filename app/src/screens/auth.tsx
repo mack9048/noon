@@ -12,6 +12,18 @@ import { colors, fonts, radius } from '@/theme/tokens';
 
 export function WelcomeScreen() {
   const { device } = useLayout();
+  const { startGuest } = useAuth();
+  const [busy, setBusy] = useState(false);
+  // No sign-up needed: start a guest session straight away (design: Guest · Welcome).
+  const explore = async () => {
+    setBusy(true);
+    try {
+      await startGuest({ name: 'Guest' });
+      router.replace('/guest' as any);
+    } catch {
+      router.push('/join');
+    } finally { setBusy(false); }
+  };
   const wide = device !== 'phone';
   return (
     <LinearGradient colors={['#0B5166', '#5B43E0', '#9B7BE8']} start={{ x: 0, y: 0 }} end={{ x: 0.6, y: 1 }} style={{ flex: 1 }}>
@@ -23,11 +35,11 @@ export function WelcomeScreen() {
               Learn Islam,{'\n'}anytime, anywhere
             </T>
             <T style={{ color: '#E4DDFF', fontSize: 16, lineHeight: 23 }}>
-              Pick your madrasa syllabus or a Noon Course and start in under a minute — no madrasa account needed.
+              Explore every feature for free — courses, madrasa classes, games, Quran and more. No sign-up needed.
             </T>
           </View>
           <View style={{ flex: wide ? 0.8 : undefined, gap: 12 }}>
-            <Button title="Start as a guest" kind="yellow" icon="arrow-forward" onPress={() => router.push('/join')} />
+            <Button title="Explore as a guest" kind="yellow" icon="arrow-forward" loading={busy} onPress={explore} />
             <Button title="I have a madrasa login" kind="ghost" onPress={() => router.push('/login')} style={{ borderColor: 'rgba(255,255,255,0.6)' }} />
           </View>
         </View>
