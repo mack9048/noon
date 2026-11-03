@@ -4,7 +4,7 @@ import { RoleGate } from '@/components/RoleGate';
 
 const items: NavItem[] = [
   { href: '/teacher', label: 'Home', icon: 'home-outline' },
-  { href: '/teacher/classes', label: 'Classes', icon: 'book-outline', match: ['/teacher/course'] },
+  { href: '/teacher/classes', label: 'Classes', icon: 'book-outline', match: ['/teacher/course', '/teacher/review', '/teacher/assess'] },
   { href: '/teacher/attendance', label: 'Attendance', icon: 'calendar-outline' },
   { href: '/teacher/chat', label: 'Chat', icon: 'chatbubble-outline' },
   { href: '/teacher/more', label: 'More', icon: 'apps-outline', match: ['/teacher/leave'] },

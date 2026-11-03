@@ -1,3 +1,3 @@
-import React from 'react';
-import { ComingSoon } from '@/screens/social';
-export default function Page() { return <ComingSoon title="Teachers & classes" />; }
+import { AdminTeachersScreen } from '@/screens/admin';
+
+export default AdminTeachersScreen;
