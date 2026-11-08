@@ -5,7 +5,8 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Logo } from '@/components/Logo';
-import { Button, Card, Grid, Header, Row, Screen, T } from '@/components/ui';
+import { TileRows } from '@/components/kit2';
+import { Button, Card, Grid, Header, IconButton, Row, Screen, T } from '@/components/ui';
 import { Chips, demoNote, Glyph, ListRow, pastel, Section, Tag } from '@/components/kit';
 import { Field } from './auth';
 import { api, ApiError } from '@/lib/api';
@@ -16,7 +17,7 @@ import { colors, fonts, gradients } from '@/theme/tokens';
 const FREE_LESSONS = 2;
 
 /* ---------- Home ---------- */
-const PLAY = [['Car with Harakath', 'car', ['#FF9A3D', '#FF5E7E']], ['Harakath Builder', 'builder', ['#8A6CFF', '#5B43E0']], ['River of Letters', 'river', ['#3CC6F0', '#1F6FE0']], ['Town Road', 'road', ['#4ED68A', '#14945A']]] as const;
+const PLAY = [['Car with Harakath', 'car', ['#FF9A3D', '#FF5E7E'], 'car-sport-outline'], ['Harakath Builder', 'builder', ['#8A6CFF', '#5B43E0'], 'extension-puzzle-outline'], ['River of Letters', 'river', ['#3CC6F0', '#1F6FE0'], 'map-outline'], ['Town Road', 'road', ['#4ED68A', '#14945A'], 'dice-outline']] as const;
 const FEATURES: [string, keyof typeof Ionicons.glyphMap, [string, string], string | null][] = [
   ['Quran & Hifz', 'book', ['#3DD9A8', '#0E7A50'], '/guest/quran'], ['Ask AI', 'sparkles', ['#7D9BFF', '#4255E0'], '/guest/ai'],
   ['Adkar', 'ellipse', ['#FFD25A', '#F08A24'], '/guest/tools/adkar'], ['Charts', 'stats-chart', ['#FFB86B', '#E8681E'], '/guest/tools/chart'],
@@ -66,33 +67,71 @@ export function GuestHomeScreen() {
       </View>
 
       <Section title="Play & learn · free" />
-      <Grid cols={{ phone: 4, tablet: 4, desktop: 4 }} gap={8}>
-        {PLAY.map(([name, key, g]) => (
+      <TileRows cols={2} gap={10}>
+        {PLAY.map(([name, key, g, icon]) => (
           <Pressable key={key} accessibilityRole="button" accessibilityLabel={`Play ${name}`} onPress={() => router.push(`/guest/games/${key}` as any)}>
-            <LinearGradient colors={g as unknown as [string, string]} style={{ height: 92, borderRadius: 20, padding: 8, justifyContent: 'space-between' }}>
-              <T style={{ color: '#FFF', fontFamily: fonts.semibold, fontSize: 11, lineHeight: 14 }}>{name}</T>
-              <T style={{ color: '#FFF', fontFamily: fonts.semibold, fontSize: 10 }}>PLAY</T>
+            <LinearGradient colors={g as unknown as [string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ height: 104, borderRadius: 22, padding: 14, overflow: 'hidden' }}>
+              <T style={{ color: '#FFF', fontFamily: fonts.fun, fontSize: 15, lineHeight: 17, maxWidth: '70%' }}>{name}</T>
+              <View style={{ marginTop: 'auto', alignSelf: 'flex-start', backgroundColor: 'rgba(255,255,255,0.25)', borderRadius: 11, paddingHorizontal: 10, height: 22, justifyContent: 'center' }}>
+                <T style={{ color: '#FFF', fontFamily: fonts.semibold, fontSize: 10 }}>PLAY</T>
+              </View>
+              <Ionicons name={icon} size={38} color="#FFF" style={{ position: 'absolute', right: 12, bottom: 12 }} />
             </LinearGradient>
           </Pressable>
         ))}
-      </Grid>
+      </TileRows>
 
       <Section title="All features" />
-      <Grid cols={{ phone: 4, tablet: 6, desktop: 6 }} gap={8}>
+      <TileRows cols={4} gap={8}>
         {FEATURES.map(([label, icon, g, href]) => (
-          <Pressable key={label} accessibilityRole="button" accessibilityLabel={href ? label : `${label}, locked for guests`} onPress={() => router.push((href ?? '/guest/unlock') as any)} style={{ alignItems: 'center', gap: 6 }}>
-            <LinearGradient colors={g} style={{ width: 60, height: 60, borderRadius: 20, alignItems: 'center', justifyContent: 'center', opacity: href ? 1 : 0.55 }}>
-              <Ionicons name={icon} size={26} color="#FFF" />
-              {!href ? <View style={{ position: 'absolute', right: -4, top: -4, width: 22, height: 22, borderRadius: 11, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' }}><Ionicons name="lock-closed" size={11} color="#FFF" /></View> : null}
-            </LinearGradient>
-            <T style={{ fontSize: 11, textAlign: 'center' }}>{label}</T>
+          <Pressable key={label} accessibilityRole="button" accessibilityLabel={href ? label : `${label}, locked for guests`} onPress={() => router.push((href ?? '/guest/unlock') as any)}
+            style={{ height: 96, borderRadius: 20, backgroundColor: '#FFF', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+            <View>
+              <LinearGradient colors={g} style={{ width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name={icon} size={22} color="#FFF" />
+              </LinearGradient>
+              {!href ? <View style={{ position: 'absolute', right: -8, top: -8, width: 20, height: 20, borderRadius: 10, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#FFF' }}><Ionicons name="lock-closed" size={9} color="#FFF" /></View> : null}
+            </View>
+            <T numberOfLines={1} style={{ fontSize: 11, fontFamily: fonts.medium }}>{label}</T>
           </Pressable>
         ))}
-      </Grid>
-      <Card tint={colors.lav[0]} onPress={() => router.push('/guest/unlock' as any)} style={{ marginTop: 12 }}>
-        <T style={{ color: colors.lav[1] }}>🔒 Chat, attendance, fees and reports open after you join a madrasa</T>
-      </Card>
+      </TileRows>
+      <Pressable accessibilityRole="link" onPress={() => router.push('/guest/unlock' as any)} style={{ marginTop: 12, flexDirection: 'row', gap: 6, alignItems: 'center', justifyContent: 'center' }}>
+        <Ionicons name="lock-closed-outline" size={13} color={colors.muted} />
+        <T v="small">Chat, attendance, fees and reports open after you join a madrasa</T>
+      </Pressable>
     </Screen>
+  );
+}
+
+
+/** Coloured top band with back button, a small title and white chips (guest demos). */
+function GuestBand({ g, kicker, children }: { g: [string, string]; kicker: string; children: React.ReactNode }) {
+  return (
+    <LinearGradient colors={g} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ marginHorizontal: -20, marginTop: -12, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 44, borderBottomLeftRadius: 32, borderBottomRightRadius: 32, overflow: 'hidden', gap: 12 }}>
+      <View style={{ position: 'absolute', right: -60, top: -60, width: 220, height: 220, borderRadius: 110, backgroundColor: 'rgba(255,255,255,0.10)' }} />
+      <Row gap={12}>
+        <IconButton name="chevron-back" label="Back" size={44} tint="rgba(255,255,255,0.2)" color="#FFF" onPress={() => (router.canGoBack() ? router.back() : router.replace('/guest' as any))} />
+        <T style={{ color: '#FFF', fontFamily: fonts.semibold, fontSize: 13, flex: 1 }}>{kicker}</T>
+      </Row>
+      {children}
+    </LinearGradient>
+  );
+}
+
+function BandChips<K extends string>({ options, value, onChange, dark }: { options: { key: K; label: string }[]; value: K; onChange: (k: K) => void; dark?: boolean }) {
+  return (
+    <Row gap={8} style={{ flexWrap: 'wrap' }}>
+      {options.map((o) => {
+        const on = o.key === value;
+        return (
+          <Pressable key={o.key} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => onChange(o.key)}
+            style={{ height: 36, paddingHorizontal: 14, borderRadius: 18, justifyContent: 'center', backgroundColor: on ? (dark ? colors.ink : '#FFF') : 'rgba(255,255,255,0.18)' }}>
+            <T style={{ fontFamily: fonts.semibold, fontSize: 13, color: on ? (dark ? '#FFF' : colors.ink) : '#FFF' }}>{o.label}</T>
+          </Pressable>
+        );
+      })}
+    </Row>
   );
 }
 
@@ -126,22 +165,32 @@ export function GuestClassesDemoScreen() {
   const [locked, setLocked] = useState(false);
   const lessons = DEMO_SUBJECTS[subject];
   return (
-    <Screen>
-      <Header title="Madrasa classes" subtitle="Free demo · 2 lessons per subject" />
-      <Chips value={board} onChange={setBoard} options={[{ key: 'AP', label: 'AP board' }, { key: 'EK', label: 'EK board' }, { key: 'GEN', label: 'General' }]} />
-      <Row gap={6} style={{ flexWrap: 'wrap' }}>
-        {['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '+1', '+2'].map((c) => (
-          <Pressable key={c} accessibilityLabel={`Class ${c}`} accessibilityState={{ selected: cls === c }} onPress={() => setCls(c)}
-            style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: cls === c ? colors.teal : '#FFF', borderWidth: 1.5, borderColor: cls === c ? colors.teal : colors.line, alignItems: 'center', justifyContent: 'center' }}>
-            <T style={{ color: cls === c ? '#FFF' : colors.ink, fontFamily: fonts.medium }}>{c}</T>
-          </Pressable>
-        ))}
-      </Row>
-      <Chips value={subject} onChange={(s) => { setSubject(s); setPlaying(null); setLocked(false); }} options={Object.keys(DEMO_SUBJECTS).map((k) => ({ key: k, label: k }))} />
-      <Grid cols={{ phone: 2, tablet: 2, desktop: 2 }} gap={8}>
-        <ListRow left={<T style={{ fontSize: 22 }}>📘</T>} title="Textbook" sub="First 4 pages free" onPress={() => demoNote('Demo: the textbook PDF opens here.')} />
-        <ListRow left={<T style={{ fontSize: 22 }}>📝</T>} title="Class notes" sub="Lesson 1–2 free" onPress={() => demoNote('Demo: class notes open here.')} />
-      </Grid>
+    <Screen bar={false}>
+      <GuestBand g={['#0B5166', '#1F8AA8']} kicker="Free demo · 2 lessons per subject">
+        <T style={{ color: '#FFF', fontFamily: fonts.fun, fontSize: 28, marginTop: -4 }}>Madrasa classes</T>
+        <BandChips value={board} onChange={setBoard} options={[{ key: 'AP', label: 'AP board' }, { key: 'EK', label: 'EK board' }, { key: 'GEN', label: 'General' }]} />
+        <Row gap={6} style={{ flexWrap: 'wrap' }}>
+          {['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '+1', '+2'].map((c) => (
+            <Pressable key={c} accessibilityLabel={`Class ${c}`} accessibilityState={{ selected: cls === c }} onPress={() => setCls(c)}
+              style={{ width: 42, height: 42, borderRadius: 14, backgroundColor: cls === c ? colors.yellow : 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' }}>
+              <T style={{ fontFamily: fonts.semibold, color: cls === c ? '#2A1E00' : '#FFF' }}>{c}</T>
+            </Pressable>
+          ))}
+        </Row>
+        <BandChips dark value={subject} onChange={(s) => { setSubject(s); setPlaying(null); setLocked(false); }} options={Object.keys(DEMO_SUBJECTS).map((k) => ({ key: k, label: k }))} />
+      </GuestBand>
+      <View style={{ marginTop: -26, marginBottom: 10 }}>
+        <TileRows cols={2} gap={10}>
+          <Card tint={colors.butter[0]} onPress={() => demoNote('Demo: the textbook PDF opens here.')} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12 }}>
+            <Ionicons name="book-outline" size={22} color={colors.butter[1]} />
+            <View style={{ flex: 1 }}><T style={{ fontFamily: fonts.semibold, color: colors.butter[1] }}>Textbook</T><T v="small" style={{ color: colors.butter[1] }}>First 4 pages free</T></View>
+          </Card>
+          <Card tint={colors.pink[0]} onPress={() => demoNote('Demo: class notes open here.')} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12 }}>
+            <Ionicons name="document-text-outline" size={22} color={colors.pink[1]} />
+            <View style={{ flex: 1 }}><T style={{ fontFamily: fonts.semibold, color: colors.pink[1] }}>Class notes</T><T v="small" style={{ color: colors.pink[1] }}>Lesson 1–2 free</T></View>
+          </Card>
+        </TileRows>
+      </View>
       {playing !== null ? (
         <Card tint={colors.mint[0]} style={{ marginTop: 6, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <View style={{ flex: 1 }}><T v="small" style={{ color: colors.mint[1] }}>NOW PLAYING · FREE DEMO</T><T v="h3">{lessons[playing]}</T></View>
@@ -181,16 +230,15 @@ export function GuestCourseDemoScreen() {
   ] as const;
   const icon: Record<string, keyof typeof Ionicons.glyphMap> = { video: 'play', audio: 'musical-notes', live: 'videocam', pdf: 'document-text', test: 'checkbox' };
   return (
-    <Screen>
-      <Header title="Course demo" subtitle="Noon Courses · free demo" />
-      <Chips value={String(c)} onChange={(k) => { setC(+k); setLocked(false); }} options={DEMO_COURSES.map(([s], i) => ({ key: String(i), label: s }))} />
-      <Card tint={tint[0]} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-        <Glyph text={glyph} size={60} tint={pastel.white} />
-        <View style={{ flex: 1 }}><T v="h2">{title}</T><T v="small">{teacher} · {short}</T></View>
-      </Card>
-      <Card tint={colors.butter[0]} style={{ marginTop: 10 }}>
-        <T v="h3" style={{ color: colors.butter[1] }}>🎬 Try 2 lessons free</T>
-        <T v="small" style={{ color: colors.butter[1] }}>Live classes, notes and tests open after you unlock</T>
+    <Screen bar={false}>
+      <GuestBand g={['#5B43E0', '#9B7BE8']} kicker="NOON COURSES · FREE DEMO">
+        <BandChips value={String(c)} onChange={(k) => { setC(+k); setLocked(false); }} options={DEMO_COURSES.map(([s], i) => ({ key: String(i), label: s }))} />
+        <T style={{ position: 'absolute', right: 20, bottom: 18, fontFamily: fonts.arabic, fontSize: 90, color: 'rgba(255,255,255,0.18)' }}>{glyph}</T>
+        <View><T style={{ color: '#FFF', fontFamily: fonts.fun, fontSize: 28 }}>{title}</T><T style={{ color: '#EDE7FF' }}>{teacher} · {short}</T></View>
+      </GuestBand>
+      <Card style={{ marginTop: -26, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        <Ionicons name="film-outline" size={24} color={colors.ink} />
+        <View style={{ flex: 1 }}><T v="h3">Try 2 lessons free</T><T v="small">Live classes, notes and tests open after you unlock</T></View>
       </Card>
       <View style={{ gap: 8, marginTop: 10 }}>
         {items.map(([kind, t, meta, free]) => (
@@ -233,12 +281,12 @@ export function UnlockScreen() {
     } finally { setBusy(false); }
   };
   return (
-    <Screen>
-      <View style={{ alignItems: 'center', marginTop: 12, gap: 4 }}>
-        <T style={{ fontSize: 44 }}>🔓</T>
-        <T style={{ fontSize: 22, fontFamily: fonts.light }}>Unlock all of</T>
-        <T v="fun">Noon Learn</T>
-        <T v="small" style={{ textAlign: 'center' }}>Every class, lesson, live class, note and test. Your demo progress is kept.</T>
+    <Screen bar={false}>
+      <IconButton name="close" label="Close" size={48} onPress={() => (router.canGoBack() ? router.back() : router.replace('/guest' as any))} />
+      <View style={{ marginTop: 16, gap: 4 }}>
+        <Ionicons name="lock-open-outline" size={48} color={colors.ink} />
+        <T style={{ fontFamily: fonts.fun, fontSize: 30, lineHeight: 34, marginTop: 8 }}>Unlock all of{'\n'}Noon Learn</T>
+        <T v="small">Every class, lesson, live class, note and test. Your demo progress is kept.</T>
       </View>
       <View style={{ gap: 10, marginTop: 16 }}>
         {options.map(([k, icon, bg, title, desc]) => (

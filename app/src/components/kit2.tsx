@@ -8,6 +8,7 @@ import { router, usePathname } from 'expo-router';
 import { IconButton, Row, T, goBack } from './ui';
 import { Logo } from './Logo';
 import { colors, fonts, radius } from '@/theme/tokens';
+import { useLayout } from '@/lib/useLayout';
 import type { IconName } from './kit';
 
 /** Gradient pairs used by the icon chips in the designs. */
@@ -299,8 +300,12 @@ export function MiniStat({ value, label, tint }: { value: string | number; label
 
 /** Fixed bottom bar with one or two buttons, passed to Screen's overlay. */
 export function BottomActions({ children }: { children: React.ReactNode }) {
+  const { isPhone } = useLayout();
+  const path = usePathname();
+  // On phones the tab bar sits at the bottom, so the buttons float just above it (public pages have no tab bar).
+  const bottom = isPhone && !path.startsWith('/apply') ? 100 : 16;
   return (
-    <View style={{ position: 'absolute', left: 16, right: 16, bottom: 16, flexDirection: 'row', gap: 10, maxWidth: 560, alignSelf: 'center' }}>{children}</View>
+    <View style={{ position: 'absolute', left: 16, right: 16, bottom, flexDirection: 'row', gap: 10, maxWidth: 560, alignSelf: 'center' }}>{children}</View>
   );
 }
 

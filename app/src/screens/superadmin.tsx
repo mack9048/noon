@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Pressable, Switch, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Button, Card, Grid, Header, Row, Screen, Segmented, T } from '@/components/ui';
 import { Avatar, Band, Chips, demoNote, Glyph, ListRow, pastel, Progress, Section, SmallButton, Stat, Tabs, Tag } from '@/components/kit';
@@ -14,9 +15,13 @@ export function SuperOverviewScreen() {
   return (
     <Screen>
       <Row style={{ justifyContent: 'space-between' }}>
-        <View><T v="small">Super admin</T><T v="h1">Platform overview</T></View>
+        <View style={{ flex: 1 }}><T v="small">Super admin</T><T v="h1">Overview</T></View>
         <Pressable accessibilityLabel="Notifications, 5 new" style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: '#FFF', alignItems: 'center', justifyContent: 'center' }}>
           <Ionicons name="notifications-outline" size={22} color={colors.ink} /><View style={{ position: 'absolute', top: 10, right: 12, width: 9, height: 9, borderRadius: 5, backgroundColor: '#D6336C' }} />
+        </Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="My profile" onPress={() => router.push('/super/profile' as any)}
+          style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: colors.sky[0], alignItems: 'center', justifyContent: 'center', marginLeft: 8 }}>
+          <T style={{ fontFamily: fonts.semibold, color: colors.sky[1] }}>SR</T>
         </Pressable>
       </Row>
       <View style={{ marginTop: 14 }}>
@@ -27,6 +32,13 @@ export function SuperOverviewScreen() {
           <Pressable onPress={() => router.push('/super/billing' as any)}><Stat label="Monthly revenue" value="₹4.2L" tint={pastel.pink} /></Pressable>
         </Grid>
       </View>
+      <Pressable accessibilityRole="button" onPress={() => router.push('/super/games' as any)} style={{ marginTop: 10 }}>
+        <LinearGradient colors={['#6B4BF0', '#C2307E']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ height: 64, borderRadius: 22, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' }}><Ionicons name="game-controller-outline" size={20} color="#FFF" /></View>
+          <View style={{ flex: 1 }}><T style={{ color: '#FFF', fontFamily: fonts.semibold }}>Games & puzzles</T><T style={{ color: '#F3E8FF', fontSize: 12 }}>24 live · create with AI or upload HTML</T></View>
+          <Ionicons name="chevron-forward" size={20} color="#FFF" />
+        </LinearGradient>
+      </Pressable>
       <Section title="New tenants" action="Last 6 months" />
       <View accessibilityLabel="New tenants per month: June 2, July 4, August 3, September 6, October 5, November 3 so far" style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8, height: 120 }}>
         {NEW_TENANTS.map(([m, v], i) => (

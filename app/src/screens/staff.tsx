@@ -8,6 +8,7 @@ import { Field } from './auth';
 import { api, USE_MOCK } from '@/lib/api';
 import { useApi } from '@/lib/useApi';
 import { useAuth } from '@/lib/auth';
+import { useApprovals } from '@/lib/approvals';
 import type { Course, CourseDetail, StudyTool, ToolType } from '@/lib/types';
 import { colors, ContentKind, fonts, gradients, scriptFont } from '@/theme/tokens';
 
@@ -123,7 +124,11 @@ export function AdminCoursesScreen() {
   };
   return (
     <Screen>
-      <Header title="Noon Courses" subtitle="Turn on courses for your madrasa" back={false} />
+      <Header title="Noon Courses" subtitle="Turn on courses · or create your own" back={false} right={(
+        <Pressable accessibilityRole="button" onPress={() => router.push('/admin/courses/new' as any)} style={{ height: 42, paddingHorizontal: 14, borderRadius: 21, backgroundColor: colors.ink, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Ionicons name="add" size={16} color="#FFF" /><T style={{ color: '#FFF', fontFamily: fonts.semibold, fontSize: 13 }}>Create</T>
+        </Pressable>
+      )} />
       {list.loading ? <Loading /> : (
         <Grid cols={{ phone: 1, tablet: 2, desktop: 3 }}>
           {(list.data ?? []).map((c) => (
@@ -142,6 +147,7 @@ export function AdminCoursesScreen() {
 /* ================= Super admin: course CRUD ================= */
 
 export function SuperCoursesScreen() {
+  const waiting = useApprovals().filter((c) => c.status === 'waiting').length;
   const list = useApi<(Course & { items_count?: number })[]>('/super/courses');
   const [tab, setTab] = useState<'all' | 'published' | 'draft'>('all');
   const [confirm, setConfirm] = useState<number | null>(null);
@@ -149,7 +155,10 @@ export function SuperCoursesScreen() {
   const remove = async (id: number) => { await api.del(`/super/courses/${id}`); setConfirm(null); list.reload(); };
   return (
     <Screen>
-      <Header title="Courses" back={false} right={<Button title="New" icon="add" onPress={() => router.push('/super/courses/new')} style={{ height: 46 }} />} />
+      <Header title="Noon Courses" back={false} right={<Button title="New" icon="add" onPress={() => router.push('/super/courses/new')} style={{ height: 46 }} />} />
+      <Pressable accessibilityRole="link" onPress={() => router.push('/super/approvals' as any)} style={{ marginTop: -8, marginBottom: 8 }}>
+        <T style={{ color: colors.red, fontFamily: fonts.semibold, fontSize: 13 }}>● {waiting} course{waiting === 1 ? '' : 's'} waiting approval →</T>
+      </Pressable>
       <Segmented value={tab} onChange={setTab} options={[{ key: 'all', label: 'All' }, { key: 'published', label: 'Published' }, { key: 'draft', label: 'Drafts' }]} />
       <View style={{ marginTop: 12 }}>
         {list.loading ? <Loading /> : (

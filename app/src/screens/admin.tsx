@@ -4,6 +4,7 @@ import { Pressable, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Button, Card, Grid, Header, Row, Screen, Segmented, T } from '@/components/ui';
+import { useApplications } from '@/lib/admissions';
 import { Avatar, Chips, demoNote, ListRow, pastel, Progress, Section, SmallButton, Stat, Tabs, Tag } from '@/components/kit';
 import { colors, fonts } from '@/theme/tokens';
 
@@ -21,19 +22,24 @@ const RoundAdd = ({ label, onPress }: { label: string; onPress: () => void }) =>
 const WEEK = [['Tue', 86], ['Wed', 89], ['Thu', 84], ['Fri', 80], ['Sat', 90], ['Sun', 87], ['Mon', 91]] as const;
 
 export function AdminDashboardScreen() {
+  const apps = useApplications();
   return (
     <Screen>
       <Row style={{ justifyContent: 'space-between' }}>
-        <View><T v="small">Institute admin</T><T v="h1">Assalamu alaikum</T></View>
-        <Pressable accessibilityLabel="Notifications, 4 new" style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: '#FFF', alignItems: 'center', justifyContent: 'center' }}>
+        <View style={{ flex: 1 }}><T v="small">Institute admin</T><T v="h1">Assalamu alaikum</T></View>
+        <Pressable accessibilityLabel="Notifications, 4 new" onPress={() => demoNote('Demo: admin notifications show here.')} style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: '#FFF', alignItems: 'center', justifyContent: 'center' }}>
           <Ionicons name="notifications-outline" size={22} color={colors.ink} /><View style={{ position: 'absolute', top: 10, right: 12, width: 9, height: 9, borderRadius: 5, backgroundColor: '#D6336C' }} />
+        </Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="My profile" onPress={() => router.push('/admin/profile' as any)}
+          style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: colors.lav[0], alignItems: 'center', justifyContent: 'center', marginLeft: 8 }}>
+          <T style={{ fontFamily: fonts.semibold, color: colors.lav[1] }}>AK</T>
         </Pressable>
       </Row>
       <View style={{ marginTop: 14 }}>
         <Grid cols={{ phone: 3, tablet: 3, desktop: 3 }} gap={8}>
           <Pressable onPress={() => router.push('/admin/students' as any)}><Stat label="Students" value={312} tint={pastel.lav} /></Pressable>
           <Pressable onPress={() => router.push('/admin/teachers' as any)}><Stat label="Teachers" value={18} tint={pastel.sky} /></Pressable>
-          <Pressable onPress={() => router.push('/admin/teachers' as any)}><Stat label="Classes" value={24} tint={pastel.mint} /></Pressable>
+          <Pressable accessibilityRole="button" onPress={() => router.push('/admin/admissions' as any)}><Stat label="Admissions" value={`${apps.filter((a) => a.status === 'new').length} new`} tint={pastel.mint} /></Pressable>
         </Grid>
       </View>
       <Section title="Attendance" action="Full report →" onAction={() => router.push('/admin/attendance' as any)} />

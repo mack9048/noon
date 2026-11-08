@@ -1,3 +1,1 @@
-import { AdminTeachersScreen } from '@/screens/admin';
-
-export default AdminTeachersScreen;
+export { TeachersClassesScreen as default } from '@/screens/admin2';

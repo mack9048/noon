@@ -95,14 +95,22 @@ export const TEACHER_MORE: MoreLink[] = [
   ['Leave', '/teacher/leave', 'calendar-outline', colors.lav],
 ];
 export const ADMIN_MORE: MoreLink[] = [
-  ['Attendance', '/admin/attendance', 'stats-chart-outline', colors.mint],
-  ['Bulk add', '/admin/bulk', 'cloud-upload-outline', colors.sky],
+  ['Admissions', '/admin/admissions', 'person-add-outline', colors.mint],
+  ['Batches', '/admin/batches', 'people-outline', colors.sky],
   ['Courses', '/admin/courses', 'school-outline', colors.lav],
-  ['Leave', '/admin/leave', 'calendar-outline', colors.butter],
+  ['Attendance', '/admin/attendance', 'stats-chart-outline', colors.butter],
+  ['Bulk add', '/admin/bulk', 'cloud-upload-outline', colors.pink],
+  ['Leave', '/admin/leave', 'calendar-outline', colors.sky],
+  ['Profile', '/admin/profile', 'person-circle-outline', colors.lav],
+  ['Settings', '/admin/settings', 'settings-outline', colors.mint],
 ];
 export const SUPER_MORE: MoreLink[] = [
   ['Courses', '/super/courses', 'school-outline', colors.lav],
+  ['Approvals', '/super/approvals', 'checkmark-done-outline', colors.mint],
+  ['Games', '/super/games', 'game-controller-outline', colors.pink],
   ['Study tools', '/super/tools', 'document-text-outline', colors.butter],
+  ['Profile', '/super/profile', 'person-circle-outline', colors.sky],
+  ['Settings', '/super/settings', 'settings-outline', colors.lav],
 ];
 
 /**

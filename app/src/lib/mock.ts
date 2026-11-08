@@ -182,6 +182,11 @@ const routes: [string, RegExp, Handler][] = [
   ['GET', /^\/leave-requests$/, () => leave],
   ['POST', /^\/leave-requests$/, (_, b) => { const r = { id: nextId++, type: b.type, start_date: b.start_date, end_date: b.end_date, reason: b.reason, status: 'pending' as const }; leave.requests.unshift(r); return r; }],
 
+  ['POST', /^\/staff\/assessments$/, (_, b) => {
+    if (!b?.title || !(b.subject_id || b.course_id)) throw new Error('Give the test a name and a subject.');
+    return { id: nextId++, ...b, tenant_id: 1 };
+  }],
+  ['POST', /^\/staff\/assessments\/(\d+)\/results$/, (_, b) => ({ saved: (b?.results ?? []).length })],
   ['GET', /^\/staff\/leave-requests$/, () => [
     { id: 91, student_name: 'Rayan Ahmed', type: 'Sick leave', start_date: '2026-11-05', end_date: '2026-11-06', reason: 'Fever', status: 'pending' },
     { id: 92, student_name: 'Fathima N', type: 'Family function', start_date: '2026-11-10', end_date: '2026-11-10', reason: 'Wedding', status: 'approved' },

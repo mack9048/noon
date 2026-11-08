@@ -1,7 +1,4 @@
-import React from 'react';
-import { MorePage, TEACHER_MORE } from '@/screens/more';
+import { Redirect } from 'expo-router';
 
-/** Tablet / desktop: More opens as a page. On phones the tab bar shows it as a pop-up instead. */
-export default function Page() {
-  return <MorePage links={TEACHER_MORE} logout />;
-}
+/** The old More tab is now Tests; its links live on the profile page. */
+export default function More() { return <Redirect href="/teacher/profile" />; }

@@ -23,6 +23,10 @@ export function TeacherHomeScreen() {
           <Ionicons name="notifications-outline" size={22} color={colors.ink} />
           <View style={{ position: 'absolute', top: 10, right: 12, width: 9, height: 9, borderRadius: 5, backgroundColor: '#D6336C' }} />
         </Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="My profile" onPress={() => router.push('/teacher/profile' as any)}
+          style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: colors.lav[0], alignItems: 'center', justifyContent: 'center', marginLeft: 8 }}>
+          <T style={{ fontFamily: fonts.semibold, color: colors.lav[1] }}>{(user?.name ?? 'Ustad Ahmed').split(' ').map((w) => w[0]).slice(0, 2).join('')}</T>
+        </Pressable>
       </Row>
       <Row style={{ justifyContent: 'space-between', marginTop: 14 }}>
         <T v="small">Monday, 2 Nov</T>
