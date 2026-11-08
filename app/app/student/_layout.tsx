@@ -1,18 +1,15 @@
 import React from 'react';
 import { AppShell, NavItem } from '@/components/AppShell';
 import { RoleGate } from '@/components/RoleGate';
-import { StudentMoreMenu } from '@/screens/more';
 
+// Design: Classroom · Campus · Chat · Profile · Explore (Campus is the home page).
 const items: NavItem[] = [
-  { href: '/student', label: 'Home', icon: 'home-outline' },
-  { href: '/student/classroom', label: 'Classroom', icon: 'book-outline', match: ['/student/learn', '/student/salah-report', '/student/report-pdf'] },
+  { href: '/student/classroom', label: 'Classroom', icon: 'book-outline', match: ['/student/learn', '/student/class-done', '/student/live'] },
+  { href: '/student', label: 'Campus', icon: 'business-outline', match: ['/student/courses', '/student/support', '/student/noon-buds', '/student/ai'] },
   { href: '/student/chat', label: 'Chat', icon: 'chatbubble-outline' },
-  { href: '/student/games', label: 'Games', icon: 'game-controller-outline' },
-  {
-    href: '/student/more', label: 'More', icon: 'apps-outline',
-    match: ['/student/leave', '/student/profile', '/student/fees', '/student/attendance', '/student/audio', '/student/settings', '/student/help'],
-    sheet: (close) => <StudentMoreMenu onNavigate={close} />,
-  },
+  { href: '/student/profile', label: 'Profile', icon: 'person-outline',
+    match: ['/student/bio', '/student/performance', '/student/attendance', '/student/fees', '/student/settings', '/student/help', '/student/leave', '/student/salah-report', '/student/report-pdf'] },
+  { href: '/student/explore', label: 'Explore', icon: 'grid-outline', match: ['/student/games', '/student/audio', '/student/quran', '/student/tools', '/student/more'] },
 ];
 
 export default function Layout() {

@@ -1,3 +1,1 @@
-import { ClassroomScreen } from '@/screens/student';
-
-export default ClassroomScreen;
+export { ClassroomScreen as default } from '@/screens/student2';

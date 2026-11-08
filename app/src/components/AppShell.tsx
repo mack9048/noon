@@ -36,7 +36,7 @@ export function AppShell({ items }: { items: NavItem[] }) {
   React.useEffect(() => setSheetFor(null), [path]);
 
   const isActive = (it: NavItem) =>
-    [it.href, ...(it.match ?? [])].some((p) => (p === items[0].href ? path === p : path === p || path.startsWith(p + '/')));
+    [it.href, ...(it.match ?? [])].some((p) => (/^\/[a-z]+$/.test(p) ? path === p : path === p || path.startsWith(p + '/'))); // a role's home (/student) matches only itself
 
   // Full-screen routes (chat thread on phones, live class everywhere) hide the navigation.
   const fullScreen = /\/live\/[^/]+$/.test(path) || (device === 'phone' && /\/chat\/[^/]+$/.test(path));

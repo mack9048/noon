@@ -6,6 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Card, Grid, Header, IconButton, Loading, Pill, Row, Screen, Segmented, T } from '@/components/ui';
 import { Field } from './auth';
+import { Chips, demoNote } from '@/components/kit';
 import { api } from '@/lib/api';
 import { useApi } from '@/lib/useApi';
 import { useBase } from '@/lib/useBase';
@@ -21,15 +22,42 @@ export function ChatListScreen() {
   const base = useBase();
   const { device } = useLayout();
   const list = useApi<Conversation[]>('/conversations');
-  const [filter, setFilter] = useState<'all' | 'unread' | 'group'>('all');
+  const [filter, setFilter] = useState<'all' | 'unread' | 'group' | 'teacher' | 'office'>('all');
+  const [tab, setTab] = useState<'chats' | 'status' | 'calls'>('chats');
+  const [q, setQ] = useState('');
   const [openId, setOpenId] = useState<number | null>(null);
-  const rows = (list.data ?? []).filter((c) => filter === 'all' || (filter === 'unread' ? c.unread > 0 : c.kind === 'group'));
+  const unreadChats = (list.data ?? []).filter((c) => c.unread > 0).length;
+  const rows = (list.data ?? [])
+    .filter((c) => filter === 'all' || (filter === 'unread' ? c.unread > 0 : filter === 'group' ? c.kind === 'group' : filter === 'office' ? c.kind === 'office' : c.role_label === 'Teacher'))
+    .filter((c) => !q.trim() || `${c.title} ${c.last_message}`.toLowerCase().includes(q.trim().toLowerCase()));
 
   const listView = (
     <View style={{ flex: 1 }}>
-      <Header title="Chats" back={false} />
-      <Segmented value={filter} onChange={setFilter} activeColor={colors.green} options={[{ key: 'all', label: 'All' }, { key: 'unread', label: 'Unread' }, { key: 'group', label: 'Groups' }]} />
-      <Card style={{ marginTop: 12, padding: 0 }}>
+      <Header title="Chats" back={false} right={(
+        <Row gap={8}>
+          <IconButton name="camera-outline" label="Camera" size={44} onPress={() => demoNote('Demo: share a photo of your work with your teacher.')} />
+          <IconButton name="ellipsis-vertical" label="More options" size={44} onPress={() => demoNote('Demo: chat settings.')} />
+        </Row>
+      )} />
+      <Segmented value={tab} onChange={setTab} activeColor={colors.ink}
+        options={[{ key: 'chats', label: unreadChats ? `Chats · ${unreadChats}` : 'Chats' }, { key: 'status', label: 'Status' }, { key: 'calls', label: 'Calls' }]} />
+      {tab === 'chats' ? (
+        <>
+          <View style={{ marginTop: 10, height: 48, borderRadius: 24, backgroundColor: '#FFF', borderWidth: 1.5, borderColor: colors.line, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, gap: 8 }}>
+            <Ionicons name="search" size={18} color={colors.muted} />
+            <TextInput accessibilityLabel="Search chats" value={q} onChangeText={setQ} placeholder="Search chats, groups, teachers" placeholderTextColor={colors.faint}
+              style={{ flex: 1, fontFamily: fonts.regular, fontSize: 14, color: colors.ink }} />
+          </View>
+          <Chips value={filter} onChange={setFilter} options={[{ key: 'all', label: 'All' }, { key: 'unread', label: 'Unread' }, { key: 'group', label: 'Groups' }, { key: 'teacher', label: 'Teachers' }, { key: 'office', label: 'Office' }]} />
+        </>
+      ) : null}
+      {tab !== 'chats' ? (
+        <Card style={{ marginTop: 12, alignItems: 'center', gap: 8, paddingVertical: 30 }}>
+          <Ionicons name={tab === 'status' ? 'aperture-outline' : 'call-outline'} size={34} color={colors.muted} />
+          <T v="small">{tab === 'status' ? 'Class updates and notices from your madrasa show here.' : 'Your voice and video calls with teachers show here.'}</T>
+        </Card>
+      ) : null}
+      {tab === 'chats' ? <Card style={{ marginTop: 4, padding: 0 }}>
         {list.loading ? <Loading /> : rows.map((c) => {
           const tint = roleTint[c.role_label] ?? colors.sky;
           return (
@@ -49,7 +77,8 @@ export function ChatListScreen() {
             </Pressable>
           );
         })}
-      </Card>
+        {!list.loading && !rows.length ? <T v="small" style={{ padding: 20, textAlign: 'center' }}>No chats found.</T> : null}
+      </Card> : null}
     </View>
   );
 
@@ -64,7 +93,14 @@ export function ChatListScreen() {
       </Screen>
     );
   }
-  return <Screen>{listView}</Screen>;
+  return (
+    <Screen overlay={(
+      <Pressable accessibilityRole="button" accessibilityLabel="New chat" onPress={() => demoNote('Demo: start a chat with a teacher or the office.')}
+        style={{ position: 'absolute', right: 16, bottom: 104, width: 60, height: 60, borderRadius: 22, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' }}>
+        <Ionicons name="chatbubble-ellipses-outline" size={24} color="#FFF" />
+      </Pressable>
+    )}>{listView}</Screen>
+  );
 }
 
 export function ChatRoomScreen() {
@@ -75,6 +111,9 @@ export function ChatRoomScreen() {
 function ChatThread({ id, embedded = false }: { id: number; embedded?: boolean }) {
   const base = useBase();
   const msgs = useApi<Message[]>(`/conversations/${id}/messages`);
+  const convs = useApi<Conversation[]>('/conversations');
+  const conv = convs.data?.find((c) => c.id === Number(id));
+  const tint = roleTint[conv?.role_label ?? ''] ?? colors.sky;
   const [text, setText] = useState('');
   const send = async (body: string) => {
     if (!body.trim()) return;
@@ -86,7 +125,13 @@ function ChatThread({ id, embedded = false }: { id: number; embedded?: boolean }
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
       <Row gap={8} style={{ backgroundColor: '#FFF', padding: 10 }}>
         {!embedded ? <IconButton name="chevron-back" label="Back" onPress={() => router.back()} size={40} /> : null}
-        <T v="h3" style={{ flex: 1 }}>Conversation</T>
+        <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: tint[0], alignItems: 'center', justifyContent: 'center' }}>
+          <T style={{ fontFamily: fonts.semibold, color: tint[1] }}>{(conv?.title ?? 'C').split(' ').map((w) => w[0]).slice(0, 2).join('')}</T>
+        </View>
+        <View style={{ flex: 1 }}>
+          <T v="h3" numberOfLines={1}>{conv?.title ?? 'Conversation'}</T>
+          <T v="small" style={{ color: colors.green }}>{conv?.role_label ?? ''}</T>
+        </View>
         <IconButton name="videocam-outline" label="Video call" size={40} color={colors.teal} onPress={() => router.push(`${base}/live/0` as any)} />
         <IconButton name="call-outline" label="Voice call" size={40} color={colors.teal} />
       </Row>
@@ -94,6 +139,14 @@ function ChatThread({ id, embedded = false }: { id: number; embedded?: boolean }
         data={msgs.data ?? []}
         keyExtractor={(m) => String(m.id)}
         contentContainerStyle={{ padding: 12, gap: 6 }}
+        ListHeaderComponent={(
+          <View style={{ alignItems: 'center', gap: 8, marginBottom: 6 }}>
+            <View style={{ backgroundColor: '#FFF', borderRadius: 12, paddingHorizontal: 12, height: 26, justifyContent: 'center' }}><T v="small" style={{ fontFamily: fonts.semibold }}>TODAY</T></View>
+            <View style={{ backgroundColor: '#FFF4CC', borderRadius: 14, paddingHorizontal: 12, paddingVertical: 6, maxWidth: 320 }}>
+              <T v="small" style={{ textAlign: 'center', color: '#6A4D00' }}>🔒 Safe chat — only your madrasa's teachers, staff and parents can message you.</T>
+            </View>
+          </View>
+        )}
         renderItem={({ item: m }) => (
           <View style={{ alignSelf: m.mine ? 'flex-end' : 'flex-start', maxWidth: '78%', backgroundColor: m.mine ? '#DCEBFF' : '#FFF', borderRadius: 16, borderTopRightRadius: m.mine ? 4 : 16, borderTopLeftRadius: m.mine ? 16 : 4, paddingHorizontal: 10, paddingVertical: 6 }}>
             {m.kind === 'file' ? <Row><Ionicons name="document" size={22} color="#E5484D" /><T>{m.body}</T></Row> : <T>{m.body}</T>}

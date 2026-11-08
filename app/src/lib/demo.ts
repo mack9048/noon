@@ -90,3 +90,16 @@ export const HOME_CLASSES = [
   { name: 'Fiqh · Lesson 4', teacher: 'Ayisha Miss · Madrasa 5', time: 'Tomorrow, 4:30 PM', tag: 'TOMORROW', hot: false, glyph: 'ف', cta: 'Prepare', icon: 'book', src: 'Madrasa', g: ['#0B5166', '#1F8AA8'], btn: '#0B5166', href: '/classroom' },
   { name: 'Hifz revision', teacher: 'Safwan Usthad · Surah Al-Mulk', time: 'Sat, 5:00 PM', tag: 'THIS WEEK', hot: false, glyph: 'ح', cta: 'Revise now', icon: 'repeat', src: 'Madrasa', g: ['#FF9A3D', '#FF5E7E'], btn: '#FF5E7E', href: '/quran/hifz' },
 ] as const;
+
+// ---- Second design round (sample data until the API covers it) ----
+export const CLASSROOM_INFO = { title: "Habeeb's Classroom", cls: '5th E', live: { subject: 'Fiqh', teacher: 'Ayisha Miss', when: 'LIVE TODAY 5:30', starts: 'starts in 25 min' } };
+export const BIO: [string, string][] = [
+  ['Board', 'Sunni Vidyabhyasa Board (AP)'], ['Class teacher', 'Ustad Ahmed'], ['Admission no.', 'NM-0014'], ['Lives in', 'Sharjah, UAE'],
+  ['Date of birth', '12 Mar 2015'], ['Academic year', '2026–27'], ['Joined', 'June 2022'], ['Parent', 'Muhammed'], ['Parent phone', '[PARENT PHONE]'],
+];
+export const PERFORMANCE = {
+  stats: { attendance: '96%', stars: 240, avg: '94%' },
+  term: 'Term 2',
+  subjects: [['Quran', 98, '#5B43E0'], ['Thajweed', 92, '#0B5166'], ['Arabic', 95, '#22A86B'], ['Fiqh', 90, '#F08A24'], ['Thareekh', 88, '#C2307E'], ['Akhlaq', 100, '#4255E0']] as [string, number, string][],
+  exams: [['A+', 'Term 2 exam', 'Oct 2026 · 8 subjects', '376/400'], ['A', 'Half-yearly exam', 'Aug 2026', '362/400'], ['B+', 'Term 1 exam', 'Jun 2026', '340/400']] as [string, string, string, string][],
+};

@@ -1,3 +1,1 @@
-import { GamesHubScreen } from '@/screens/games';
-
-export default GamesHubScreen;
+export { PlayLandScreen as default } from '@/screens/student3';

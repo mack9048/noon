@@ -29,9 +29,9 @@ export function T({ v = 'body', style, auto, children, ...rest }: TextProps & { 
 /* ---------- Layout ---------- */
 // Main tab pages: no back button there (the tab bar is the way around).
 const TAB_ROOTS = new Set([
-  '/', '/student', '/student/classroom', '/student/chat', '/student/games', '/student/more',
+  '/', '/student', '/student/classroom', '/student/chat', '/student/profile', '/student/explore',
   '/guest', '/guest/demo-classes', '/guest/demo-course', '/guest/games', '/guest/unlock',
-  '/teacher', '/teacher/classes', '/teacher/attendance', '/teacher/chat', '/teacher/more',
+  '/teacher', '/teacher/classes', '/teacher/attendance', '/teacher/chat', '/teacher/tests',
   '/admin', '/admin/students', '/admin/fees', '/admin/teachers', '/admin/more',
   '/super', '/super/tenants', '/super/content', '/super/billing', '/super/more',
 ]);

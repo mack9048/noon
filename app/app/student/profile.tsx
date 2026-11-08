@@ -1,3 +1,1 @@
-import { ProfileScreen } from '@/screens/student';
-
-export default ProfileScreen;
+export { ProfileHubScreen as default } from '@/screens/student2';
