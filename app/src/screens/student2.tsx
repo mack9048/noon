@@ -183,7 +183,7 @@ export function ExploreScreen() {
 
       <BigCard g={['#FF9A3D', '#FF5E7E']} tag="9 GAMES · +50 XP" title="Games" cta="Play" icon="game-controller-outline" onPress={go('/games')} />
       <BigCard g={['#5B43E0', '#9B7BE8']} tag="STORIES · SEERAH · DUAS" title="Audiobook" cta="Listen" icon="headset-outline" onPress={go('/audio')} />
-      <BarCard g={['#FF9A3D', '#F06A24']} icon="library-outline" title="Virtual Library" sub="E-books, textbooks & reference" onPress={go('/support')} />
+      <BarCard g={['#0E7A50', '#22A86B']} icon="book-outline" title="Quran & Hifz" sub="Read, listen and memorise" onPress={go('/quran')} />
 
       <View style={{ marginTop: 12 }}>
         <TileRows cols={3} gap={10}>
@@ -200,7 +200,7 @@ export function ExploreScreen() {
         <IconTile gradient={['#FFD25A', '#F08A24']} icon="stats-chart" label="Charts" onPress={go('/tools/chart')} />
         <IconTile gradient={['#7D9BFF', '#4255E0']} icon="document-text-outline" label="Forms" onPress={go('/tools/form')} />
       </TileRows>
-      <BarCard g={['#0E7A50', '#22A86B']} icon="book-outline" title="Quran & Hifz" sub="Read, listen and memorise" onPress={go('/quran')} />
+      <BarCard g={['#FF9A3D', '#F06A24']} icon="library-outline" title="Virtual Library" sub="E-books, textbooks & reference" onPress={go('/support')} />
     </Screen>
   );
 }
