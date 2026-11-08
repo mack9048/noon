@@ -4,6 +4,7 @@ import { Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Logo } from '@/components/Logo';
 import { Button, Card, Grid, Header, Row, Screen, T } from '@/components/ui';
 import { Chips, demoNote, Glyph, ListRow, pastel, Section, Tag } from '@/components/kit';
 import { Field } from './auth';
@@ -27,9 +28,9 @@ const FEATURES: [string, keyof typeof Ionicons.glyphMap, [string, string], strin
 
 export function GuestHomeScreen() {
   return (
-    <Screen>
+    <Screen bar={false}>
       <Row style={{ height: 52 }}>
-        <T style={{ fontFamily: fonts.semibold, fontSize: 22, color: colors.teal }}>noon <T style={{ color: colors.violet }}>Learn</T></T>
+        <Logo height={32} />
         <Tag text="GUEST" tone="butter" />
         <View style={{ flex: 1 }} />
         <Button title="Sign up" kind="ghost" onPress={() => router.push('/guest/unlock' as any)} style={{ height: 40 }} />

@@ -81,3 +81,12 @@ export const GAMES = [
   { key: 'sukoon', name: 'Sukoon Hunt', tag: 'FIND IT', desc: 'Find every letter with sukoon', art: 'نْ', g: ['#1FB5A8', '#0E7A70'], xp: 30, ready: false },
   { key: 'word', name: 'Word Game', tag: 'WORDS', desc: 'Join letters into words', art: 'كِتَاب', g: ['#F06292', '#C2307E'], xp: 40, ready: false },
 ] as const;
+
+// Home "My classes" slider (design: Main). Sample data until classes come from the API.
+// href is relative to the role base (/student …).
+export const HOME_CLASSES = [
+  { name: 'Arabic Class', teacher: 'Ustad Ahmed · Madrasa 5', time: 'Today, 4:30 PM · 45 min', tag: '● STARTS IN 25 MIN', hot: true, glyph: 'ع', cta: 'Join class', icon: 'videocam', src: 'Madrasa', g: ['#5B43E0', '#9B7BE8'], btn: '#5B43E0', href: '/live/1' },
+  { name: 'Thajweed Level 1', teacher: 'Safwan Usthad · Noon Course', time: 'Today, 6:00 PM · 40 min', tag: 'LIVE TODAY', hot: false, glyph: 'ت', cta: 'Set reminder', icon: 'notifications', src: 'Noon Course', g: ['#14945A', '#4ED68A'], btn: '#14945A', href: '/courses/2' },
+  { name: 'Fiqh · Lesson 4', teacher: 'Ayisha Miss · Madrasa 5', time: 'Tomorrow, 4:30 PM', tag: 'TOMORROW', hot: false, glyph: 'ف', cta: 'Prepare', icon: 'book', src: 'Madrasa', g: ['#0B5166', '#1F8AA8'], btn: '#0B5166', href: '/classroom' },
+  { name: 'Hifz revision', teacher: 'Safwan Usthad · Surah Al-Mulk', time: 'Sat, 5:00 PM', tag: 'THIS WEEK', hot: false, glyph: 'ح', cta: 'Revise now', icon: 'repeat', src: 'Madrasa', g: ['#FF9A3D', '#FF5E7E'], btn: '#FF5E7E', href: '/quran/hifz' },
+] as const;

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,6 +10,7 @@ import { useApi } from '@/lib/useApi';
 import { useBase } from '@/lib/useBase';
 import { useLayout } from '@/lib/useLayout';
 import { demoNote } from '@/components/kit';
+import { HOME_CLASSES } from '@/lib/demo';
 import type { Course } from '@/lib/types';
 import { colors, fonts, gradients } from '@/theme/tokens';
 
@@ -26,7 +27,6 @@ export function HomeScreen({ guest = false }: { guest?: boolean }) {
   const base = useBase();
   const { device } = useLayout();
   const mine = useApi<Course[]>('/courses?scope=mine');
-  const firstCourse = mine.data?.[0];
 
   return (
     <Screen bar={false} overlay={<AskAiButton base={base} />}>
@@ -38,57 +38,19 @@ export function HomeScreen({ guest = false }: { guest?: boolean }) {
         <IconButton name="person" label="My profile" size={44} tint={colors.pink[0]} color={colors.pink[1]}
           onPress={() => router.push((guest ? '/guest/more' : '/student/profile') as any)} />
       </Row>
-      <T v="fun" style={{ marginTop: 8 }}>Assalamu alaikum, {user?.name ?? 'friend'} 👋</T>
 
-      {/* Featured: Noon Courses + Madrasa Support side by side on tablet/desktop */}
+      {/* My classes slider (students), then Madrasa Support + Noon Courses side by side */}
+      {!guest ? <ClassCarousel base={base} /> : null}
       <View style={{ marginTop: 14 }}>
-        <Grid cols={{ phone: 1, tablet: 2, desktop: 2 }} gap={12}>
-          <GradientCard colors={gradients.courses} onPress={() => router.push(firstCourse ? `${base}/courses/${firstCourse.id}` as any : `${base}/courses` as any)} style={{ minHeight: 160 }}>
-            {firstCourse?.next_live_at ? <T style={{ color: '#FFE6F6', fontFamily: fonts.semibold, fontSize: 12 }}>● LIVE {firstCourse.next_live_at.toUpperCase()}</T> : null}
-            <T style={{ color: '#FFF', fontFamily: fonts.fun, fontSize: 26, marginTop: 4 }}>Noon Courses</T>
-            <T style={{ color: '#EDE7FF', fontSize: 13 }}>{mine.data?.length ?? 0} courses{firstCourse?.progress != null ? ` · ${firstCourse.title} ${firstCourse.progress}%` : ''}</T>
-            <View style={{ marginTop: 14, alignSelf: 'flex-start', backgroundColor: '#FFF', borderRadius: 18, paddingHorizontal: 14, height: 36, justifyContent: 'center' }}>
-              <T style={{ color: colors.lav[1], fontFamily: fonts.semibold }}>Continue course ›</T>
-            </View>
-          </GradientCard>
-          <GradientCard colors={gradients.support} onPress={() => router.push(`${base}/support` as any)} style={{ minHeight: 160 }}>
-            <T style={{ position: 'absolute', right: 16, bottom: 6, fontFamily: fonts.arabic, fontSize: 56, color: 'rgba(255,255,255,0.85)' }}>مدرسة</T>
-            <T style={{ color: '#CFF3F4', fontFamily: fonts.semibold, fontSize: 12 }}>{guest ? 'MADRASA SUPPORT' : 'AP BOARD · CLASS 5'}</T>
-            <T style={{ color: '#FFF', fontFamily: fonts.fun, fontSize: 26, marginTop: 4 }}>{guest ? 'Textbooks & classes' : 'Madrasa Support'}</T>
-            <T style={{ color: '#D9F2F5', fontSize: 13 }}>Textbooks, video & audio classes</T>
-            <View style={{ marginTop: 14, alignSelf: 'flex-start', backgroundColor: '#FFF', borderRadius: 18, paddingHorizontal: 14, height: 36, justifyContent: 'center' }}>
-              <T style={{ color: colors.teal, fontFamily: fonts.semibold }}>{guest ? 'Try free lessons ›' : 'Fiqh · Lesson 4 ›'}</T>
-            </View>
-          </GradientCard>
+        <Grid cols={{ phone: 2, tablet: 2, desktop: 2 }} gap={10}>
+          <HalfCard g={gradients.support} label={guest ? 'MADRASA · DEMO' : 'AP · CLASS 5'} title={'Madrasa\nSupport'} ink={colors.teal}
+            art={<T style={{ position: 'absolute', right: 10, bottom: 30, fontFamily: fonts.arabic, fontSize: 36, color: 'rgba(255,255,255,0.85)' }}>مدرسة</T>}
+            onPress={() => router.push(`${base}/support` as any)} />
+          <HalfCard g={gradients.courses} label={`${mine.data?.length ?? 0} COURSES`} title={'Noon\nCourses'} ink={colors.lav[1]}
+            art={<Ionicons name="school" size={40} color="rgba(255,255,255,0.85)" style={{ position: 'absolute', right: 12, bottom: 34 }} />}
+            onPress={() => router.push(`${base}/courses` as any)} />
         </Grid>
       </View>
-
-      {!guest ? (
-        <>
-          <Row style={{ justifyContent: 'space-between', marginTop: 18, marginBottom: 10 }}>
-            <T v="h2">Next class</T>
-            <Pressable accessibilityRole="button" onPress={() => router.push('/student/classroom' as any)}><T style={{ color: colors.teal, fontFamily: fonts.medium }}>My classroom</T></Pressable>
-          </Row>
-          <Card onPress={() => router.push('/student/classroom' as any)} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <View style={{ width: 64, height: 64, borderRadius: 18, backgroundColor: colors.lav[0], alignItems: 'center', justifyContent: 'center' }}><T style={{ fontFamily: fonts.arabic, fontSize: 34, color: colors.lav[1] }}>ع</T></View>
-            <View style={{ flex: 1 }}>
-              <T v="h3">Arabic Class</T>
-              <Row gap={4}><Ionicons name="time-outline" size={14} color={colors.muted} /><T v="small">Today, 4:30 PM</T></Row>
-            </View>
-            <View accessibilityLabel="Classes on Mon, Wed and Thu" style={{ alignItems: 'flex-end', gap: 4 }}>
-              <T v="small">This week</T>
-              <Row gap={4}>
-                {['s', 'm', 't', 'w', 't', 'f', 's'].map((d, k) => (
-                  <View key={k} style={{ alignItems: 'center', gap: 2 }}>
-                    <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: k === 1 ? colors.violet : k === 3 || k === 4 ? colors.teal : colors.line }} />
-                    <T style={{ fontSize: 9, color: k === 1 ? colors.violet : colors.muted }}>{d}</T>
-                  </View>
-                ))}
-              </Row>
-            </View>
-          </Card>
-        </>
-      ) : null}
 
       <GameCarousel base={base} />
 
@@ -171,6 +133,70 @@ function GameCarousel({ base }: { base: string }) {
       </ScrollView>
       <Row gap={6} style={{ justifyContent: 'center', marginTop: 8 }}>
         {games.map((g, k) => <View key={g.name} style={{ width: k === i ? 22 : 8, height: 8, borderRadius: 4, backgroundColor: k === i ? colors.violet : '#C9D6DB' }} />)}
+      </Row>
+    </View>
+  );
+}
+
+/** Small gradient card with a label, a two-line title and an "Open" pill (design: Main). */
+function HalfCard({ g, label, title, ink, art, onPress }: { g: readonly string[]; label: string; title: string; ink: string; art: React.ReactNode; onPress: () => void }) {
+  return (
+    <GradientCard colors={g} onPress={onPress} style={{ height: 150, padding: 14, borderRadius: 26 }}>
+      {art}
+      <T style={{ color: 'rgba(255,255,255,0.85)', fontFamily: fonts.semibold, fontSize: 11 }}>{label}</T>
+      <T style={{ color: '#FFF', fontFamily: fonts.fun, fontSize: 19, lineHeight: 21, marginTop: 2 }}>{title}</T>
+      <View style={{ marginTop: 'auto', alignSelf: 'flex-start', backgroundColor: '#FFF', borderRadius: 15, height: 30, paddingHorizontal: 12, justifyContent: 'center' }}>
+        <T style={{ color: ink, fontFamily: fonts.semibold, fontSize: 12 }}>Open ›</T>
+      </View>
+    </GradientCard>
+  );
+}
+
+/** "My classes" slider with arrows and dots (design: Main). */
+function ClassCarousel({ base }: { base: string }) {
+  const { width } = useWindowDimensions();
+  const { device, gutter } = useLayout();
+  const [i, setI] = useState(0);
+  const ref = useRef<ScrollView>(null);
+  const slideW = device === 'phone' ? width - gutter * 2 : Math.min(520, (Math.min(width, 1200) - 300) / 1.6);
+  const n = HOME_CLASSES.length;
+  const go = (k: number) => { const j = (k + n) % n; setI(j); ref.current?.scrollTo({ x: j * (slideW + 12), animated: true }); };
+  return (
+    <View style={{ marginTop: 14 }}>
+      <Row style={{ justifyContent: 'space-between', marginBottom: 10 }}>
+        <T v="h2">My classes</T>
+        <Pressable accessibilityRole="link" onPress={() => router.push(`${base}/classroom` as any)}><T style={{ color: colors.teal, fontFamily: fonts.semibold, fontSize: 13 }}>See all</T></Pressable>
+      </Row>
+      <ScrollView ref={ref} horizontal pagingEnabled={device === 'phone'} snapToInterval={slideW + 12} decelerationRate="fast" showsHorizontalScrollIndicator={false}
+        onMomentumScrollEnd={(e) => setI(Math.round(e.nativeEvent.contentOffset.x / (slideW + 12)))}>
+        {HOME_CLASSES.map((c) => (
+          <View key={c.name} accessibilityLabel={c.name} style={{ marginRight: 12 }}>
+            <LinearGradient colors={c.g as unknown as [string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: slideW, height: 214, borderRadius: 30, padding: 16, overflow: 'hidden' }}>
+              <View style={{ position: 'absolute', right: -40, top: -50, width: 210, height: 210, borderRadius: 105, backgroundColor: 'rgba(255,255,255,0.14)' }} />
+              <T style={{ position: 'absolute', right: 20, top: 18, fontFamily: fonts.arabic, fontSize: 84, color: 'rgba(255,255,255,0.9)' }}>{c.glyph}</T>
+              <Pill text={c.tag} tint={c.hot ? 'rgba(255,92,138,0.9)' : 'rgba(255,255,255,0.25)'} ink="#FFF" />
+              <T numberOfLines={2} style={{ fontFamily: fonts.fun, fontSize: c.name.length > 14 ? 23 : 26, lineHeight: 28, color: '#FFF', marginTop: 10, maxWidth: '72%' }}>{c.name}</T>
+              <T style={{ color: '#FFF', fontSize: 13, opacity: 0.92, marginTop: 4 }}>{c.teacher}</T>
+              <Row gap={6} style={{ marginTop: 6 }}><Ionicons name="time-outline" size={14} color="#FFF" /><T style={{ color: '#FFF', fontSize: 13, fontFamily: fonts.medium }}>{c.time}</T></Row>
+              <Row style={{ marginTop: 'auto' }}>
+                <Pressable accessibilityRole="button" accessibilityLabel={`${c.cta}: ${c.name}`} onPress={() => router.push(`${base}${c.href}` as any)}
+                  style={{ backgroundColor: '#FFF', borderRadius: 21, height: 42, paddingLeft: 6, paddingRight: 16, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: c.btn, alignItems: 'center', justifyContent: 'center' }}><Ionicons name={c.icon} size={14} color="#FFF" /></View>
+                  <T style={{ fontFamily: fonts.fun, fontSize: 16, color: c.btn }}>{c.cta}</T>
+                </Pressable>
+                <View style={{ alignSelf: 'center' }}><Pill text={c.src} tint="rgba(0,0,0,0.16)" ink="#FFF" /></View>
+              </Row>
+            </LinearGradient>
+          </View>
+        ))}
+      </ScrollView>
+      <Row gap={8} style={{ justifyContent: 'center', marginTop: 8 }}>
+        <IconButton name="chevron-back" label="Previous class" size={26} onPress={() => go(i - 1)} />
+        {HOME_CLASSES.map((c, k) => (
+          <Pressable key={c.name} accessibilityRole="button" accessibilityLabel={c.name} accessibilityState={{ selected: k === i }} onPress={() => go(k)} hitSlop={8}
+            style={{ width: k === i ? 22 : 8, height: 8, borderRadius: 4, backgroundColor: k === i ? HOME_CLASSES[i].btn : '#C9D6DB' }} />
+        ))}
+        <IconButton name="chevron-forward" label="Next class" size={26} onPress={() => go(i + 1)} />
       </Row>
     </View>
   );
