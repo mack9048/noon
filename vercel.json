@@ -1,13 +1,45 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "cd app && npm ci",
-  "buildCommand": "cd app && npx expo export --platform web",
+  "buildCommand": "cd app && npx expo export --platform web && cd .. && node website/build.mjs && node website/combine.mjs",
   "outputDirectory": "app/dist",
   "framework": null,
   "rewrites": [
     {
+      "source": "/about",
+      "destination": "/site/about.html"
+    },
+    {
+      "source": "/contact",
+      "destination": "/site/contact.html"
+    },
+    {
+      "source": "/games",
+      "destination": "/site/games.html"
+    },
+    {
+      "source": "/resources",
+      "destination": "/site/resources.html"
+    },
+    {
+      "source": "/courses",
+      "destination": "/site/noon-courses.html"
+    },
+    {
+      "source": "/courses/noon-courses",
+      "destination": "/site/noon-courses.html"
+    },
+    {
+      "source": "/courses/madrasa-support",
+      "destination": "/site/madrasa-support.html"
+    },
+    {
+      "source": "/courses/noon-buds",
+      "destination": "/site/noon-buds.html"
+    },
+    {
       "source": "/(.*)",
-      "destination": "/index.html"
+      "destination": "/app.html"
     }
   ],
   "headers": [
@@ -30,6 +62,15 @@
         {
           "key": "Content-Type",
           "value": "application/manifest+json"
+        }
+      ]
+    },
+    {
+      "source": "/app.html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
         }
       ]
     }

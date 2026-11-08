@@ -3,3 +3,4 @@ node_modules/
 api/server/
 app/dist/
 .DS_Store
+website/dist/

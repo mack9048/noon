@@ -102,7 +102,7 @@ export function AppShell({ items }: { items: NavItem[] }) {
               <Text style={{ fontFamily: fonts.semibold, color: colors.ink }} numberOfLines={1}>{user.name}</Text>
               <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: colors.muted }}>{user.role}</Text>
             </View>
-            <Pressable accessibilityLabel="Log out" onPress={() => logout().then(() => router.replace('/'))}>
+            <Pressable accessibilityLabel="Log out" onPress={() => logout().then(() => router.replace('/login' as any))}>
               <Ionicons name="log-out-outline" size={20} color={colors.muted} />
             </Pressable>
           </View>

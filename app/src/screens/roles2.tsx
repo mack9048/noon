@@ -78,7 +78,7 @@ export function RoleSettingsScreen({ roleLine, profileHref, groups, footer }: { 
           ))}
         </SettingsGroup>
       ))}
-      <Pressable accessibilityRole="button" onPress={() => logout().then(() => router.replace('/'))}
+      <Pressable accessibilityRole="button" onPress={() => logout().then(() => router.replace('/login' as any))}
         style={{ marginTop: 18, height: 54, borderRadius: 27, backgroundColor: '#FBD9DC', alignItems: 'center', justifyContent: 'center' }}>
         <T style={{ color: colors.red, fontFamily: fonts.semibold }}>Log out</T>
       </Pressable>

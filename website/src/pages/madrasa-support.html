@@ -1,0 +1,83 @@
+<!--{"title":"Madrasa Support — every madrasa lesson online","desc":"Pick your board and class to get video classes, audio, text books and class notes for every madrasa subject, Class 1 to 10, +1 and +2.","nav":"madrasa-support","path":"/courses/madrasa-support"}-->
+<section class="hero">
+  {{sparkle:left:42%;top:110px}}
+  <div class="container">
+    <div>
+      <p class="crumb">Courses / Madrasa Support</p>
+      <h1>Madrasa <span class="hl">Support</span></h1>
+      <p class="lead">Every madrasa lesson online — pick your board and class to get video classes, audio, text books and class notes for each subject.</p>
+      <div class="actions"><a class="btn btn-yellow" href="#find">Find my class {{icon:arrow}}</a><a class="btn btn-ghost" href="#madrasas">For madrasas</a></div>
+    </div>
+    <div class="hero-art">
+      <div class="card lesson-card">
+        <b>Class 5 · Fiqh</b>
+        <span style="background:#E6F0FF;color:#2F5FC4">{{icon:video}} Lesson 4 · Video class</span>
+        <span style="background:#E3F7EC;color:#14945A">{{icon:headphones}} Audio revision</span>
+        <span style="background:#FFF4D6;color:#9A6A00">{{icon:textbook}} Text book · PDF</span>
+        <span style="background:#FDE6F2;color:#B0256E">{{icon:file}} Class notes</span>
+      </div>
+      <img src="{{art}}/nooni-book.svg" alt="" width="110" height="190" style="position:absolute;right:0;bottom:-10px;width:21%">
+    </div>
+  </div>
+  {{wave:#F4F9FF}}
+</section>
+
+<div class="container" id="find" style="position:relative;z-index:2;margin-top:-40px">
+  <div class="card picker" style="padding:28px">
+    <h3>1. Choose your board</h3>
+    <div class="grid g3" data-choice="#pick-board">
+      <button class="board" aria-pressed="true" data-label="Sunni Vidyabhyasa Board (AP)"><span class="b" style="background:#2F6FE4">SVB</span>Sunni Vidyabhyasa Board (AP)</button>
+      <button class="board" aria-pressed="false" data-label="Sunni Board (EK)"><span class="b" style="background:#D63384">SB</span>Sunni Board (EK)</button>
+      <button class="board" aria-pressed="false" data-label="General"><span class="b" style="background:#14945A">GEN</span>General</button>
+    </div>
+    <h3>2. Choose your class</h3>
+    <div class="classes" data-choice="#pick-class"><button class="cls" aria-pressed="false" data-label="Class 1">1</button><button class="cls" aria-pressed="false" data-label="Class 2">2</button><button class="cls" aria-pressed="false" data-label="Class 3">3</button><button class="cls" aria-pressed="false" data-label="Class 4">4</button><button class="cls" aria-pressed="true" data-label="Class 5">5</button><button class="cls" aria-pressed="false" data-label="Class 6">6</button><button class="cls" aria-pressed="false" data-label="Class 7">7</button><button class="cls" aria-pressed="false" data-label="Class 8">8</button><button class="cls" aria-pressed="false" data-label="Class 9">9</button><button class="cls" aria-pressed="false" data-label="Class 10">10</button><button class="cls" aria-pressed="false" data-label="Class +1">+1</button><button class="cls" aria-pressed="false" data-label="Class +2">+2</button></div>
+    <h3>3. Open a subject <small style="font-family:var(--body);font-weight:400;font-size:13px;color:var(--muted)">· <span id="pick-board">Sunni Vidyabhyasa Board (AP)</span> · <span id="pick-class">Class 5</span></small></h3>
+    <div class="grid g4 keep2">
+        <a class="subject" href="{{start}}" style="background:#E6F0FF"><span class="g" style="color:#2F5FC4">ف</span><span><b style="color:#2F5FC4">Fiqh</b><small>12 lessons</small></span></a>
+        <a class="subject" href="{{start}}" style="background:#FDE6F2"><span class="g" style="color:#B0256E">ت</span><span><b style="color:#B0256E">Thareeq</b><small>15 lessons</small></span></a>
+        <a class="subject" href="{{start}}" style="background:#E3F7EC"><span class="g" style="color:#14945A">ع</span><span><b style="color:#14945A">Aqeedah</b><small>9 lessons</small></span></a>
+        <a class="subject" href="{{start}}" style="background:#FFF4D6"><span class="g" style="color:#9A6A00">خ</span><span><b style="color:#9A6A00">Akhlaq</b><small>12 lessons</small></span></a>
+        <a class="subject" href="{{start}}" style="background:#EEEAFF"><span class="g" style="color:#5B43E0">ج</span><span><b style="color:#5B43E0">Thajweed</b><small>15 lessons</small></span></a>
+        <a class="subject" href="{{start}}" style="background:#E0F5F1"><span class="g" style="color:#0E7A6E">ع</span><span><b style="color:#0E7A6E">Arabic</b><small>9 lessons</small></span></a>
+        <a class="subject" href="{{start}}" style="background:#FFE8DE"><span class="g" style="color:#B0501E">ق</span><span><b style="color:#B0501E">Quran</b><small>12 lessons</small></span></a>
+        <a class="subject" href="{{start}}" style="background:#EEF1F4"><span class="g" style="color:#33444C">മ</span><span><b style="color:#33444C">Malayalam</b><small>15 lessons</small></span></a>
+    </div>
+  </div>
+</div>
+
+<section class="section">
+  <div class="container">
+    <div class="section-title"><h2>Every lesson comes with</h2><p>Students can watch, listen, read and revise — at home, at their own pace.</p></div>
+    <div class="grid g4">
+      <div class="card"><span class="icon-chip t-sky">{{icon:video}}</span><h3>Video class</h3><p>Recorded lessons by experienced usthads, chapter by chapter.</p></div>
+      <div class="card"><span class="icon-chip t-mint">{{icon:headphones}}</span><h3>Audio</h3><p>Listen and repeat — perfect for Thajweed and revision.</p></div>
+      <div class="card"><span class="icon-chip t-cream">{{icon:textbook}}</span><h3>Text book</h3><p>The official text book pages as easy-to-read PDFs.</p></div>
+      <div class="card"><span class="icon-chip t-rose">{{icon:file}}</span><h3>Class notes</h3><p>Short notes and worksheets made by our teachers.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="madrasas" style="padding-top:0">
+  <div class="container grid g2" style="align-items:center;gap:40px">
+    <div>
+      <span class="kicker">For madrasas</span>
+      <h2 style="font-size:clamp(28px,3.4vw,38px)">Run your madrasa online,<br><span style="color:var(--violet)">the easy way</span></h2>
+      <p style="margin-top:14px;color:var(--muted)">Noon Learn gives your madrasa its own space: admissions, batches, attendance, fees, live classes and a teacher app — plus all the lesson content above.</p>
+      <ul class="checks grid g2" style="gap:10px 18px">
+        <li>Teacher resources &amp; worksheets</li><li>Tests and long exams</li>
+        <li>Online admissions via WhatsApp</li><li>Attendance &amp; fee reminders</li>
+        <li>Live classes with recording</li><li>Parent app &amp; report cards</li>
+      </ul>
+      <a class="btn btn-violet" style="margin-top:20px" href="/contact">Book a demo {{icon:arrow}}</a>
+    </div>
+    <div class="card grid g2 keep2" style="gap:14px;padding:20px">
+      <div class="stat" style="background:var(--sky);box-shadow:none"><b style="color:var(--blue)">46</b><span>madrasas on Noon Learn</span></div>
+      <div class="stat" style="background:var(--cream);box-shadow:none"><b style="color:#9A6A00">3</b><span>boards supported</span></div>
+      <div class="stat" style="background:var(--mint);box-shadow:none"><b style="color:var(--green)">12</b><span>classes, 1 to +2</span></div>
+      <div class="stat" style="background:var(--rose);box-shadow:none"><b style="color:var(--pink)">2,000+</b><span>lessons with notes</span></div>
+    </div>
+  </div>
+</section>
+
+{{cta {"title":"Try 2 free lessons in every subject","text":"No sign-up needed — explore as a guest, then join your madrasa or subscribe.","btn":"Explore free","href":"/welcome"}}}

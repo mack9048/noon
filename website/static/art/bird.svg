@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" data-dc-tpl="291" viewBox="0 0 160 170" width="124" height="132" aria-hidden="true">
+  <ellipse data-dc-tpl="292" cx="80" cy="160" rx="46" ry="8" fill="rgba(0,0,0,0.12)"></ellipse>
+  <path data-dc-tpl="293" d="M60 30 Q80 -6 100 30" fill="#2E9F6B"></path><path data-dc-tpl="294" d="M74 26 Q84 4 98 20" fill="#4ED68A"></path>
+  <circle data-dc-tpl="295" cx="80" cy="88" r="64" fill="#FF9F2E"></circle>
+  <ellipse data-dc-tpl="296" cx="80" cy="110" rx="42" ry="36" fill="#FFD9A0"></ellipse>
+  <g data-dc-tpl="297" class="" style="transform-origin: 140px 88px;"><ellipse data-dc-tpl="298" cx="146" cy="72" rx="14" ry="24" fill="#F27F12" transform="rotate(30 146 72)"></ellipse></g>
+  <ellipse data-dc-tpl="299" cx="16" cy="96" rx="12" ry="22" fill="#F27F12" transform="rotate(-20 16 96)"></ellipse>
+  <circle data-dc-tpl="300" cx="58" cy="76" r="15" fill="#FFFFFF"></circle><circle data-dc-tpl="301" cx="102" cy="76" r="15" fill="#FFFFFF"></circle>
+  <circle data-dc-tpl="302" cx="61" cy="79" r="8" fill="#2A1600"></circle><circle data-dc-tpl="303" cx="99" cy="79" r="8" fill="#2A1600"></circle>
+  <circle data-dc-tpl="304" cx="64" cy="75" r="3" fill="#FFFFFF"></circle><circle data-dc-tpl="305" cx="102" cy="75" r="3" fill="#FFFFFF"></circle>
+  <path data-dc-tpl="306" d="M72 94 L88 94 L80 106 Z" fill="#F7C948"></path>
+  <circle data-dc-tpl="307" cx="42" cy="100" r="7" fill="#FF8FA3" opacity="0.8"></circle><circle data-dc-tpl="308" cx="118" cy="100" r="7" fill="#FF8FA3" opacity="0.8"></circle>
+  <path data-dc-tpl="309" d="M66 150 v8 M94 150 v8" stroke="#E07A12" stroke-width="6" stroke-linecap="round"></path></svg>

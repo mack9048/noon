@@ -342,7 +342,7 @@ export function SettingsScreen() {
         {row('shield-checkmark-outline', colors.mint, 'Privacy policy', chev, () => demoNote('Demo: links to your privacy policy page.'))}
         {row('information-circle-outline', colors.lav, 'App details', <T v="small">v1.0</T>)}
       </Card>
-      <Pressable accessibilityRole="button" onPress={() => logout().then(() => router.replace('/'))}
+      <Pressable accessibilityRole="button" onPress={() => logout().then(() => router.replace('/login' as any))}
         style={{ marginTop: 16, height: 52, borderRadius: 26, backgroundColor: colors.pink[0], flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
         <Ionicons name="log-out-outline" size={20} color={colors.red} /><T style={{ color: colors.red, fontFamily: fonts.semibold }}>Log out</T>
       </Pressable>

@@ -321,7 +321,7 @@ export function UnlockScreen() {
         <Button title={opt === 'code' ? 'Join madrasa' : opt === 'plan' ? 'Continue to payment' : 'Log in'} kind="yellow" loading={busy}
           disabled={opt === 'code' && code.trim().length < 4} onPress={go} />
       </Card>
-      <Pressable accessibilityRole="button" onPress={() => logout().then(() => router.replace('/'))} style={{ alignSelf: 'center', marginTop: 16, padding: 10 }}>
+      <Pressable accessibilityRole="button" onPress={() => logout().then(() => router.replace('/login' as any))} style={{ alignSelf: 'center', marginTop: 16, padding: 10 }}>
         <T style={{ color: colors.red, fontFamily: fonts.medium }}>Log out of guest account</T>
       </Pressable>
     </Screen>

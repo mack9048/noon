@@ -1,0 +1,57 @@
+<!--{"title":"Contact Noon Learn","desc":"Parents, madrasas and teachers — ask us anything. We reply within one working day in English or Malayalam.","nav":"contact","path":"/contact"}-->
+<section class="hero">
+  {{sparkle:left:42%;top:110px}}
+  <div class="container">
+    <div>
+      <p class="crumb"><a href="/">Home</a> · Contact</p>
+      <h1>We would love to<br><span class="hl">hear from you</span></h1>
+      <p class="lead">Parents, madrasas and teachers — ask us anything. We reply within one working day in English or Malayalam.</p>
+    </div>
+    <div class="hero-art" style="padding-top:70px">
+      <span class="bubble">Assalamu alaikum! How can we help?</span>
+      <img src="{{art}}/nooni-wave.svg" alt="Nooni waving hello" width="150" height="255" style="width:150px">
+    </div>
+  </div>
+  {{wave:#F4F9FF}}
+</section>
+
+<section class="section" style="padding-top:10px">
+  <div class="container promo split" style="align-items:start">
+    <form class="card" data-send="Website message" style="padding:28px">
+      <h2 style="font-size:26px;margin-bottom:14px">Send us a message</h2>
+      <div class="chips" data-choice style="margin-bottom:16px">
+        <button type="button" class="chip violet" aria-pressed="true">I am a parent</button>
+        <button type="button" class="chip violet" aria-pressed="false">I run a madrasa</button>
+        <button type="button" class="chip violet" aria-pressed="false">I am a teacher</button>
+      </div>
+      <div class="grid g2" style="gap:14px">
+        <div class="field"><label for="c-name">Your name</label><input class="input" id="c-name" name="Name" placeholder="Full name" required autocomplete="name"></div>
+        <div class="field"><label for="c-wa">WhatsApp number</label><input class="input" id="c-wa" name="WhatsApp" type="tel" placeholder="+91 / +971 …" required autocomplete="tel"></div>
+        <div class="field"><label for="c-email">Email</label><input class="input" id="c-email" name="Email" type="email" placeholder="you@example.com" autocomplete="email"></div>
+        <div class="field"><label for="c-age">Child's age</label><input class="input" id="c-age" name="Child's age" placeholder="e.g. 6 years"></div>
+      </div>
+      <div class="field" style="margin-top:14px"><label for="c-msg">Message</label><textarea class="input" id="c-msg" name="Message" rows="4" placeholder="How can we help?" required></textarea></div>
+      <button class="btn btn-violet" style="margin-top:16px" type="submit">Send message</button>
+      <p class="form-ok" role="status">Thank you! We'll reply within one working day.</p>
+    </form>
+    <div class="contact-list">
+      <a class="contact-item" href="{{waLink}}"><span class="icon-chip t-mint" style="margin:0">{{icon:chat}}</span><div><b>WhatsApp</b><span>{{waLabel}} · fastest reply</span></div></a>
+      <a class="contact-item" href="{{tel}}"><span class="icon-chip t-sky" style="margin:0">{{icon:phone}}</span><div><b>Call us</b><span>{{phone}} · 9 AM – 6 PM</span></div></a>
+      <a class="contact-item" href="mailto:{{email}}"><span class="icon-chip t-rose" style="margin:0">{{icon:mail}}</span><div><b>Email</b><span>{{email}}</span></div></a>
+      <div class="contact-item"><span class="icon-chip t-cream" style="margin:0">{{icon:pin}}</span><div><b>Office</b><span>{{address}}</span></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="section" style="padding-top:20px">
+  <div class="container">
+    <div class="section-title"><h2>Frequently asked questions</h2></div>
+    <div class="faq">
+      <details open><summary>Is there a free trial?</summary><p>Yes. Guests can open 2 free lessons in every subject, and paid courses have a 7-day free trial.</p></details>
+      <details><summary>Which boards does Madrasa Support follow?</summary><p>Sunni Vidyabhyasa Board (AP), Sunni Board (EK) and a General syllabus — from Class 1 to 10, +1 and +2.</p></details>
+      <details><summary>Is it safe for young children?</summary><p>Yes. Noon Learn is made only for children: no ads, no public chat and no strangers. Live classes are taken by verified usthads and parents can see every step.</p></details>
+      <details><summary>Can our madrasa use Noon Learn for our own students?</summary><p>Yes. Your madrasa gets its own space with admissions, batches, attendance, fees, exams and report cards, plus all our lesson content. <a href="#main">Send us a message</a> to book a demo.</p></details>
+      <details><summary>How do I pay?</summary><p>Pay inside the app by UPI, card or bank transfer. Madrasas can also collect fees from parents through the app.</p></details>
+    </div>
+  </div>
+</section>

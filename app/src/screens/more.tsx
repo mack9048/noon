@@ -64,7 +64,7 @@ export function GuestMoreScreen() {
             <T v="h3">{label}</T>
           </Card>
         ))}
-        <Card onPress={() => logout().then(() => router.replace('/'))} style={{ gap: 10, minHeight: 100 }}>
+        <Card onPress={() => logout().then(() => router.replace('/login' as any))} style={{ gap: 10, minHeight: 100 }}>
           <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: '#FBD9DC', alignItems: 'center', justifyContent: 'center' }}>
             <Ionicons name="log-out" size={22} color={colors.red} />
           </View>
@@ -122,7 +122,7 @@ export function MoreMenu({ links, onNavigate, profileHref, logout: withLogout }:
 }) {
   const { user, logout } = useAuth();
   const go = (href: string) => { onNavigate?.(); router.push(href as any); };
-  const signOut = () => { onNavigate?.(); logout().then(() => router.replace('/')); };
+  const signOut = () => { onNavigate?.(); logout().then(() => router.replace('/login' as any)); };
   const tiles = withLogout ? [...links, ['Log out', '#logout', 'log-out-outline', ['#FBD9DC', colors.red]] as MoreLink] : links;
   const rows: (MoreLink | null)[][] = [];
   for (let i = 0; i < tiles.length; i += 3) {

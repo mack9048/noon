@@ -2,8 +2,10 @@
 // - App files (JS, CSS, fonts, icons) are cached after first use.
 // - Pages load from the network first and fall back to the cached app when offline.
 // - API calls (another domain) are never cached, so data is always fresh and private.
-const VERSION = 'noon-v3';
-const SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png'];
+const VERSION = 'noon-v4';
+// The website (noonlearn.com/, /about, /courses/…) is plain pages: the worker leaves them alone.
+const SITE = /^\/(about|contact|games|resources|courses(\/.*)?|site\/.*|sitemap\.xml|robots\.txt)?$/;
+const SHELL = ['/app.html', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(VERSION).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
@@ -20,11 +22,13 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(req.url);
   if (req.method !== 'GET' || url.origin !== self.location.origin) return;
 
+  if (SITE.test(url.pathname)) return;
+
   if (req.mode === 'navigate') {
     event.respondWith(
       fetch(req)
-        .then((res) => { caches.open(VERSION).then((c) => c.put('/index.html', res.clone())); return res; })
-        .catch(() => caches.match('/index.html')),
+        .then((res) => { if (res.ok) { const copy = res.clone(); caches.open(VERSION).then((c) => c.put('/app.html', copy)); } return res; })
+        .catch(() => caches.match('/app.html')),
     );
     return;
   }
