@@ -9,6 +9,7 @@ import { Button, Card, IconButton, IconTile, Row, Screen, T } from '@/components
 import { Tabs, demoNote } from '@/components/kit';
 import { AppTile, DetailRows, G, HeroHeader, MiniStat, OverlapCard, Panel, Select, TileRows } from '@/components/kit2';
 import { AskAiButton, BrandRow } from './home';
+import { CourseLogo } from '@/components/CourseLogo';
 import { useApi } from '@/lib/useApi';
 import { useBase } from '@/lib/useBase';
 import { useAuth } from '@/lib/auth';
@@ -108,38 +109,40 @@ export function ClassroomScreen() {
   const name = course ? course.title : selected?.title ?? CLASSROOM_INFO.live.subject;
   const teacher = course?.teacher_name ?? CLASSROOM_INFO.live.teacher;
   const liveWhen = course ? (course.next_live_at ? `LIVE ${course.next_live_at.toUpperCase()}` : null) : CLASSROOM_INFO.live.when;
+  // Course items are named "Lesson 6 · Letters with harakath": split into the number and the name.
+  const m = current?.title.match(/^lesson\s*(\d+)\s*[·:-]\s*(.+)$/i);
+  const lessonNo = m ? Number(m[1]) : current?.position ?? 1;
+  const lessonTitle = m ? m[2] : current?.title ?? (course ? 'Lessons coming soon' : 'Najas');
+  const lessonLine = course ? `${course.category} · Lesson ${pad(lessonNo)}` : `${name} · Lesson ${pad(current?.position ?? 5)}`;
 
   return (
     <Screen bar={false} overlay={<AskAiButton base={base} />}>
       <BrandRow base={base} title="Classroom" />
       <T style={{ marginTop: 8, fontFamily: fonts.medium, color: colors.muted }}>{CLASSROOM_INFO.title} · {CLASSROOM_INFO.cls}</T>
 
-      <LinearGradient colors={['#5B43E0', '#9B7BE8', '#D59BE0']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ marginTop: 10, borderRadius: 30, padding: 18, overflow: 'hidden' }}>
-        <View style={{ position: 'absolute', right: -40, top: -50, width: 200, height: 200, borderRadius: 100, backgroundColor: 'rgba(255,255,255,0.12)' }} />
-        <Pressable accessibilityRole="button" accessibilityLabel={course ? `My course: ${course.title}. Change course` : 'Get a course'}
-          onPress={() => (mine.data?.length ? setPickOpen(true) : router.push(`${base}/courses` as any))}
-          style={{ alignSelf: 'flex-start', maxWidth: '100%', flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 14, paddingHorizontal: 10, height: 30 }}>
-          <Ionicons name="school-outline" size={14} color="#FFF" />
-          <T numberOfLines={1} style={{ color: '#FFF', fontFamily: fonts.semibold, fontSize: 12, flexShrink: 1 }}>{course ? `MY COURSE · ${course.title}` : 'CURRENT LESSON'}</T>
-          {mine.data?.length ? <Ionicons name="chevron-down" size={14} color="#FFF" /> : null}
-        </Pressable>
-        <Row style={{ justifyContent: 'space-between', marginTop: 10 }}>
-          <T style={{ color: '#EDE7FF', flexShrink: 1 }} numberOfLines={1}>{course ? `${course.category} · next lesson` : `${name} · lesson ${pad(current?.position ?? 5)}`}</T>
-          {liveWhen ? (
-            <View style={{ backgroundColor: '#FFF', borderRadius: 12, paddingHorizontal: 10, height: 24, justifyContent: 'center', marginLeft: 8 }}>
-              <T style={{ color: '#D6336C', fontFamily: fonts.semibold, fontSize: 11 }}>● {liveWhen}</T>
-            </View>
-          ) : null}
-        </Row>
-        <T style={{ color: '#FFF', fontFamily: fonts.fun, fontSize: 30, lineHeight: 40 }} numberOfLines={1}>{current?.title ?? (course ? 'Lessons coming soon' : 'Najas')}</T>
-        <Row style={{ marginTop: 12 }}>
+      {/* Current lesson of the course the student bought; its logo on the right (tap to switch course). */}
+      <LinearGradient colors={['#5B43E0', '#9B7BE8', '#D59BE0']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ marginTop: 10, borderRadius: 30, padding: 18, overflow: 'hidden', flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        <View style={{ position: 'absolute', right: -60, top: -40, width: 230, height: 230, borderRadius: 115, backgroundColor: 'rgba(255,255,255,0.12)' }} />
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <T style={{ color: '#EDE7FF', fontFamily: fonts.semibold, fontSize: 12, letterSpacing: 0.5 }}>CURRENT LESSON</T>
+          <T style={{ color: '#EDE7FF', marginTop: 6 }} numberOfLines={1}>{lessonLine}</T>
+          <T style={{ color: '#FFF', fontFamily: fonts.fun, fontSize: 30, lineHeight: 38 }} numberOfLines={2}>{lessonTitle}</T>
+          {liveWhen ? <T style={{ color: '#FFE6F6', fontFamily: fonts.semibold, fontSize: 11, marginTop: 2 }} numberOfLines={1}>● {liveWhen}{course?.teacher_name ? ` · ${course.teacher_name}` : ''}</T> : null}
           <Pressable accessibilityRole="button" accessibilityLabel="Join class" onPress={() => router.push((course ? `${base}/courses/${course.id}` : `${base}/live/1`) as any)}
-            style={{ backgroundColor: '#FFF', borderRadius: 22, height: 44, paddingLeft: 6, paddingRight: 16, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: colors.violet, alignItems: 'center', justifyContent: 'center' }}><Ionicons name="videocam" size={15} color="#FFF" /></View>
-            <T style={{ fontFamily: fonts.fun, fontSize: 16, color: '#46308A' }}>Join class</T>
+            style={{ marginTop: 12, alignSelf: 'flex-start', backgroundColor: '#FFF', borderRadius: 24, height: 48, paddingLeft: 6, paddingRight: 18, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#5B36C9', alignItems: 'center', justifyContent: 'center' }}><Ionicons name="videocam" size={16} color="#FFF" /></View>
+            <T style={{ fontFamily: fonts.fun, fontSize: 17, color: '#46308A' }}>Join Class</T>
           </Pressable>
-          <T style={{ color: '#EDE7FF', fontSize: 12, flex: 1 }} numberOfLines={2}>{teacher}{course ? (course.progress != null ? ` · ${course.progress}% done` : '') : ` · ${CLASSROOM_INFO.live.starts}`}</T>
-        </Row>
+        </View>
+        <Pressable accessibilityRole="button" accessibilityLabel={course ? `${course.title}. Change course` : 'Get a course'}
+          onPress={() => (mine.data?.length ? setPickOpen(true) : router.push(`${base}/courses` as any))}
+          style={{ width: 128, height: 128, borderRadius: 26, backgroundColor: '#FFF', alignItems: 'center', justifyContent: 'center', padding: 8 }}>
+          {course ? <CourseLogo title={course.title} logo={course.logo_url} category={course.category} size={116} />
+            : <View style={{ alignItems: 'center', gap: 6 }}><Ionicons name="add-circle-outline" size={34} color={colors.violet} /><T style={{ color: colors.violet, fontFamily: fonts.semibold, fontSize: 12, textAlign: 'center' }}>Get a course</T></View>}
+          {(mine.data?.length ?? 0) > 1 ? (
+            <View style={{ position: 'absolute', right: 6, bottom: 6, width: 22, height: 22, borderRadius: 11, backgroundColor: '#EEF3F5', alignItems: 'center', justifyContent: 'center' }}><Ionicons name="swap-horizontal" size={13} color={colors.ink} /></View>
+          ) : null}
+        </Pressable>
       </LinearGradient>
       <Modal visible={pickOpen} transparent animationType="fade" onRequestClose={() => setPickOpen(false)}>
         <Pressable accessibilityLabel="Close" onPress={() => setPickOpen(false)} style={{ flex: 1, backgroundColor: 'rgba(11,42,53,0.42)', justifyContent: 'center', padding: 24 }}>
@@ -148,7 +151,7 @@ export function ClassroomScreen() {
             {(mine.data ?? []).map((c) => (
               <Pressable key={c.id} accessibilityRole="button" onPress={() => { setCourseId(c.id); setPickOpen(false); }}
                 style={{ backgroundColor: '#FFF', borderRadius: 18, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 2, borderColor: c.id === course?.id ? colors.violet : 'transparent' }}>
-                <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: c.cover, alignItems: 'center', justifyContent: 'center' }}><T style={{ fontFamily: fonts.semibold }}>{c.title[0]}</T></View>
+                <View style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: '#FFF', borderWidth: 1, borderColor: colors.line, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}><CourseLogo title={c.title} logo={c.logo_url} size={46} /></View>
                 <View style={{ flex: 1 }}><T style={{ fontFamily: fonts.semibold }}>{c.title}</T><T v="small">{c.teacher_name ?? c.category}{c.progress != null ? ` · ${c.progress}% done` : ''}</T></View>
                 {c.id === course?.id ? <Ionicons name="checkmark-circle" size={22} color={colors.violet} /> : null}
               </Pressable>

@@ -32,6 +32,8 @@ export interface Course {
   id: number; title: string; category: string; level: string; cover: string;
   status: 'draft' | 'published'; teacher_name?: string; lessons_count: number;
   progress?: number; is_free?: boolean; enrolled?: boolean; next_live_at?: string | null;
+  /** Course logo uploaded when the course is created (shown on the Classroom card). */
+  logo_url?: string | null;
 }
 export interface CourseItem {
   id: number; course_id: number; kind: ContentKind; title: string; meta?: string;

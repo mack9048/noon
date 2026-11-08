@@ -9,6 +9,8 @@ import { Card, IconButton, Row, Screen, T } from '@/components/ui';
 import { demoNote, Tag } from '@/components/kit';
 import { BottomActions, ChoiceChips, Input, MiniStat, Panel, Select, Status, Stepper, Swatches, TileRows, ToggleChips } from '@/components/kit2';
 import { Logo } from '@/components/Logo';
+import { CourseLogo } from '@/components/CourseLogo';
+import * as DocumentPicker from 'expo-document-picker';
 import { RoleProfileScreen, RoleSettingsScreen, T_ } from './roles2';
 import { Application, AppStatus, setStatus, submitApplication, useApplications } from '@/lib/admissions';
 import { requestApproval } from '@/lib/approvals';
@@ -369,6 +371,14 @@ export function CourseEditorScreen({ mode }: { mode: 'admin' | 'super' }) {
   const [visible, setVisible] = useState(mode === 'admin' ? 'My madrasa only' : 'All madrasas');
   const [level, setLevel] = useState('Beginner');
   const [colour, setColour] = useState(COURSE_COLOURS[0]);
+  const [logo, setLogo] = useState<string | null>(null);
+  const pickLogo = async () => {
+    const r = await DocumentPicker.getDocumentAsync({ type: ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'], copyToCacheDirectory: true });
+    const f = r.canceled ? null : r.assets?.[0];
+    if (!f) return;
+    if (f.size && f.size > 2 * 1024 * 1024) return demoNote('That image is over 2 MB. Please pick a smaller one.');
+    setLogo(f.uri);
+  };
   const [pricing, setPricing] = useState<'free' | 'once' | 'monthly'>('once');
   const [price, setPrice] = useState('1499');
   const [offer, setOffer] = useState('999');
@@ -396,7 +406,7 @@ export function CourseEditorScreen({ mode }: { mode: 'admin' | 'super' }) {
     }
     setBusy(true);
     try {
-      const c = await api.post<{ id: number }>('/super/courses', { title: title.trim(), category: cat, level, cover: colour, status: 'published', is_free: pricing === 'free' });
+      const c = await api.post<{ id: number }>('/super/courses', { title: title.trim(), category: cat, level, cover: colour, status: 'published', is_free: pricing === 'free', logo_url: logo });
       for (const l of lessons) await api.post(`/super/courses/${c.id}/items`, { kind: l.live ? 'live' : 'video', title: l.title, meta: `${l.items.length} items` });
       demoNote('Course published.');
       router.replace('/super/courses' as any);
@@ -433,13 +443,33 @@ export function CourseEditorScreen({ mode }: { mode: 'admin' | 'super' }) {
         <T v="small" style={{ fontFamily: fonts.medium }}>Level</T>
         <ChoiceChips value={level} onChange={setLevel} options={['Beginner', 'Middle', 'Advanced'].map((k) => ({ key: k, label: k }))} />
       </Panel>
+      <Panel title="Course logo" right={<T v="small">shown on the student's Classroom card</T>}>
+        <Row gap={14}>
+          <View style={{ width: 110, height: 110, borderRadius: 24, backgroundColor: '#FFF', borderWidth: 1.5, borderColor: colors.line, alignItems: 'center', justifyContent: 'center', padding: 6 }}>
+            <CourseLogo title={title || 'Course'} logo={logo} category={cat} size={100} />
+          </View>
+          <View style={{ flex: 1, gap: 8 }}>
+            <Pressable accessibilityRole="button" onPress={pickLogo} style={{ height: 46, borderRadius: 16, borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.teal, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <Ionicons name="cloud-upload-outline" size={18} color={colors.teal} /><T style={{ color: colors.teal, fontFamily: fonts.semibold, fontSize: 13 }}>{logo ? 'Change logo' : 'Upload logo'}</T>
+            </Pressable>
+            {logo ? <Pressable accessibilityRole="button" onPress={() => setLogo(null)}><T v="small" style={{ color: colors.red }}>Remove logo</T></Pressable> : null}
+            <T v="small">Square PNG or JPG, at least 512 × 512, max 2 MB. A transparent background looks best.</T>
+          </View>
+        </Row>
+        {/* Live preview of the Classroom card */}
+        <LinearGradient colors={['#5B43E0', '#9B7BE8', '#D59BE0']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 22, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <View style={{ flex: 1 }}>
+            <T style={{ color: '#EDE7FF', fontFamily: fonts.semibold, fontSize: 10 }}>CURRENT LESSON</T>
+            <T style={{ color: '#EDE7FF', fontSize: 12 }}>{cat} · Lesson 01</T>
+            <T style={{ color: '#FFF', fontFamily: fonts.fun, fontSize: 20 }} numberOfLines={1}>{(lessons[0]?.title ?? 'First lesson')}</T>
+            <View style={{ marginTop: 6, alignSelf: 'flex-start', backgroundColor: '#FFF', borderRadius: 14, height: 28, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 6 }}><Ionicons name="videocam" size={12} color="#46308A" /><T style={{ fontFamily: fonts.fun, fontSize: 12, color: '#46308A' }}>Join Class</T></View>
+          </View>
+          <View style={{ width: 84, height: 84, borderRadius: 18, backgroundColor: '#FFF', alignItems: 'center', justifyContent: 'center' }}><CourseLogo title={title || 'Course'} logo={logo} category={cat} size={76} /></View>
+        </LinearGradient>
+      </Panel>
       <Panel title="Colour & thumbnail">
         <Swatches colorsList={COURSE_COLOURS} value={colour} onChange={setColour} />
-        <TileRows cols={2} gap={10}>
-          <Pressable accessibilityRole="button" onPress={() => demoNote('Demo: pick an image (1280 × 720, JPG or PNG, max 2 MB).')} style={{ height: 64, borderRadius: 16, borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.line, alignItems: 'center', justifyContent: 'center' }}><Ionicons name="cloud-upload-outline" size={18} color={colors.teal} /><T style={{ color: colors.teal, fontFamily: fonts.semibold, fontSize: 13 }}>Upload thumbnail</T></Pressable>
-          <Pressable accessibilityRole="button" onPress={() => demoNote('Using the colour and the first letter.')} style={{ height: 64, borderRadius: 16, borderWidth: 1.5, borderColor: colors.line, alignItems: 'center', justifyContent: 'center' }}><Ionicons name="color-palette-outline" size={18} color={colors.ink} /><T style={{ fontFamily: fonts.semibold, fontSize: 13 }}>Colour + letter</T></Pressable>
-        </TileRows>
-        <T v="small">Thumbnail 1280 × 720 · JPG or PNG · max 2 MB</T>
+        <T v="small">The colour is used on the course banner in the course list.</T>
       </Panel>
       <Panel title="Pricing" right={<T v="small">shown on the course card</T>}>
         <ChoiceChips value={pricing} onChange={setPricing} options={[{ key: 'free', label: 'Free' }, { key: 'once', label: 'One-time' }, { key: 'monthly', label: 'Monthly' }]} />

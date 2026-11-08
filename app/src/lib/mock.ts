@@ -168,7 +168,7 @@ const routes: [string, RegExp, Handler][] = [
   ['GET', /^\/courses\/(\d+)$/, (m) => courses.find((c) => c.id === +m[1])],
   ['POST', /^\/courses\/(\d+)\/enroll$/, (m) => { const c = courses.find((x) => x.id === +m[1]); if (c) c.enrolled = true; return c; }],
   ['GET', /^\/super\/courses$/, () => courses.map(({ items, ...c }) => ({ ...c, items_count: items.length }))],
-  ['POST', /^\/super\/courses$/, (_, b) => { const c: CourseDetail = { id: nextId++, title: b.title, category: b.category, level: b.level, cover: b.cover ?? '#DAD3F6', status: b.status ?? 'draft', lessons_count: 0, items: [] }; courses = [c, ...courses]; return c; }],
+  ['POST', /^\/super\/courses$/, (_, b) => { const c: CourseDetail = { id: nextId++, title: b.title, category: b.category, level: b.level, cover: b.cover ?? '#DAD3F6', status: b.status ?? 'draft', lessons_count: 0, items: [], logo_url: b.logo_url ?? null }; courses = [c, ...courses]; return c; }],
   ['PUT', /^\/super\/courses\/(\d+)$/, (m, b) => { courses = courses.map((c) => (c.id === +m[1] ? { ...c, ...b } : c)); return courses.find((c) => c.id === +m[1]); }],
   ['DELETE', /^\/super\/courses\/(\d+)$/, (m) => { courses = courses.filter((c) => c.id !== +m[1]); return {}; }],
   ['POST', /^\/super\/courses\/(\d+)\/items$/, (m, b) => { const c = courses.find((x) => x.id === +m[1]); const it = { id: nextId++, course_id: +m[1], kind: b.kind, title: b.title, meta: b.meta }; c?.items.push(it); return it; }],
