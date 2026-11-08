@@ -9,19 +9,20 @@ import { demoNote } from '@/components/kit';
 import { TileRows } from '@/components/kit2';
 import { useBase } from '@/lib/useBase';
 import { useAuth } from '@/lib/auth';
+import { isVip, useVip } from '@/lib/vip';
 import { colors, fonts } from '@/theme/tokens';
 
 const back = (base: string) => () => (router.canGoBack() ? router.back() : router.replace(base as any));
 
 /* ---------- Play Land ---------- */
-type Game = { name: string; icon: keyof typeof Ionicons.glyphMap; cat: 'letters' | 'quran' | 'fun'; bg: string; shade: string; dark?: boolean; stars?: number; lv?: number; cost?: number; route?: string };
+type Game = { name: string; icon: keyof typeof Ionicons.glyphMap; cat: 'letters' | 'quran' | 'fun'; bg: string; shade: string; dark?: boolean; stars?: number; lv?: number; cost?: number; route?: string; vip?: boolean };
 const GAMES: Game[] = [
   { name: 'Little Driver', icon: 'car-sport', cat: 'letters', bg: '#2EC4B6', shade: '#1E9A8F', dark: true, stars: 3, lv: 4, route: 'car' },
   { name: 'Harakath Builder', icon: 'grid', cat: 'letters', bg: '#E0368C', shade: '#A8236A', stars: 2, lv: 3, route: 'builder' },
   { name: 'Letter Runner', icon: 'pulse', cat: 'fun', bg: '#3D8BFD', shade: '#2563C8', stars: 2, lv: 2, route: 'river' },
   { name: 'Letter Maze', icon: 'git-network', cat: 'letters', bg: '#FFC93C', shade: '#D9A21A', dark: true, stars: 1, lv: 1, route: 'road' },
-  { name: 'Quran Echo', icon: 'book', cat: 'quran', bg: '#7A4BE6', shade: '#5631B8', stars: 3, lv: 5 },
-  { name: 'Water the Plants', icon: 'leaf', cat: 'fun', bg: '#7BD148', shade: '#56A22A', dark: true, stars: 1, lv: 1 },
+  { name: 'Quran Echo', icon: 'book', cat: 'quran', bg: '#7A4BE6', shade: '#5631B8', stars: 3, lv: 5, vip: true },
+  { name: 'Water the Plants', icon: 'leaf', cat: 'fun', bg: '#7BD148', shade: '#56A22A', dark: true, stars: 1, lv: 1, vip: true },
   { name: 'Ice Cream Shop', icon: 'ice-cream', cat: 'fun', bg: '#FF9EC7', shade: '#D96C9C', dark: true, cost: 120 },
   { name: 'Sleepy Bird', icon: 'moon', cat: 'fun', bg: '#FF7A45', shade: '#D45524', dark: true, cost: 80 },
   { name: 'Letters in Space', icon: 'rocket', cat: 'letters', bg: '#2B2F77', shade: '#181A4F', cost: 150 },
@@ -41,8 +42,10 @@ export function PlayLandScreen() {
   const [owned, setOwned] = useState([0, 1]);
   const [msg, setMsg] = useState('Tap a colour to paint your car');
   const shown = GAMES.filter((g) => cat === 'all' || g.cat === cat);
+  const vip = isVip(useVip());
 
   const open = (g: Game) => {
+    if (g.vip && !vip) return router.push(`${base}/games/vip` as any);
     if (g.cost && !unlocked.includes(g.name)) {
       if (stars < g.cost) return demoNote(`You need ${g.cost - stars} more stars to unlock ${g.name}. Play other games to earn stars!`);
       setStars(stars - g.cost); setUnlocked([...unlocked, g.name]); return;
@@ -96,6 +99,17 @@ export function PlayLandScreen() {
           </LinearGradient>
         </Pressable>
 
+        <Pressable accessibilityRole="button" accessibilityLabel="Noon Play VIP plans" onPress={() => router.push(`${base}/games/vip` as any)} style={{ marginTop: 12 }}>
+          <LinearGradient colors={['#FFC93C', '#F08A24']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ borderRadius: 22, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, borderBottomWidth: 5, borderBottomColor: '#C27A00' }}>
+            <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: '#FFF', alignItems: 'center', justifyContent: 'center' }}><Ionicons name="star" size={24} color="#F08A24" /></View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: fonts.fun, fontSize: 18, color: '#2A1600' }}>{vip ? 'You are VIP ★' : 'Go VIP'}</Text>
+              <T style={{ fontSize: 12, color: '#4A3600' }}>{vip ? 'All VIP games are open · double stars' : 'Unlock every VIP game · from ₹199'}</T>
+            </View>
+            <View style={{ backgroundColor: '#FFF', borderRadius: 16, height: 32, paddingHorizontal: 14, justifyContent: 'center' }}><T style={{ fontFamily: fonts.semibold, color: '#C2560E' }}>{vip ? 'Plans' : 'See plans'}</T></View>
+          </LinearGradient>
+        </Pressable>
+
         <Row gap={8} style={{ marginTop: 14, flexWrap: 'wrap' }}>
           {([['all', 'All'], ['letters', 'أ Letters'], ['quran', 'Quran puzzles'], ['fun', 'Fun']] as const).map(([k, l]) => {
             const on = k === cat;
@@ -120,7 +134,8 @@ export function PlayLandScreen() {
                   <View style={{ position: 'absolute', left: 8, top: 8, backgroundColor: 'rgba(255,255,255,0.85)', borderRadius: 9, paddingHorizontal: 6, height: 18, justifyContent: 'center' }}>
                     <Text style={{ fontFamily: fonts.semibold, fontSize: 10, color: '#2A1600' }}>{g.cost ? (locked ? 'NEW' : 'Lv 1') : `Lv ${g.lv}`}</Text>
                   </View>
-                  <Ionicons name={locked ? 'lock-closed' : g.icon} size={44} color={fg} />
+                  {g.vip ? <View style={{ position: 'absolute', right: -22, top: 12, transform: [{ rotate: '35deg' }], backgroundColor: '#F7C948', paddingHorizontal: 24, paddingVertical: 2 }}><Text style={{ fontFamily: fonts.fun, fontSize: 11, color: '#6A4D00' }}>VIP</Text></View> : null}
+                  <Ionicons name={locked ? 'lock-closed' : g.vip && !vip ? 'star' : g.icon} size={44} color={fg} />
                   {locked ? (
                     <View style={{ marginTop: 10, backgroundColor: '#FFD84D', borderRadius: 14, height: 28, paddingHorizontal: 12, justifyContent: 'center' }}>
                       <Text style={{ fontFamily: fonts.fun, fontSize: 13, color: '#2A1600' }}>Unlock · ★{g.cost}</Text>
