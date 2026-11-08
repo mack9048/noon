@@ -76,6 +76,9 @@ class LearnTest extends TestCase
     {
         $s = $this->student($this->madrasa());
         $this->as($s)->getJson('/api/learn/subject/'.$this->subject->id)->assertOk()->assertJsonPath('materials.0.kind', 'video');
+        $this->subject->update(['textbook_pdf_url' => 'https://x/t.pdf', 'workbook_pdf_url' => 'https://x/w.pdf']);
+        $this->as($s)->getJson('/api/learn/subject/'.$this->subject->id)->assertOk()
+            ->assertJsonPath('materials.0.title', 'Textbook')->assertJsonPath('materials.1.title', 'Work book');
         $this->as($s)->getJson('/api/learn/subject/'.$this->otherClassSubject->id)->assertForbidden();
     }
 

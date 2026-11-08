@@ -201,6 +201,9 @@ class LearnController extends Controller
         if ($s->textbook_pdf_url) {
             $out->push(['id' => 't'.$s->id, 'kind' => 'pdf', 'title' => 'Textbook', 'meta' => 'Textbook · PDF', 'url' => $s->textbook_pdf_url]);
         }
+        if ($s->workbook_pdf_url) {
+            $out->push(['id' => 'w'.$s->id, 'kind' => 'pdf', 'title' => 'Work book', 'meta' => 'Work book · PDF', 'url' => $s->workbook_pdf_url]);
+        }
         foreach ($s->lessons as $l) {
             $out->push(['id' => 'v'.$l->id, 'kind' => 'video', 'title' => "Lesson {$l->position} · {$l->title}", 'meta' => 'Video class'.($l->video_duration ? ' · '.$l->video_duration : ''), 'url' => $l->video_url]);
             $out->push(['id' => 'a'.$l->id, 'kind' => 'audio', 'title' => "Lesson {$l->position} · {$l->title}", 'meta' => 'Audio class'.($l->audio_duration ? ' · '.$l->audio_duration : ''), 'url' => $l->audio_url]);

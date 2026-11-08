@@ -4,7 +4,7 @@ import { RoleGate } from '@/components/RoleGate';
 
 // Design: Classroom · Campus · Chat · Profile · Explore (Campus is the home page).
 const items: NavItem[] = [
-  { href: '/student/classroom', label: 'Classroom', icon: 'book-outline', match: ['/student/learn', '/student/class-done', '/student/live'] },
+  { href: '/student/classroom', label: 'Classroom', icon: 'book-outline', match: ['/student/learn', '/student/class-done', '/student/live', '/student/pdf'] },
   { href: '/student', label: 'Campus', icon: 'business-outline', match: ['/student/courses', '/student/support', '/student/noon-buds', '/student/ai'] },
   { href: '/student/chat', label: 'Chat', icon: 'chatbubble-outline' },
   { href: '/student/profile', label: 'Profile', icon: 'person-outline',

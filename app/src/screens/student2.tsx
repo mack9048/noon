@@ -29,14 +29,17 @@ function useSubjects() {
 }
 
 /** The six classroom tiles; they open the picked subject's content. */
-function ClassTiles({ space }: { space: LearnSpace | null }) {
+function ClassTiles({ space, lesson }: { space: LearnSpace | null; lesson?: number }) {
   const base = useBase();
   const learn = (section: string) => () => router.push((space ? `${base}/learn/${section}?space=${space.key}` : `${base}/learn/${section}`) as any);
+  // Text book, Work book and Class note open just that PDF.
+  const pdf = (type: 'textbook' | 'workbook' | 'note') => () =>
+    router.push(`${base}/pdf?type=${type}${space ? `&space=${space.key}` : ''}${lesson && type === 'note' ? `&lesson=${lesson}` : ''}` as any);
   return (
     <TileRows cols={3} gap={10}>
-      <AppTile label="Text book" icon="book" g={G.indigo} tint="#EEF1FF" onPress={learn('materials')} />
-      <AppTile label="Work book" icon="pencil" g={G.orange} tint="#FFF6E2" tag={{ text: 'DUE', bg: '#FBD9DC', ink: colors.red }} onPress={learn('assessment')} />
-      <AppTile label="Class note" icon="document-text" g={G.pink} tint="#FDF0F7" onPress={learn('syllabus')} />
+      <AppTile label="Text book" icon="book" g={G.indigo} tint="#EEF1FF" onPress={pdf('textbook')} />
+      <AppTile label="Work book" icon="pencil" g={G.orange} tint="#FFF6E2" tag={{ text: 'DUE', bg: '#FBD9DC', ink: colors.red }} onPress={pdf('workbook')} />
+      <AppTile label="Class note" icon="document-text" g={G.pink} tint="#FDF0F7" onPress={pdf('note')} />
       <AppTile label="Puzzle" icon="extension-puzzle" g={G.green} tint="#ECF9F2" onPress={() => router.push(`${base}/games/builder` as any)} />
       <AppTile label="Test" icon="checkmark-circle" g={G.purple} tint="#F5EEFE" tag={{ text: 'NEW', bg: colors.mint[0], ink: colors.mint[1] }} onPress={learn('exam')} />
       <AppTile label="Report" icon="bar-chart" g={G.blue} tint="#EDF4FF" onPress={() => router.push(`${base}/performance` as any)} />
@@ -149,7 +152,7 @@ export function ClassDoneScreen() {
       <T v="h1">{lesson?.title ?? 'Thahur'}</T>
       <T v="small">{CLASSROOM_INFO.live.teacher} · 45 min · {subject?.subtitle ?? 'Madrasa 5'}</T>
 
-      <View style={{ marginTop: 14 }}><ClassTiles space={subject} /></View>
+      <View style={{ marginTop: 14 }}><ClassTiles space={subject} lesson={lesson?.position} /></View>
 
       <LinearGradient colors={['#0B5166', '#5B43E0']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ marginTop: 14, borderRadius: 26, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
         <View style={{ width: 70, height: 52, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' }}><T style={{ fontFamily: fonts.arabic, fontSize: 22, color: '#FFF' }}>فقه</T></View>

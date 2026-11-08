@@ -318,8 +318,8 @@ export function NoonBudsScreen() {
   const [n, setN] = useState(0);
   const dh = DHIKR[d];
   const tiles = [
-    { label: 'PDF Book', icon: 'book-outline', bg: '#CDE6F1', ink: '#0B3F50', shadow: '#9CC9DD', go: `${base}/tools/chart` },
-    { label: 'Work Book', icon: 'pencil-outline', bg: '#FFF2C9', ink: '#5C4200', shadow: '#EBD58F', tag: 'NEW' },
+    { label: 'PDF Book', icon: 'book-outline', bg: '#CDE6F1', ink: '#0B3F50', shadow: '#9CC9DD', go: `${base}/pdf?type=textbook` },
+    { label: 'Work Book', icon: 'pencil-outline', bg: '#FFF2C9', ink: '#5C4200', shadow: '#EBD58F', tag: 'NEW', go: `${base}/pdf?type=workbook` },
     { label: 'Test', icon: 'checkmark-circle-outline', bg: '#E9E2FF', ink: '#3A2A85', shadow: '#C9BEF5', tag: '5 Qs', go: `${base}/learn/exam` },
     { label: 'Report', icon: 'ribbon-outline', bg: '#FDE2F0', ink: '#74266A', shadow: '#EDBEDD', go: `${base}/performance` },
   ] as const;

@@ -99,15 +99,16 @@ function learnDetail(type: string, id: number): LearnDetail {
   let materials: LearnDetail['materials']; let syllabus: LearnDetail['syllabus']; let quizzes: LearnDetail['assessments'] = [];
   if (type === 'course') {
     const c = courses.find((x) => x.id === id)!;
-    materials = c.items.filter((i) => i.kind !== 'test').map((i) => ({ id: `i${i.id}`, kind: i.kind as any, title: i.title, meta: i.meta, url: i.url, item_id: i.id }));
+    materials = c.items.filter((i) => i.kind !== 'test').map((i) => ({ id: `i${i.id}`, kind: i.kind as any, title: i.title, meta: i.meta, url: i.url ?? (i.kind === 'pdf' ? '/samples/workbook.pdf' : null), item_id: i.id }));
     syllabus = c.items.map((i, n) => ({ position: n + 1, title: i.title, done: !!i.done }));
     quizzes = c.items.filter((i) => i.kind === 'test').map((i) => ({ id: `q${i.id}`, title: i.title, meta: i.meta, status: i.done ? 'done' : 'open', item_id: i.id }));
   } else {
-    materials = [{ id: 't', kind: 'pdf', title: 'Textbook', meta: 'Textbook · PDF', url: '#' },
+    materials = [{ id: 't', kind: 'pdf', title: 'Textbook', meta: 'Textbook · PDF', url: '/samples/textbook.pdf' },
+      { id: 'w', kind: 'pdf', title: 'Work book', meta: 'Work book · PDF', url: '/samples/workbook.pdf' },
       ...lessonTitles.flatMap((t, i) => [
         { id: `v${i}`, kind: 'video' as const, title: `Lesson ${i + 1} · ${t}`, meta: `Video class · ${6 + i}:10`, url: '#' },
         { id: `a${i}`, kind: 'audio' as const, title: `Lesson ${i + 1} · ${t}`, meta: `Audio class · ${4 + (i % 3)}:05`, url: '#' },
-        { id: `n${i}`, kind: 'pdf' as const, title: `Lesson ${i + 1} · ${t}`, meta: 'Class note · PDF', url: '#' },
+        { id: `n${i}`, kind: 'pdf' as const, title: `Lesson ${i + 1} · ${t}`, meta: 'Class note · PDF', url: '/samples/note.pdf' },
       ])];
     syllabus = lessonTitles.map((t, i) => ({ position: i + 1, title: t, done: i < 3 }));
   }
@@ -151,7 +152,7 @@ const routes: [string, RegExp, Handler][] = [
   ['GET', /^\/subjects\/(\d+)$/, (m): SubjectDetail => {
     const id = +m[1]; const cls = classes.find((c) => c.id === Math.floor(id / 10));
     const [name, ar] = subjectNames[id % 10] ?? subjectNames[2];
-    return { id, class_id: cls?.id ?? 0, name, name_ar: ar, lessons_count: lessonTitles.length, textbook_pdf_url: '#',
+    return { id, class_id: cls?.id ?? 0, name, name_ar: ar, lessons_count: lessonTitles.length, textbook_pdf_url: '/samples/textbook.pdf',
       board_name: boards.find((b) => b.id === cls?.board_id)?.code, class_label: cls?.label,
       lessons: lessonTitles.map((t, i) => ({ id: id * 100 + i, subject_id: id, position: i + 1, title: t, video_url: '#', video_duration: `${6 + i}:1${i}`, audio_url: '#', audio_duration: `${4 + (i % 3)}:0${i}`, note_pdf_url: '#' })) };
   }],
