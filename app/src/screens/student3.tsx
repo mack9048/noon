@@ -7,6 +7,7 @@ import { router } from 'expo-router';
 import { IconButton, Row, Screen, T } from '@/components/ui';
 import { demoNote } from '@/components/kit';
 import { TileRows } from '@/components/kit2';
+import { ArtKind, GameArt } from '@/components/GameArt';
 import { useBase } from '@/lib/useBase';
 import { useAuth } from '@/lib/auth';
 import { isVip, useVip } from '@/lib/vip';
@@ -15,18 +16,18 @@ import { colors, fonts } from '@/theme/tokens';
 const back = (base: string) => () => (router.canGoBack() ? router.back() : router.replace(base as any));
 
 /* ---------- Play Land ---------- */
-type Game = { name: string; icon: keyof typeof Ionicons.glyphMap; cat: 'letters' | 'quran' | 'fun'; bg: string; shade: string; dark?: boolean; stars?: number; lv?: number; cost?: number; route?: string; vip?: boolean };
+type Game = { name: string; icon: keyof typeof Ionicons.glyphMap; cat: 'letters' | 'quran' | 'fun'; bg: string; shade: string; dark?: boolean; stars?: number; lv?: number; cost?: number; route?: string; vip?: boolean; art: ArtKind };
 const GAMES: Game[] = [
-  { name: 'Little Driver', icon: 'car-sport', cat: 'letters', bg: '#2EC4B6', shade: '#1E9A8F', dark: true, stars: 3, lv: 4, route: 'car' },
-  { name: 'Harakath Builder', icon: 'grid', cat: 'letters', bg: '#E0368C', shade: '#A8236A', stars: 2, lv: 3, route: 'builder' },
-  { name: 'Letter Runner', icon: 'pulse', cat: 'fun', bg: '#3D8BFD', shade: '#2563C8', stars: 2, lv: 2, route: 'river' },
-  { name: 'Letter Maze', icon: 'git-network', cat: 'letters', bg: '#FFC93C', shade: '#D9A21A', dark: true, stars: 1, lv: 1, route: 'road' },
-  { name: 'Quran Echo', icon: 'book', cat: 'quran', bg: '#7A4BE6', shade: '#5631B8', stars: 3, lv: 5, vip: true },
-  { name: 'Water the Plants', icon: 'leaf', cat: 'fun', bg: '#7BD148', shade: '#56A22A', dark: true, stars: 1, lv: 1, vip: true },
-  { name: 'Ice Cream Shop', icon: 'ice-cream', cat: 'fun', bg: '#FF9EC7', shade: '#D96C9C', dark: true, cost: 120 },
-  { name: 'Sleepy Bird', icon: 'moon', cat: 'fun', bg: '#FF7A45', shade: '#D45524', dark: true, cost: 80 },
-  { name: 'Letters in Space', icon: 'rocket', cat: 'letters', bg: '#2B2F77', shade: '#181A4F', cost: 150 },
-  { name: 'Ayah Puzzle', icon: 'extension-puzzle', cat: 'quran', bg: '#12A6A0', shade: '#0B7874', stars: 2, lv: 2, route: 'ayah' },
+  { name: 'Little Driver', icon: 'car-sport', cat: 'letters', bg: '#2EC4B6', shade: '#1E9A8F', dark: true, stars: 3, lv: 4, route: 'car', art: 'car' },
+  { name: 'Harakath Builder', icon: 'grid', cat: 'letters', bg: '#E0368C', shade: '#A8236A', stars: 2, lv: 3, route: 'builder', art: 'builder' },
+  { name: 'Letter Runner', icon: 'pulse', cat: 'fun', bg: '#3D8BFD', shade: '#2563C8', stars: 2, lv: 2, route: 'river', art: 'river' },
+  { name: 'Letter Maze', icon: 'git-network', cat: 'letters', bg: '#FFC93C', shade: '#D9A21A', dark: true, stars: 1, lv: 1, route: 'road', art: 'road' },
+  { name: 'Quran Echo', icon: 'book', cat: 'quran', bg: '#7A4BE6', shade: '#5631B8', stars: 3, lv: 5, vip: true, art: 'echo' },
+  { name: 'Water the Plants', icon: 'leaf', cat: 'fun', bg: '#7BD148', shade: '#56A22A', dark: true, stars: 1, lv: 1, vip: true, art: 'plants' },
+  { name: 'Ice Cream Shop', icon: 'ice-cream', cat: 'fun', bg: '#FF9EC7', shade: '#D96C9C', dark: true, cost: 120, art: 'icecream' },
+  { name: 'Sleepy Bird', icon: 'moon', cat: 'fun', bg: '#FF7A45', shade: '#D45524', dark: true, cost: 80, art: 'bird' },
+  { name: 'Letters in Space', icon: 'rocket', cat: 'letters', bg: '#2B2F77', shade: '#181A4F', cost: 150, art: 'space' },
+  { name: 'Ayah Puzzle', icon: 'extension-puzzle', cat: 'quran', bg: '#12A6A0', shade: '#0B7874', stars: 2, lv: 2, route: 'ayah', art: 'ayah' },
 ];
 const CAR_COLOURS = [{ c: '#2EC4B6', n: 'Teal', cost: 0 }, { c: '#FF5E7E', n: 'Pink', cost: 0 }, { c: '#FFC93C', n: 'Yellow', cost: 30 }, { c: '#7A4BE6', n: 'Purple', cost: 50 }, { c: '#2B2F77', n: 'Night blue', cost: 80 }];
 const RANK = [['Ameen', 410], ['Hiba', 365], ['you', 240], ['Nihal', 198]] as const;
@@ -87,7 +88,7 @@ export function PlayLandScreen() {
           <LinearGradient colors={['#FF7A45', '#FF5E7E']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ height: 170, borderRadius: 28, padding: 16, overflow: 'hidden', borderBottomWidth: 6, borderBottomColor: '#C2304F' }}>
             <View style={{ position: 'absolute', right: 30, top: 18, width: 46, height: 46, borderRadius: 23, backgroundColor: '#FFD84D' }} />
             <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 52, backgroundColor: '#3B3561' }} />
-            <Ionicons name="car-sport" size={72} color="#2EC4B6" style={{ position: 'absolute', right: 34, bottom: 24 }} />
+            <View style={{ position: 'absolute', right: 6, bottom: 0 }}><GameArt kind="car" size={150} /></View>
             <View style={{ alignSelf: 'flex-start', backgroundColor: '#FFF', borderRadius: 12, paddingHorizontal: 10, height: 24, justifyContent: 'center' }}>
               <T style={{ color: '#D6336C', fontFamily: fonts.semibold, fontSize: 11 }}>GAME OF THE DAY</T>
             </View>
@@ -130,19 +131,20 @@ export function PlayLandScreen() {
               const s = g.stars ?? 0;
               return (
                 <Pressable key={g.name} accessibilityRole="button" accessibilityLabel={locked ? `${g.name}, locked, ${g.cost} stars to unlock` : `${g.name}, level ${g.lv ?? 1}`} onPress={() => open(g)}
-                  style={{ height: 150, borderRadius: 24, backgroundColor: g.bg, borderBottomWidth: 6, borderBottomColor: g.shade, alignItems: 'center', justifyContent: 'center', padding: 10, overflow: 'hidden', opacity: locked ? 0.92 : 1 }}>
+                  style={{ height: 172, borderRadius: 24, backgroundColor: g.bg, borderBottomWidth: 6, borderBottomColor: g.shade, alignItems: 'center', justifyContent: 'center', padding: 10, overflow: 'hidden', opacity: locked ? 0.92 : 1 }}>
                   <View style={{ position: 'absolute', left: 8, top: 8, backgroundColor: 'rgba(255,255,255,0.85)', borderRadius: 9, paddingHorizontal: 6, height: 18, justifyContent: 'center' }}>
                     <Text style={{ fontFamily: fonts.semibold, fontSize: 10, color: '#2A1600' }}>{g.cost ? (locked ? 'NEW' : 'Lv 1') : `Lv ${g.lv}`}</Text>
                   </View>
                   {g.vip ? <View style={{ position: 'absolute', right: -22, top: 12, transform: [{ rotate: '35deg' }], backgroundColor: '#F7C948', paddingHorizontal: 24, paddingVertical: 2 }}><Text style={{ fontFamily: fonts.fun, fontSize: 11, color: '#6A4D00' }}>VIP</Text></View> : null}
-                  <Ionicons name={locked ? 'lock-closed' : g.vip && !vip ? 'star' : g.icon} size={44} color={fg} />
+                  <View style={{ opacity: locked ? 0.35 : 1 }}><GameArt kind={g.art} size={locked ? 74 : 82} /></View>
+                  {locked ? <Ionicons name="lock-closed" size={28} color={fg} style={{ position: 'absolute', top: 38 }} /> : null}
                   {locked ? (
                     <View style={{ marginTop: 10, backgroundColor: '#FFD84D', borderRadius: 14, height: 28, paddingHorizontal: 12, justifyContent: 'center' }}>
                       <Text style={{ fontFamily: fonts.fun, fontSize: 13, color: '#2A1600' }}>Unlock · ★{g.cost}</Text>
                     </View>
                   ) : (
                     <>
-                      <Text numberOfLines={1} style={{ fontFamily: fonts.fun, fontSize: 16, color: fg, marginTop: 8 }}>{g.name}</Text>
+                      <Text numberOfLines={1} style={{ fontFamily: fonts.fun, fontSize: 16, lineHeight: 20, color: fg, marginTop: 2 }}>{g.name}</Text>
                       <Text style={{ color: fg, fontSize: 13 }}>{'★★★'.slice(0, s)}{'☆☆☆'.slice(0, 3 - s)}</Text>
                     </>
                   )}

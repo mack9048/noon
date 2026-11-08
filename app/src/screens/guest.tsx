@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Logo } from '@/components/Logo';
 import { TileRows } from '@/components/kit2';
+import { GameArt } from '@/components/GameArt';
 import { Button, Card, Grid, Header, IconButton, Row, Screen, T } from '@/components/ui';
 import { Chips, demoNote, Glyph, ListRow, pastel, Section, Tag } from '@/components/kit';
 import { Field } from './auth';
@@ -68,14 +69,14 @@ export function GuestHomeScreen() {
 
       <Section title="Play & learn · free" />
       <TileRows cols={2} gap={10}>
-        {PLAY.map(([name, key, g, icon]) => (
+        {PLAY.map(([name, key, g]) => (
           <Pressable key={key} accessibilityRole="button" accessibilityLabel={`Play ${name}`} onPress={() => router.push(`/guest/games/${key}` as any)}>
             <LinearGradient colors={g as unknown as [string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ height: 104, borderRadius: 22, padding: 14, overflow: 'hidden' }}>
               <T style={{ color: '#FFF', fontFamily: fonts.fun, fontSize: 15, lineHeight: 17, maxWidth: '70%' }}>{name}</T>
               <View style={{ marginTop: 'auto', alignSelf: 'flex-start', backgroundColor: 'rgba(255,255,255,0.25)', borderRadius: 11, paddingHorizontal: 10, height: 22, justifyContent: 'center' }}>
                 <T style={{ color: '#FFF', fontFamily: fonts.semibold, fontSize: 10 }}>PLAY</T>
               </View>
-              <Ionicons name={icon} size={38} color="#FFF" style={{ position: 'absolute', right: 12, bottom: 12 }} />
+              <View style={{ position: 'absolute', right: 0, bottom: 0 }}><GameArt kind={key} size={84} /></View>
             </LinearGradient>
           </Pressable>
         ))}

@@ -6,6 +6,7 @@ import { router } from 'expo-router';
 import { GradientCard, IconButton, IconTile, Pill, Row, Screen, T } from '@/components/ui';
 import { Logo } from '@/components/Logo';
 import { TileRows } from '@/components/kit2';
+import { GameArt } from '@/components/GameArt';
 import { demoNote } from '@/components/kit';
 import { useApi } from '@/lib/useApi';
 import { useBase } from '@/lib/useBase';
@@ -142,7 +143,7 @@ function GameCarousel({ base }: { base: string }) {
           <Pressable key={g.name} accessibilityRole="button" accessibilityLabel={`Play ${g.name}`} onPress={() => router.push(`${base}/games/${g.key}` as any)} style={{ marginRight: 12 }}>
             <LinearGradient colors={g.g as unknown as [string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: slideW, height: 180, borderRadius: 30, padding: 16, overflow: 'hidden' }}>
               <View style={{ position: 'absolute', right: -30, top: -30, width: 200, height: 200, borderRadius: 100, backgroundColor: 'rgba(255,255,255,0.16)' }} />
-              <Ionicons name={g.icon} size={92} color="rgba(255,255,255,0.9)" style={{ position: 'absolute', right: 18, bottom: 22 }} />
+              <View style={{ position: 'absolute', right: 6, bottom: 8 }}><GameArt kind={g.key} size={150} /></View>
               <Pill text={g.tag} tint="rgba(255,255,255,0.25)" ink="#FFF" />
               <T style={{ fontFamily: fonts.fun, fontSize: 26, color: '#FFF', marginTop: 8, maxWidth: '60%' }}>{g.name}</T>
               <T style={{ color: '#FFF', fontSize: 12, opacity: 0.92, maxWidth: '55%' }}>{g.desc}</T>

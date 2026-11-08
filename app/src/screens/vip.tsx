@@ -7,15 +7,16 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Card, Grid, IconButton, Row, Screen, T } from '@/components/ui';
 import { demoNote } from '@/components/kit';
 import { useBase } from '@/lib/useBase';
+import { ArtKind, GameArt } from '@/components/GameArt';
 import { PLANS, Plan, VIP_PERKS, addToCart, checkout, isVip, money, off, removeFromCart, toggleLike, useVip } from '@/lib/vip';
 import { colors, fonts } from '@/theme/tokens';
 
 const ORANGE: [string, string] = ['#FF9A3D', '#F06A24'];
 const FRONT = [
-  { label: 'Memorize Quran', icon: 'book' as const, g: ['#FF8A65', '#E0445A'] as [string, string] },
-  { label: 'Little driver', icon: 'car-sport' as const, g: ['#FF9A3D', '#FF5E7E'] as [string, string] },
-  { label: 'Quiz game', icon: 'help-circle' as const, g: ['#4ED68A', '#14945A'] as [string, string] },
-  { label: 'Quiz game', icon: 'help-circle' as const, g: ['#4ED68A', '#14945A'] as [string, string] },
+  { label: 'Memorize Quran', art: 'ayah' as ArtKind, g: ['#FF8A65', '#E0445A'] as [string, string] },
+  { label: 'Little driver', art: 'car' as ArtKind, g: ['#3CB7F0', '#1F6FE0'] as [string, string] },
+  { label: 'Quiz game', art: 'quiz' as ArtKind, g: ['#4ED68A', '#14945A'] as [string, string] },
+  { label: 'Letter lab', art: 'builder' as ArtKind, g: ['#8A6CFF', '#5B43E0'] as [string, string] },
 ];
 const BACK = [{ label: 'Little driver', g: ['#FF9A3D', '#C2304F'] as [string, string] }, { label: 'Quiz game', g: ['#4ED68A', '#0E7A50'] as [string, string] }];
 
@@ -40,8 +41,8 @@ function PlanArt({ i, discount }: { i: number; discount: number }) {
       ))}
       <LinearGradient colors={f.g} style={{ position: 'absolute', left: 12, top: 18, width: 132, height: 104, borderRadius: 16, borderWidth: 3, borderColor: '#FFF', overflow: 'hidden', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
         <VipRibbon />
-        <Ionicons name={f.icon} size={36} color="#FFF" />
-        <Text style={{ fontFamily: fonts.fun, fontSize: 13, color: '#FFF' }}>{f.label}</Text>
+        <GameArt kind={f.art} size={74} />
+        <Text style={{ fontFamily: fonts.fun, fontSize: 13, color: '#FFF', marginTop: -8 }}>{f.label}</Text>
       </LinearGradient>
       <Row gap={6} style={{ position: 'absolute', left: 8, top: 8 }}>
         {discount ? <View style={{ backgroundColor: '#E0445A', borderRadius: 8, paddingHorizontal: 6, height: 18, justifyContent: 'center' }}><Text style={{ color: '#FFF', fontSize: 10, fontFamily: fonts.semibold }}>{discount}%</Text></View> : null}
