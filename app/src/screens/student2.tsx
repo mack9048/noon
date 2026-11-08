@@ -1,7 +1,7 @@
 // Student screens from the second design round: Classroom, Class done, Explore,
 // Profile hub, Bio and Performance.
 import React, { useEffect, useState } from 'react';
-import { Linking, Platform, Pressable, Text, View } from 'react-native';
+import { Linking, Modal, Platform, Pressable, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -14,7 +14,7 @@ import { useBase } from '@/lib/useBase';
 import { useAuth } from '@/lib/auth';
 import { setLearnSpace, useLearnSpaces } from '@/lib/learnSpace';
 import { BIO, CLASSROOM_INFO, FEES, PERFORMANCE, PROFILE } from '@/lib/demo';
-import type { LeaveSummary, LearnDetail, LearnSpace } from '@/lib/types';
+import type { Course, LeaveSummary, LearnDetail, LearnSpace } from '@/lib/types';
 import { colors, fonts } from '@/theme/tokens';
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -98,8 +98,16 @@ export function ClassroomScreen() {
   const base = useBase();
   const { subjects, selected, select } = useSubjects();
   const detail = useApi<LearnDetail>(selected ? `/learn/subject/${selected.id}` : null);
-  const current = detail.data?.syllabus.find((l) => !l.done);
-  const name = selected?.title ?? CLASSROOM_INFO.live.subject;
+  // The card shows a course the student bought: its next lesson, teacher and live time.
+  const mine = useApi<Course[]>('/courses?scope=mine');
+  const [courseId, setCourseId] = useState<number | null>(null);
+  const [pickOpen, setPickOpen] = useState(false);
+  const course = mine.data?.find((c) => c.id === courseId) ?? mine.data?.[0];
+  const courseDetail = useApi<LearnDetail>(course ? `/learn/course/${course.id}` : null);
+  const current = course ? courseDetail.data?.syllabus.find((l) => !l.done) : detail.data?.syllabus.find((l) => !l.done);
+  const name = course ? course.title : selected?.title ?? CLASSROOM_INFO.live.subject;
+  const teacher = course?.teacher_name ?? CLASSROOM_INFO.live.teacher;
+  const liveWhen = course ? (course.next_live_at ? `LIVE ${course.next_live_at.toUpperCase()}` : null) : CLASSROOM_INFO.live.when;
 
   return (
     <Screen bar={false} overlay={<AskAiButton base={base} />}>
@@ -108,23 +116,49 @@ export function ClassroomScreen() {
 
       <LinearGradient colors={['#5B43E0', '#9B7BE8', '#D59BE0']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ marginTop: 10, borderRadius: 30, padding: 18, overflow: 'hidden' }}>
         <View style={{ position: 'absolute', right: -40, top: -50, width: 200, height: 200, borderRadius: 100, backgroundColor: 'rgba(255,255,255,0.12)' }} />
-        <Row style={{ justifyContent: 'space-between' }}>
-          <T style={{ color: '#EDE7FF', fontFamily: fonts.semibold, fontSize: 12 }}>CURRENT LESSON</T>
-          <View style={{ backgroundColor: '#FFF', borderRadius: 12, paddingHorizontal: 10, height: 24, justifyContent: 'center' }}>
-            <T style={{ color: '#D6336C', fontFamily: fonts.semibold, fontSize: 11 }}>● {CLASSROOM_INFO.live.when}</T>
-          </View>
+        <Pressable accessibilityRole="button" accessibilityLabel={course ? `My course: ${course.title}. Change course` : 'Get a course'}
+          onPress={() => (mine.data?.length ? setPickOpen(true) : router.push(`${base}/courses` as any))}
+          style={{ alignSelf: 'flex-start', maxWidth: '100%', flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 14, paddingHorizontal: 10, height: 30 }}>
+          <Ionicons name="school-outline" size={14} color="#FFF" />
+          <T numberOfLines={1} style={{ color: '#FFF', fontFamily: fonts.semibold, fontSize: 12, flexShrink: 1 }}>{course ? `MY COURSE · ${course.title}` : 'CURRENT LESSON'}</T>
+          {mine.data?.length ? <Ionicons name="chevron-down" size={14} color="#FFF" /> : null}
+        </Pressable>
+        <Row style={{ justifyContent: 'space-between', marginTop: 10 }}>
+          <T style={{ color: '#EDE7FF', flexShrink: 1 }} numberOfLines={1}>{course ? `${course.category} · next lesson` : `${name} · lesson ${pad(current?.position ?? 5)}`}</T>
+          {liveWhen ? (
+            <View style={{ backgroundColor: '#FFF', borderRadius: 12, paddingHorizontal: 10, height: 24, justifyContent: 'center', marginLeft: 8 }}>
+              <T style={{ color: '#D6336C', fontFamily: fonts.semibold, fontSize: 11 }}>● {liveWhen}</T>
+            </View>
+          ) : null}
         </Row>
-        <T style={{ color: '#EDE7FF', marginTop: 8 }}>{name} · lesson {pad(current?.position ?? 5)}</T>
-        <T style={{ color: '#FFF', fontFamily: fonts.fun, fontSize: 30, lineHeight: 40 }} numberOfLines={1}>{current?.title ?? 'Najas'}</T>
+        <T style={{ color: '#FFF', fontFamily: fonts.fun, fontSize: 30, lineHeight: 40 }} numberOfLines={1}>{current?.title ?? (course ? 'Lessons coming soon' : 'Najas')}</T>
         <Row style={{ marginTop: 12 }}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Join class" onPress={() => router.push(`${base}/live/1` as any)}
+          <Pressable accessibilityRole="button" accessibilityLabel="Join class" onPress={() => router.push((course ? `${base}/courses/${course.id}` : `${base}/live/1`) as any)}
             style={{ backgroundColor: '#FFF', borderRadius: 22, height: 44, paddingLeft: 6, paddingRight: 16, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: colors.violet, alignItems: 'center', justifyContent: 'center' }}><Ionicons name="videocam" size={15} color="#FFF" /></View>
             <T style={{ fontFamily: fonts.fun, fontSize: 16, color: '#46308A' }}>Join class</T>
           </Pressable>
-          <T style={{ color: '#EDE7FF', fontSize: 12, flex: 1 }} numberOfLines={2}>{CLASSROOM_INFO.live.teacher} · {CLASSROOM_INFO.live.starts}</T>
+          <T style={{ color: '#EDE7FF', fontSize: 12, flex: 1 }} numberOfLines={2}>{teacher}{course ? (course.progress != null ? ` · ${course.progress}% done` : '') : ` · ${CLASSROOM_INFO.live.starts}`}</T>
         </Row>
       </LinearGradient>
+      <Modal visible={pickOpen} transparent animationType="fade" onRequestClose={() => setPickOpen(false)}>
+        <Pressable accessibilityLabel="Close" onPress={() => setPickOpen(false)} style={{ flex: 1, backgroundColor: 'rgba(11,42,53,0.42)', justifyContent: 'center', padding: 24 }}>
+          <View style={{ backgroundColor: colors.bg, borderRadius: 26, padding: 14, gap: 8, width: '100%', maxWidth: 440, alignSelf: 'center' }}>
+            <T v="h3" style={{ marginBottom: 4 }}>My courses</T>
+            {(mine.data ?? []).map((c) => (
+              <Pressable key={c.id} accessibilityRole="button" onPress={() => { setCourseId(c.id); setPickOpen(false); }}
+                style={{ backgroundColor: '#FFF', borderRadius: 18, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 2, borderColor: c.id === course?.id ? colors.violet : 'transparent' }}>
+                <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: c.cover, alignItems: 'center', justifyContent: 'center' }}><T style={{ fontFamily: fonts.semibold }}>{c.title[0]}</T></View>
+                <View style={{ flex: 1 }}><T style={{ fontFamily: fonts.semibold }}>{c.title}</T><T v="small">{c.teacher_name ?? c.category}{c.progress != null ? ` · ${c.progress}% done` : ''}</T></View>
+                {c.id === course?.id ? <Ionicons name="checkmark-circle" size={22} color={colors.violet} /> : null}
+              </Pressable>
+            ))}
+            <Pressable accessibilityRole="button" onPress={() => { setPickOpen(false); router.push(`${base}/courses` as any); }} style={{ padding: 10, alignItems: 'center' }}>
+              <T style={{ color: colors.violet, fontFamily: fonts.semibold }}>+ Get a new course</T>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
 
       <View style={{ marginTop: 14 }}><ClassTiles space={selected} /></View>
       <LessonsBlock subjects={subjects} selected={selected} onSelect={select} detail={detail.data} />
