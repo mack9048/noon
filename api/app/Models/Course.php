@@ -10,13 +10,18 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Course extends Model
 {
-    protected $fillable = ['title', 'category', 'level', 'cover', 'status', 'is_free', 'teacher_id'];
+    protected $fillable = ['title', 'description', 'category', 'level', 'cover', 'logo_url', 'status', 'is_free', 'price', 'offer_price', 'teacher_id', 'tenant_id', 'visibility', 'review_note'];
 
     protected $casts = ['is_free' => 'boolean'];
 
     public function items(): HasMany
     {
         return $this->hasMany(CourseItem::class)->orderBy('position')->orderBy('id');
+    }
+
+    public function madrasa(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class, 'tenant_id');
     }
 
     public function teacher(): BelongsTo
@@ -38,6 +43,10 @@ class Course extends Model
     public function scopeVisibleTo(Builder $q, User $user): Builder
     {
         $q->where('status', 'published');
+        if (! $user->tenant_id && ! $user->hasRole('super')) {
+            // Guests never see a course a madrasa kept for its own students.
+            $q->where('visibility', 'all');
+        }
         if ($user->tenant_id && ! $user->hasRole('super')) {
             $q->whereHas('tenants', fn ($t) => $t->where('tenants.id', $user->tenant_id)->where('course_tenant.enabled', true));
         }
@@ -56,6 +65,10 @@ class Course extends Model
             'category' => $this->category,
             'level' => $this->level,
             'cover' => $this->cover,
+            'logo_url' => $this->logo_url,
+            'description' => $this->description,
+            'price' => $this->price,
+            'offer_price' => $this->offer_price,
             'status' => $this->status,
             'is_free' => $this->is_free,
             'teacher_name' => $this->teacher?->name,

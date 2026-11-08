@@ -1,6 +1,9 @@
 <?php
 
+use App\Http\Controllers\Api\AdmissionController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BatchController;
+use App\Http\Controllers\Api\CourseRequestController;
 use App\Http\Controllers\Api\CatalogController;
 use App\Http\Controllers\Api\ChatController;
 use App\Http\Controllers\Api\CourseController;
@@ -35,6 +38,8 @@ Route::middleware('throttle:auth')->group(function () {
     Route::post('/auth/guest', [AuthController::class, 'guest']);
 });
 Route::get('/boards', [CatalogController::class, 'boards']);
+// Public admission form (from the link the madrasa shares)
+Route::post('/apply/{code}', [AdmissionController::class, 'apply'])->middleware('throttle:join');
 Route::get('/boards/{board}/classes', [CatalogController::class, 'classes']);
 Route::get('/classes/{class}/subjects', [CatalogController::class, 'subjects']);
 
@@ -81,6 +86,14 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     // Institute admin
     Route::middleware(['role:admin', 'tenant'])->prefix('admin')->group(function () {
         Route::put('/courses/{course}', [CourseController::class, 'adminToggle']);
+        Route::post('/courses', [CourseRequestController::class, 'store']);
+        Route::post('/courses/{course}/logo', [CourseRequestController::class, 'logo']);
+        Route::get('/admissions', [AdmissionController::class, 'index']);
+        Route::get('/admissions/{ref}', [AdmissionController::class, 'show']);
+        Route::patch('/admissions/{ref}', [AdmissionController::class, 'update']);
+        Route::get('/batches', [BatchController::class, 'index']);
+        Route::get('/batches/people', [BatchController::class, 'people']);
+        Route::post('/batches', [BatchController::class, 'store']);
     });
 
     // Super admin
@@ -93,6 +106,9 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::delete('/courses/{course}', [CourseController::class, 'superDestroy']);
         Route::post('/courses/{course}/items', [CourseController::class, 'superAddItem']);
         Route::delete('/course-items/{item}', [CourseController::class, 'superDeleteItem']);
+        Route::post('/courses/{course}/logo', [CourseRequestController::class, 'logo']);
+        Route::get('/approvals', [CourseRequestController::class, 'index']);
+        Route::patch('/approvals/{course}', [CourseRequestController::class, 'decide']);
 
         Route::get('/study-tools', [StudyToolController::class, 'superIndex']);
         Route::post('/study-tools', [StudyToolController::class, 'store']);

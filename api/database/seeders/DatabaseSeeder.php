@@ -2,7 +2,9 @@
 
 namespace Database\Seeders;
 
+use App\Models\Admission;
 use App\Models\Assessment;
+use App\Models\Batch;
 use App\Models\Board;
 use App\Models\Conversation;
 use App\Models\Course;
@@ -110,6 +112,23 @@ class DatabaseSeeder extends Seeder
             $make(['tenant_id' => $tenant->id, 'subject_id' => $subject->id], 'exam', 'Onam exam', -14, 70 + ($n * 7) % 30, 100);
             $make(['tenant_id' => $tenant->id, 'subject_id' => $subject->id], 'exam', 'Half-yearly exam', 40, null, 100);
         }
+
+        // ---- Admissions (public form), batches and a madrasa course waiting for approval ----
+        foreach ([
+            ['Rayan Ahmed', 'Boy', '2016-03-14', 'AP', '5', 'Abdul Rahman K', 'Father', '971501234567', 'Sharjah, UAE', 'new'],
+            ['Fathima Nasrin', 'Girl', '2018-01-02', 'AP', '3', 'Nasrin P', 'Mother', '971527651100', 'Dubai, UAE', 'new'],
+            ['Shifa K', 'Girl', '2017-05-01', 'AP', '4', 'Kareem', 'Father', '971502221188', 'Sharjah, UAE', 'review'],
+            ['Amna Sherin', 'Girl', '2016-08-20', 'AP', '5', 'Sherin', 'Mother', '971554047788', 'Dubai, UAE', 'admitted'],
+        ] as $i => [$n, $g, $dob, $b, $c, $p, $r, $ph, $city, $st]) {
+            Admission::create(['tenant_id' => $tenant->id, 'ref' => 'APL-2026-'.str_pad((string) (140 + $i), 4, '0', STR_PAD_LEFT), 'student_name' => $n, 'gender' => $g, 'dob' => $dob,
+                'board' => $b, 'class_label' => $c, 'parent_name' => $p, 'relation' => $r, 'phone' => $ph, 'city' => $city,
+                'docs' => ['birth' => true, 'tc' => $i % 2 === 0, 'photo' => $i !== 0], 'status' => $st, 'timeline' => [['Form submitted via WhatsApp link', 'Today, 9:42 AM']]]);
+        }
+        $batch = Batch::create(['tenant_id' => $tenant->id, 'name' => 'Madrasa 5 · Morning', 'board' => 'AP', 'class_label' => '5', 'days' => ['Mo', 'Tu', 'We', 'Th'],
+            'start_time' => '4:30 PM', 'seats' => 30, 'class_teacher_id' => $teacher->id, 'subject_teachers' => ['Arabic' => $teacher->id, 'Fiqh' => $teacher->id]]);
+        $batch->students()->attach($student->id);
+        $pending = Course::create(['title' => 'Malayalam Duas for Kids', 'category' => 'Duas', 'cover' => '#F7E9BC', 'status' => 'pending', 'tenant_id' => $tenant->id, 'visibility' => 'madrasa', 'teacher_id' => $teacher->id]);
+        $pending->items()->createMany([['kind' => 'video', 'title' => 'Duas before sleeping', 'position' => 1], ['kind' => 'audio', 'title' => 'Dua after eating', 'position' => 2]]);
 
         // ---- Study tools ----
         $tools = [

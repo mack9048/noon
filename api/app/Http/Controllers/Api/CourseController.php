@@ -196,6 +196,9 @@ class CourseController extends Controller
             'level' => ['sometimes', 'string', 'max:30'],
             'cover' => ['sometimes', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'status' => ['sometimes', 'in:draft,published'],
+            'description' => ['nullable', 'string', 'max:500'],
+            'price' => ['nullable', 'integer', 'min:0', 'max:1000000'],
+            'offer_price' => ['nullable', 'integer', 'min:0', 'max:1000000'],
             'is_free' => ['sometimes', 'boolean'],
             'teacher_id' => ['nullable', 'integer', Rule::exists('users', 'id')->where('role', 'teacher')],
         ]);

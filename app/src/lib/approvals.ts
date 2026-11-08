@@ -1,28 +1,49 @@
-// Courses made by madrasa admins wait for super-admin approval. Kept in memory for the
-// demo until the approvals API is added; the admin's "Send for approval" adds here.
-import { useSyncExternalStore } from 'react';
+// Courses made by madrasa admins wait for super-admin approval.
+// Admin: POST /admin/courses (+ logo). Super admin: GET/PATCH /super/approvals.
+import { useEffect, useSyncExternalStore } from 'react';
+import { Platform } from 'react-native';
+import { api, USE_MOCK } from './api';
+import { colors } from '@/theme/tokens';
 
 export type ApprovalStatus = 'waiting' | 'approved' | 'changes' | 'rejected';
-export type CourseRequest = { id: number; title: string; glyph: string; tint: readonly [string, string]; madrasa: string; when: string; tags: string[]; status: ApprovalStatus };
+type Row = { id: number; title: string; category: string; madrasa: string; when: string; tags: string[]; status: ApprovalStatus; logo_url?: string | null };
+export type CourseRequest = Row & { glyph: string; tint: readonly [string, string] };
 
-let list: CourseRequest[] = [
-  { id: 1, title: 'Malayalam Duas for Kids', glyph: 'د', tint: ['#F7E9BC', '#6A4D00'], madrasa: 'Noon Madrasa', when: 'Just now', tags: ['Duas & Adkar', '3 items', 'Ayisha Miss', 'My madrasa only'], status: 'waiting' },
-  { id: 2, title: 'Thajweed for Girls', glyph: 'ت', tint: ['#D2F0D4', '#1E5A2C'], madrasa: 'Al Noor Madrasa', when: '3h ago', tags: ['Quran', '12 items', 'Live weekly', 'All Noon Learn'], status: 'waiting' },
-  { id: 3, title: 'Fiqh Q&A Live', glyph: 'ف', tint: ['#CDE6F1', '#0B5166'], madrasa: 'Darul Huda Online', when: 'Yesterday', tags: ['Fiqh', '6 items', 'Live monthly', 'My madrasa only'], status: 'waiting' },
-];
-let nextId = 10;
-const listeners = new Set<() => void>();
-const emit = () => listeners.forEach((l) => l());
-const subscribe = (l: () => void) => { listeners.add(l); return () => { listeners.delete(l); }; };
+const GLYPH: Record<string, string> = { Arabic: 'ع', Quran: 'ق', Fiqh: 'ف', Seerah: 'س', Hifz: 'ح', Duas: 'د', 'Duas & Adkar': 'د', Thajweed: 'ت' };
+const TINT: Record<string, readonly [string, string]> = { Arabic: colors.lav, Quran: colors.mint, Fiqh: colors.sky, Seerah: colors.pink, Hifz: colors.butter, Duas: colors.butter, 'Duas & Adkar': colors.butter };
+const dress = (r: Row): CourseRequest => ({ ...r, glyph: GLYPH[r.category] ?? r.title[0], tint: TINT[r.category] ?? colors.lav });
 
-export const useApprovals = () => useSyncExternalStore(subscribe, () => list, () => list);
+let list: CourseRequest[] = [];
+let loaded = false;
+const ls = new Set<() => void>();
+const emit = () => ls.forEach((l) => l());
 
-export function decide(id: number, status: ApprovalStatus) {
-  list = list.map((c) => (c.id === id ? { ...c, status } : c));
+export async function refreshApprovals() {
+  try { list = (await api.get<Row[]>('/super/approvals')).map(dress); loaded = true; emit(); } catch { /* not a super admin */ }
+}
+export function useApprovals() {
+  useEffect(() => { if (!loaded) refreshApprovals(); }, []);
+  return useSyncExternalStore((l) => { ls.add(l); return () => { ls.delete(l); }; }, () => list, () => list);
+}
+
+export async function decide(id: number, status: Exclude<ApprovalStatus, 'waiting'>) {
+  const row = dress(await api.patch<Row>(`/super/approvals/${id}`, { status }));
+  list = list.map((c) => (c.id === id ? row : c));
   emit();
 }
 
-export function requestApproval(c: Omit<CourseRequest, 'id' | 'status' | 'when'>) {
-  list = [{ ...c, id: nextId++, status: 'waiting', when: 'Just now' }, ...list];
-  emit();
+/** Upload a course logo picked with the document picker (uri; on web also the File). */
+export async function uploadLogo(path: string, logo: { uri: string; name?: string; mimeType?: string; file?: File }) {
+  if (USE_MOCK) return; // the demo keeps the logo_url sent with the course
+  const fd = new FormData();
+  if (Platform.OS === 'web' && logo.file) fd.append('logo', logo.file);
+  else fd.append('logo', { uri: logo.uri, name: logo.name ?? 'logo.png', type: logo.mimeType ?? 'image/png' } as any);
+  await api.post(path, fd);
+}
+
+/** Admin: create a course; it waits for approval. */
+export async function requestApproval(c: { title: string; description?: string; category: string; level: string; cover: string; visibility: 'all' | 'madrasa'; is_free: boolean; price?: number | null; offer_price?: number | null; lessons: string[]; logo_url?: string | null }) {
+  const row = await api.post<Row & { id: number }>('/admin/courses', c);
+  loaded = false;
+  return row;
 }

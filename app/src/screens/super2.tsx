@@ -163,9 +163,11 @@ export function ApprovalsScreen() {
   const list = useApprovals();
   const [tab, setTab] = useState<'waiting' | 'approved' | 'other'>('waiting');
   const shown = list.filter((c) => (tab === 'other' ? c.status === 'changes' || c.status === 'rejected' : c.status === tab));
-  const act = (id: number, s: ApprovalStatus, title: string) => {
-    decide(id, s);
-    demoNote(s === 'approved' ? `"${title}" is approved and visible to students.` : s === 'changes' ? `Asked the madrasa to change "${title}".` : `"${title}" was rejected.`);
+  const act = async (id: number, s: Exclude<ApprovalStatus, 'waiting'>, title: string) => {
+    try {
+      await decide(id, s);
+      demoNote(s === 'approved' ? `"${title}" is approved and visible to students.` : s === 'changes' ? `Asked the madrasa to change "${title}".` : `"${title}" was rejected.`);
+    } catch (e: any) { demoNote(e?.message ?? 'Could not save.'); }
   };
   return (
     <Screen>

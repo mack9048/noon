@@ -70,6 +70,36 @@ function demoUser(role: Role, name: string): User {
   return { id: 1, name, role, tenant_id: role === 'guest' || role === 'super' ? null : 1, tenant_name: 'Noon Madrasa', board_id: 1, class_id: 105, avatar_initial: name[0] };
 }
 
+// ---- Batches ----
+const BATCH_TEACHERS = [{ id: 2, name: 'Ustad Ahmed' }, { id: 3, name: 'Ayisha Miss' }, { id: 4, name: 'Safwan Usthad' }, { id: 5, name: 'Noushad K' }];
+const BATCH_STUDENTS = ['Ayisha Rahman', 'Fathima Nasrin', 'Hamdan P', 'Muhammed Adil', 'Nihal T', 'Rayan Ahmed', 'Shifa K', 'Zayan M', 'Amna Sherin', 'Bilal K'].map((name, i) => ({ id: 100 + i, name }));
+let batchRows = [
+  { id: 1, cls: '5', name: 'Madrasa 5 · Morning', board: 'AP', when: 'Mo–Th 4:30 PM', students: 28, teachers: 3, subjects: 8, ct: 'Ustad Ahmed' },
+  { id: 2, cls: '3', name: 'Madrasa 3 · Evening', board: 'AP', when: 'Mo–Th 6:00 PM', students: 22, teachers: 3, subjects: 7, ct: 'Ayisha Miss' },
+  { id: 3, cls: '7', name: 'Madrasa 7', board: 'EK', when: 'Tu–Fr 5:00 PM', students: 25, teachers: 4, subjects: 8, ct: 'Safwan Usthad' },
+  { id: 4, cls: '+1', name: 'Plus One · Girls', board: 'GEN', when: 'Sa–Su 10:00 AM', students: 14, teachers: 2, subjects: 6, ct: 'Ayisha Miss' },
+];
+
+// ---- Course approvals (madrasa-made courses) ----
+let courseRequests: { id: number; title: string; category: string; madrasa: string; when: string; tags: string[]; status: string; logo_url?: string | null }[] = [
+  { id: 901, title: 'Malayalam Duas for Kids', category: 'Duas', madrasa: 'Noon Madrasa', when: 'Just now', tags: ['Duas & Adkar', '3 items', 'Ayisha Miss', 'My madrasa only'], status: 'waiting' },
+  { id: 902, title: 'Thajweed for Girls', category: 'Quran', madrasa: 'Al Noor Madrasa', when: '3h ago', tags: ['Quran', '12 items', 'Live weekly', 'All Noon Learn'], status: 'waiting' },
+  { id: 903, title: 'Fiqh Q&A Live', category: 'Fiqh', madrasa: 'Darul Huda Online', when: 'Yesterday', tags: ['Fiqh', '6 items', 'Live monthly', 'My madrasa only'], status: 'waiting' },
+];
+
+// ---- Admissions (public form + admin list) ----
+type MockApp = import('./admissions').Application;
+let admissionRows: MockApp[] = [
+  { id: 'APL-2026-0142', name: 'Rayan Ahmed', gender: 'Boy', dob: '14 Mar 2016', age: 10, board: 'AP', cls: '5', parent: 'Abdul Rahman K', relation: 'Father', phone: '+971 50 123 4567', city: 'Sharjah, UAE', prevMadrasa: 'Darul Huda, Kozhikode', time: 'Evening · 4:30 PM', docs: { birth: true, tc: true, photo: false }, status: 'new', when: '2h ago', timeline: [['Form submitted via WhatsApp link', 'Today, 9:42 AM'], ['Fee receipt uploaded', 'Today, 9:44 AM']] },
+  { id: 'APL-2026-0141', name: 'Fathima Nasrin', gender: 'Girl', dob: '2 Jan 2018', age: 8, board: 'AP', cls: '3', parent: 'Nasrin P', relation: 'Mother', phone: '+971 52 765 1100', city: 'Dubai, UAE', docs: { birth: true, tc: false, photo: true }, status: 'new', when: '5h ago', timeline: [['Form submitted via WhatsApp link', 'Today, 6:10 AM']] },
+  { id: 'APL-2026-0139', name: 'Muhammed Adil', gender: 'Boy', dob: '9 Jul 2014', age: 12, board: 'EK', cls: '7', parent: 'Adil K', relation: 'Father', phone: '+971 54 300 2211', city: 'Ajman, UAE', docs: { birth: true, tc: true, photo: true }, status: 'new', when: 'Yesterday', timeline: [['Form submitted at the office', 'Yesterday, 5:20 PM']] },
+  { id: 'APL-2026-0131', name: 'Shifa K', gender: 'Girl', dob: '1 May 2017', age: 9, board: 'AP', cls: '4', parent: 'Kareem', relation: 'Father', phone: '+971 50 222 1188', city: 'Sharjah, UAE', docs: { birth: true, tc: true, photo: true }, status: 'review', when: '2 days ago', timeline: [['Form submitted', 'Mon'], ['Interview booked', 'Tue']] },
+  { id: 'APL-2026-0128', name: 'Bilal K', gender: 'Boy', dob: '3 Feb 2015', age: 11, board: 'AP', cls: '6', parent: 'Khalid', relation: 'Father', phone: '+971 56 110 9090', city: 'Sharjah, UAE', docs: { birth: true, tc: false, photo: true }, status: 'review', when: '3 days ago', timeline: [['Form submitted', 'Sun']] },
+  { id: 'APL-2026-0120', name: 'Amna Sherin', gender: 'Girl', dob: '20 Aug 2016', age: 10, board: 'AP', cls: '5', parent: 'Sherin', relation: 'Mother', phone: '+971 55 404 7788', city: 'Dubai, UAE', docs: { birth: true, tc: true, photo: true }, status: 'admitted', when: 'Last week', timeline: [['Admitted', 'Last week']] },
+  { id: 'APL-2026-0117', name: 'Zayan M', gender: 'Boy', dob: '11 Nov 2018', age: 8, board: 'GEN', cls: '2', parent: 'Muneer', relation: 'Father', phone: '+971 50 909 1212', city: 'Sharjah, UAE', docs: { birth: true, tc: true, photo: true }, status: 'admitted', when: 'Last week', timeline: [['Admitted', 'Last week']] },
+];
+const nowStr = () => `Today, ${new Date().toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })}`;
+
 // ---- Learning spaces (GET /learn, /learn/{type}/{id}) ----
 const grade = (p: number) => (p >= 90 ? 'A+' : p >= 80 ? 'A' : p >= 70 ? 'B+' : p >= 60 ? 'B' : p >= 50 ? 'C' : p >= 40 ? 'D' : 'E');
 const day = (d: number) => new Date(Date.now() + d * 86400000).toISOString();
@@ -157,6 +187,43 @@ const routes: [string, RegExp, Handler][] = [
       lessons: lessonTitles.map((t, i) => ({ id: id * 100 + i, subject_id: id, position: i + 1, title: t, video_url: '#', video_duration: `${6 + i}:1${i}`, audio_url: '#', audio_duration: `${4 + (i % 3)}:0${i}`, note_pdf_url: '#' })) };
   }],
 
+  ['GET', /^\/admin\/batches$/, () => batchRows],
+  ['GET', /^\/admin\/batches\/people$/, () => ({ teachers: BATCH_TEACHERS, students: BATCH_STUDENTS })],
+  ['POST', /^\/admin\/batches$/, (_, b) => {
+    if (!b?.name || !(b.days ?? []).length) throw new Error('Give the batch a name and pick its class days.');
+    const order = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
+    const days = [...b.days].sort((x: string, y: string) => order.indexOf(x) - order.indexOf(y));
+    const row = { id: nextId++, cls: b.cls, name: b.name, board: b.board, when: `${days[0]}–${days[days.length - 1]} ${b.start_time}`, students: (b.student_ids ?? []).length,
+      teachers: new Set(Object.values(b.subject_teachers ?? {})).size, subjects: Object.keys(b.subject_teachers ?? {}).length, ct: BATCH_TEACHERS.find((t) => t.id === b.class_teacher_id)?.name ?? '—' };
+    batchRows = [...batchRows, row];
+    return row;
+  }],
+  ['GET', /^\/super\/approvals$/, () => courseRequests],
+  ['PATCH', /^\/super\/approvals\/(\d+)$/, (m, b) => {
+    courseRequests = courseRequests.map((c) => (c.id === +m[1] ? { ...c, status: b.status } : c));
+    const c = courseRequests.find((x) => x.id === +m[1])!;
+    if (b.status === 'approved' && !courses.some((x) => x.title === c.title)) courses = [...courses, { id: nextId++, title: c.title, category: c.category, level: 'Beginner', cover: '#F7E9BC', status: 'published', lessons_count: 0, items: [], logo_url: c.logo_url ?? null }];
+    return c;
+  }],
+  ['POST', /^\/admin\/courses$/, (_, b) => {
+    const row = { id: nextId++, title: b.title, category: b.category, madrasa: 'Noon Madrasa', when: 'Just now', tags: [b.category, `${(b.lessons ?? []).length} items`, b.level, b.visibility === 'madrasa' ? 'My madrasa only' : 'All Noon Learn'], status: 'waiting', logo_url: b.logo_url ?? null };
+    courseRequests = [row, ...courseRequests];
+    return row;
+  }],
+  ['GET', /^\/admin\/admissions$/, () => admissionRows],
+  ['PATCH', /^\/admin\/admissions\/([^/]+)$/, (m, b) => {
+    const note = ({ review: 'Interview booked', admitted: 'Admitted', rejected: 'Application rejected', new: 'Moved back to new' } as Record<string, string>)[b.status];
+    admissionRows = admissionRows.map((a) => (a.id === decodeURIComponent(m[1]) ? { ...a, status: b.status, timeline: [...a.timeline, [note, nowStr()]] } : a));
+    return admissionRows.find((a) => a.id === decodeURIComponent(m[1]));
+  }],
+  ['POST', /^\/apply\/([^/]+)$/, (m, b) => {
+    if (decodeURIComponent(m[1]).toUpperCase() !== 'NOON01') throw new Error('This admission link is not valid.');
+    if (String(b.phone ?? '').replace(/\D/g, '').length < 9) throw new Error('Please enter a valid WhatsApp number.');
+    const id = `APL-2026-${String(nextId++).slice(-4)}`;
+    const age = b.dob ? Math.max(3, new Date().getFullYear() - new Date(b.dob).getFullYear()) : 0;
+    admissionRows = [{ id, name: b.name, gender: b.gender, dob: b.dob ?? '—', age, board: b.board, cls: b.cls, parent: b.parent, relation: 'Parent', phone: b.phone, city: '—', docs: { birth: false, tc: false, photo: false, ...(b.docs ?? {}) }, status: 'new', when: 'Just now', timeline: [['Form submitted via the online form', nowStr()]] }, ...admissionRows];
+    return { id, madrasa: 'Noon Madrasa' };
+  }],
   ['GET', /^\/learn$/, () => learnSpaces()],
   ['GET', /^\/learn\/(subject|course)\/(\d+)$/, (m) => learnDetail(m[1], +m[2])],
 

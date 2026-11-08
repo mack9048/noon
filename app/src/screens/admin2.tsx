@@ -13,8 +13,9 @@ import { CourseLogo } from '@/components/CourseLogo';
 import * as DocumentPicker from 'expo-document-picker';
 import { RoleProfileScreen, RoleSettingsScreen, T_ } from './roles2';
 import { Application, AppStatus, setStatus, submitApplication, useApplications } from '@/lib/admissions';
-import { requestApproval } from '@/lib/approvals';
+import { requestApproval, uploadLogo } from '@/lib/approvals';
 import { api, ApiError } from '@/lib/api';
+import { useApi } from '@/lib/useApi';
 import { colors, fonts } from '@/theme/tokens';
 
 const TINTS = [colors.lav, colors.sky, colors.mint, colors.pink, colors.butter];
@@ -79,7 +80,9 @@ export function AdmissionDetailScreen() {
   const a = useApplications().find((x) => x.id === id);
   if (!a) return <Screen><T>Application not found.</T></Screen>;
   const phone = a.phone.replace(/[^\d+]/g, '');
-  const act = (s: AppStatus, note: string, msg: string) => { setStatus(a.id, s, note); demoNote(msg); };
+  const act = async (s: AppStatus, _note: string, msg: string) => {
+    try { await setStatus(a.id, s); demoNote(msg); } catch (e: any) { demoNote(e instanceof ApiError ? e.friendly : e?.message ?? 'Could not update.'); }
+  };
   return (
     <Screen overlay={a.status === 'admitted' || a.status === 'rejected' ? undefined : (
       <BottomActions>
@@ -132,11 +135,13 @@ export function AdmissionFormScreen() {
   const [phone, setPhone] = useState('+971 ');
   const [docs, setDocs] = useState({ birth: false, tc: false, photo: false });
   const [done, setDone] = useState<string | null>(null);
-  const submit = () => {
+  const [busy, setBusy] = useState(false);
+  const submit = async () => {
     if (name.trim().length < 3 || parent.trim().length < 3 || phone.replace(/\D/g, '').length < 9) return demoNote('Please fill the student name, parent name and WhatsApp number.');
-    const age = dob ? Math.max(3, new Date().getFullYear() - new Date(dob).getFullYear()) : 0;
-    const id = submitApplication({ name: name.trim(), gender, dob: dob || '—', age, board: board.split(' ')[0], cls, parent: parent.trim(), relation: 'Parent', phone: phone.trim(), city: '—', docs });
-    setDone(id);
+    setBusy(true);
+    try {
+      setDone(await submitApplication(String(code ?? 'NOON01'), { name: name.trim(), gender, dob, board: board.split(' ')[0], cls, parent: parent.trim(), phone: phone.trim(), docs }));
+    } catch (e: any) { demoNote(e instanceof ApiError ? e.friendly : e?.message ?? 'Could not send the application.'); } finally { setBusy(false); }
   };
   if (done) {
     return (
@@ -150,7 +155,7 @@ export function AdmissionFormScreen() {
     );
   }
   return (
-    <Screen bar={false} overlay={<BottomActions><Pressable accessibilityRole="button" onPress={submit} style={{ flex: 1, height: 56, borderRadius: 28, backgroundColor: colors.yellow, alignItems: 'center', justifyContent: 'center', borderBottomWidth: 5, borderBottomColor: colors.yellowDeep }}><T style={{ fontFamily: fonts.semibold, fontSize: 16, color: '#2A1E00' }}>Submit application</T></Pressable></BottomActions>}>
+    <Screen bar={false} overlay={<BottomActions><Pressable accessibilityRole="button" onPress={submit} style={{ flex: 1, height: 56, borderRadius: 28, backgroundColor: colors.yellow, alignItems: 'center', justifyContent: 'center', borderBottomWidth: 5, borderBottomColor: colors.yellowDeep }}><T style={{ fontFamily: fonts.semibold, fontSize: 16, color: '#2A1E00' }}>{busy ? 'Sending…' : 'Submit application'}</T></Pressable></BottomActions>}>
       <LinearGradient colors={['#0B5166', '#5B43E0']} style={{ marginHorizontal: -20, marginTop: -12, padding: 20, paddingBottom: 46, borderBottomLeftRadius: 32, borderBottomRightRadius: 32 }}>
         <View style={{ alignSelf: 'flex-start', backgroundColor: '#FFF', borderRadius: 12, padding: 6 }}><Logo height={24} /></View>
         <T style={{ color: '#D9F2F5', marginTop: 16 }}>Noon Madrasa · 2026–27{code ? ` · ${String(code).toUpperCase()}` : ''}</T>
@@ -184,15 +189,19 @@ export function AdmissionFormScreen() {
 }
 
 /* ---------- Batches ---------- */
-type Batch = { id: number; cls: string; name: string; board: string; when: string; students: number; teachers: number; subjects: number; ct: string; g: [string, string] };
-let batches: Batch[] = [
-  { id: 1, cls: '5', name: 'Madrasa 5 · Morning', board: 'AP board', when: 'Mon–Thu 4:30 PM', students: 28, teachers: 3, subjects: 8, ct: 'Ustad Ahmed', g: ['#5B43E0', '#9B7BE8'] },
-  { id: 2, cls: '3', name: 'Madrasa 3 · Evening', board: 'AP board', when: 'Mon–Thu 6:00 PM', students: 22, teachers: 3, subjects: 7, ct: 'Ayisha Miss', g: ['#0B5166', '#1F8AA8'] },
-  { id: 3, cls: '7', name: 'Madrasa 7', board: 'EK board', when: 'Tue–Fri 5:00 PM', students: 25, teachers: 4, subjects: 8, ct: 'Safwan Usthad', g: ['#14945A', '#4ED68A'] },
-  { id: 4, cls: '+1', name: 'Plus One · Girls', board: 'General', when: 'Sat–Sun 10:00 AM', students: 14, teachers: 2, subjects: 6, ct: 'Ayisha Miss', g: ['#FF9A3D', '#FF5E7E'] },
-];
+type Batch = { id: number; cls: string; name: string; board: string; when: string; students: number; teachers: number; subjects: number; ct: string };
+const BATCH_G: [string, string][] = [['#5B43E0', '#9B7BE8'], ['#0B5166', '#1F8AA8'], ['#14945A', '#4ED68A'], ['#FF9A3D', '#FF5E7E']];
+// Batches come from GET /admin/batches; one shared copy so the Teachers page and Batches page agree.
+let batches: Batch[] = [];
+let batchesLoaded = false;
 const bListeners = new Set<() => void>();
-const useBatches = () => useSyncExternalStore((l) => { bListeners.add(l); return () => { bListeners.delete(l); }; }, () => batches, () => batches);
+async function refreshBatches() {
+  try { batches = await api.get<Batch[]>('/admin/batches'); batchesLoaded = true; bListeners.forEach((l) => l()); } catch { /* shown empty */ }
+}
+const useBatches = () => {
+  React.useEffect(() => { if (!batchesLoaded) refreshBatches(); }, []);
+  return useSyncExternalStore((l) => { bListeners.add(l); return () => { bListeners.delete(l); }; }, () => batches, () => batches);
+};
 
 export function BatchesScreen() {
   const list = useBatches();
@@ -206,10 +215,10 @@ export function BatchesScreen() {
         </Pressable>
       </Row>
       <View style={{ gap: 12, marginTop: 12 }}>
-        {list.map((b) => (
+        {list.map((b, bi) => (
           <Card key={b.id} style={{ gap: 10 }}>
             <Row gap={12}>
-              <LinearGradient colors={b.g} style={{ width: 54, height: 54, borderRadius: 16, alignItems: 'center', justifyContent: 'center' }}>
+              <LinearGradient colors={BATCH_G[bi % 4]} style={{ width: 54, height: 54, borderRadius: 16, alignItems: 'center', justifyContent: 'center' }}>
                 <Text style={{ color: '#FFF', fontSize: 9, fontFamily: fonts.semibold }}>CLASS</Text><Text style={{ color: '#FFF', fontSize: 20, fontFamily: fonts.fun, lineHeight: 22 }}>{b.cls}</Text>
               </LinearGradient>
               <View style={{ flex: 1 }}><T v="h3">{b.name}</T><T v="small">{b.board} · {b.when}</T></View>
@@ -228,8 +237,7 @@ export function BatchesScreen() {
   );
 }
 
-const ALL_STUDENTS = ['Ayisha Rahman', 'Fathima Nasrin', 'Hamdan P', 'Muhammed Adil', 'Nihal T', 'Rayan Ahmed', 'Shifa K', 'Zayan M', 'Amna Sherin', 'Bilal K'];
-const TEACHERS = ['Ustad Ahmed', 'Ayisha Miss', 'Safwan Usthad', 'Noushad K'];
+type Person = { id: number; name: string };
 
 export function BatchNewScreen() {
   const [step, setStep] = useState(0);
@@ -239,23 +247,29 @@ export function BatchNewScreen() {
   const [days, setDays] = useState(['Mo', 'Tu', 'We', 'Th']);
   const [time, setTime] = useState('06:00 PM');
   const [seats, setSeats] = useState('30');
-  const [students, setStudents] = useState<string[]>([]);
-  const [ct, setCt] = useState('Ustad Ahmed');
-  const [subjTeachers, setSubjTeachers] = useState<Record<string, string>>({ Arabic: 'Ustad Ahmed', Fiqh: 'Ayisha Miss', Quran: 'Safwan Usthad', Thajweed: 'Safwan Usthad' });
-  const create = () => {
+  const people = useApi<{ teachers: Person[]; students: Person[] }>('/admin/batches/people');
+  const teachers = people.data?.teachers ?? [];
+  const allStudents = people.data?.students ?? [];
+  const [students, setStudents] = useState<number[]>([]);
+  const [ct, setCt] = useState('');
+  const [subjTeachers, setSubjTeachers] = useState<Record<string, string>>({ Arabic: '', Fiqh: '', Quran: '', Thajweed: '' });
+  const [busy, setBusy] = useState(false);
+  const tOpts = [{ key: '', label: 'Not set' }, ...teachers.map((t) => ({ key: String(t.id), label: t.name }))];
+  const create = async () => {
     if (!name.trim() || !days.length) return demoNote('Give the batch a name and pick its class days.');
-    const g = (['#5B43E0', '#9B7BE8'] as [string, string]);
-    const order = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
-    const sorted = [...days].sort((a, b) => order.indexOf(a) - order.indexOf(b));
-    batches = [...batches, { id: Date.now(), cls, name: name.trim(), board, when: `${sorted[0]}–${sorted[sorted.length - 1]} ${time}`, students: students.length, teachers: new Set(Object.values(subjTeachers)).size, subjects: Object.keys(subjTeachers).length, ct, g }];
-    bListeners.forEach((l) => l());
-    demoNote(`Batch "${name.trim()}" created with ${students.length} students.`);
-    router.replace('/admin/batches' as any);
+    setBusy(true);
+    try {
+      const subject_teachers = Object.fromEntries(Object.entries(subjTeachers).filter(([, v]) => v).map(([k, v]) => [k, Number(v)]));
+      await api.post('/admin/batches', { name: name.trim(), board: board.split(' ')[0], cls, days, start_time: time, seats: Number(seats) || 30, class_teacher_id: ct ? Number(ct) : null, subject_teachers, student_ids: students });
+      await refreshBatches();
+      demoNote(`Batch "${name.trim()}" created with ${students.length} students.`);
+      router.replace('/admin/batches' as any);
+    } catch (e: any) { demoNote(e instanceof ApiError ? e.friendly : e?.message ?? 'Could not create the batch.'); } finally { setBusy(false); }
   };
   return (
     <Screen overlay={<BottomActions>
       {step > 0 ? <Pressable accessibilityRole="button" onPress={() => setStep(step - 1)} style={{ height: 56, paddingHorizontal: 24, borderRadius: 28, backgroundColor: '#FFF', borderWidth: 1.5, borderColor: colors.line, justifyContent: 'center' }}><T style={{ fontFamily: fonts.semibold }}>‹ Back</T></Pressable> : null}
-      <Pressable accessibilityRole="button" onPress={() => (step < 2 ? setStep(step + 1) : create())} style={{ flex: 1, height: 56, borderRadius: 28, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' }}><T style={{ color: '#FFF', fontFamily: fonts.semibold }}>{step < 2 ? 'Next →' : 'Create batch'}</T></Pressable>
+      <Pressable accessibilityRole="button" onPress={() => (step < 2 ? setStep(step + 1) : create())} style={{ flex: 1, height: 56, borderRadius: 28, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' }}><T style={{ color: '#FFF', fontFamily: fonts.semibold }}>{step < 2 ? 'Next →' : busy ? 'Creating…' : 'Create batch'}</T></Pressable>
     </BottomActions>}>
       <T v="h1">Create batch</T>
       <View style={{ marginTop: 12 }}><Stepper steps={['Details', 'Students', 'Teachers']} step={step} onStep={setStep} /></View>
@@ -268,11 +282,12 @@ export function BatchNewScreen() {
           <Row gap={10}><Input label="Start time" value={time} onChangeText={setTime} /><Input label="Seats" value={seats} onChangeText={setSeats} keyboardType="number-pad" /></Row>
         </Panel>
       ) : step === 1 ? (
-        <Panel title={`Students · ${students.length} of ${seats}`} right={<Pressable accessibilityRole="button" onPress={() => setStudents(students.length ? [] : ALL_STUDENTS.slice(0, Number(seats) || 30))}><T style={{ color: colors.teal, fontFamily: fonts.semibold }}>{students.length ? 'Clear' : 'Select all'}</T></Pressable>}>
-          {ALL_STUDENTS.map((s, i) => {
-            const on = students.includes(s);
+        <Panel title={`Students · ${students.length} of ${seats}`} right={<Pressable accessibilityRole="button" onPress={() => setStudents(students.length ? [] : allStudents.slice(0, Number(seats) || 30).map((x) => x.id))}><T style={{ color: colors.teal, fontFamily: fonts.semibold }}>{students.length ? 'Clear' : 'Select all'}</T></Pressable>}>
+          {!allStudents.length ? <T v="small">No students in your madrasa yet. Add them with Bulk add or Admissions.</T> : null}
+          {allStudents.map(({ id: sid, name: s }, i) => {
+            const on = students.includes(sid);
             return (
-              <Pressable key={s} accessibilityRole="checkbox" accessibilityState={{ checked: on }} onPress={() => setStudents(on ? students.filter((x) => x !== s) : [...students, s])} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <Pressable key={s} accessibilityRole="checkbox" accessibilityState={{ checked: on }} onPress={() => setStudents(on ? students.filter((x) => x !== sid) : [...students, sid])} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                 <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: TINTS[i % 5][0], alignItems: 'center', justifyContent: 'center' }}><T style={{ color: TINTS[i % 5][1], fontFamily: fonts.semibold, fontSize: 12 }}>{initials(s)}</T></View>
                 <T style={{ flex: 1 }}>{s}</T>
                 <Ionicons name={on ? 'checkbox' : 'square-outline'} size={22} color={on ? colors.violet : colors.line} />
@@ -282,8 +297,8 @@ export function BatchNewScreen() {
         </Panel>
       ) : (
         <Panel title="Teachers">
-          <Select label="Class teacher" value={ct} options={TEACHERS} onChange={setCt} />
-          {Object.keys(subjTeachers).map((s) => <Select key={s} label={s} value={subjTeachers[s]} options={TEACHERS} onChange={(v) => setSubjTeachers({ ...subjTeachers, [s]: v })} />)}
+          <Select label="Class teacher" value={ct} options={tOpts} onChange={setCt} />
+          {Object.keys(subjTeachers).map((s) => <Select key={s} label={s} value={subjTeachers[s]} options={tOpts} onChange={(v) => setSubjTeachers({ ...subjTeachers, [s]: v })} />)}
         </Panel>
       )}
       <View style={{ height: 80 }} />
@@ -342,9 +357,9 @@ export function TeachersClassesScreen() {
         </>
       ) : (
         <View style={{ gap: 8, marginTop: 12 }}>
-          {list.map((b) => (
+          {list.map((b, bi) => (
             <Card key={b.id} onPress={() => router.push('/admin/batches' as any)} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <LinearGradient colors={b.g} style={{ width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: '#FFF', fontFamily: fonts.fun, fontSize: 17 }}>{b.cls}</Text></LinearGradient>
+              <LinearGradient colors={BATCH_G[bi % 4]} style={{ width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: '#FFF', fontFamily: fonts.fun, fontSize: 17 }}>{b.cls}</Text></LinearGradient>
               <View style={{ flex: 1 }}><T style={{ fontFamily: fonts.semibold }}>{b.name}</T><T v="small">{b.students} students · class teacher {b.ct}</T></View>
             </Card>
           ))}
@@ -372,12 +387,14 @@ export function CourseEditorScreen({ mode }: { mode: 'admin' | 'super' }) {
   const [level, setLevel] = useState('Beginner');
   const [colour, setColour] = useState(COURSE_COLOURS[0]);
   const [logo, setLogo] = useState<string | null>(null);
+  const [logoFile, setLogoFile] = useState<{ uri: string; name?: string; mimeType?: string; file?: File } | null>(null);
   const pickLogo = async () => {
     const r = await DocumentPicker.getDocumentAsync({ type: ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'], copyToCacheDirectory: true });
     const f = r.canceled ? null : r.assets?.[0];
     if (!f) return;
     if (f.size && f.size > 2 * 1024 * 1024) return demoNote('That image is over 2 MB. Please pick a smaller one.');
     setLogo(f.uri);
+    setLogoFile(f as any);
   };
   const [pricing, setPricing] = useState<'free' | 'once' | 'monthly'>('once');
   const [price, setPrice] = useState('1499');
@@ -398,25 +415,30 @@ export function CourseEditorScreen({ mode }: { mode: 'admin' | 'super' }) {
 
   const submit = async () => {
     if (!title.trim()) return demoNote('Give the course a name.');
-    if (mode === 'admin') {
-      requestApproval({ title: title.trim(), glyph: LETTER[cat] ?? title[0], tint: [colors.lav[0], colors.lav[1]], madrasa: 'Noon Madrasa', tags: [cat, `${count} items`, level, visible] });
-      demoNote('Sent to Noon Learn for approval. Students see it once it is approved.');
-      router.replace('/admin/courses' as any);
-      return;
-    }
+    const priceN = pricing === 'free' ? null : Number(price) || null;
+    const offerN = pricing === 'free' ? null : Number(offer) || null;
     setBusy(true);
     try {
-      const c = await api.post<{ id: number }>('/super/courses', { title: title.trim(), category: cat, level, cover: colour, status: 'published', is_free: pricing === 'free', logo_url: logo });
+      if (mode === 'admin') {
+        const row = await requestApproval({ title: title.trim(), description: desc.trim() || undefined, category: cat, level, cover: colour, visibility: visible === 'My madrasa only' ? 'madrasa' : 'all',
+          is_free: pricing === 'free', price: priceN, offer_price: offerN, lessons: lessons.map((l) => l.title), logo_url: logo });
+        if (logoFile) await uploadLogo(`/admin/courses/${row.id}/logo`, logoFile);
+        demoNote('Sent to Noon Learn for approval. Students see it once it is approved.');
+        router.replace('/admin/courses' as any);
+        return;
+      }
+      const c = await api.post<{ id: number }>('/super/courses', { title: title.trim(), description: desc.trim() || null, category: cat, level, cover: colour, status: 'published', is_free: pricing === 'free', price: priceN, offer_price: offerN, logo_url: logo });
+      if (logoFile) await uploadLogo(`/super/courses/${c.id}/logo`, logoFile);
       for (const l of lessons) await api.post(`/super/courses/${c.id}/items`, { kind: l.live ? 'live' : 'video', title: l.title, meta: `${l.items.length} items` });
       demoNote('Course published.');
       router.replace('/super/courses' as any);
-    } catch (e: any) { demoNote(e instanceof ApiError ? e.friendly : e?.message ?? 'Could not publish.'); } finally { setBusy(false); }
+    } catch (e: any) { demoNote(e instanceof ApiError ? e.friendly : e?.message ?? 'Could not save the course.'); } finally { setBusy(false); }
   };
 
   return (
     <Screen overlay={<BottomActions>
       <Pressable accessibilityRole="button" onPress={() => demoNote('Draft saved.')} style={{ height: 56, paddingHorizontal: 24, borderRadius: 28, backgroundColor: '#FFF', borderWidth: 1.5, borderColor: colors.line, justifyContent: 'center' }}><T style={{ fontFamily: fonts.semibold }}>Save draft</T></Pressable>
-      <Pressable accessibilityRole="button" disabled={busy} onPress={submit} style={{ flex: 1, height: 56, borderRadius: 28, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center', opacity: busy ? 0.7 : 1 }}><T style={{ color: '#FFF', fontFamily: fonts.semibold }}>{mode === 'admin' ? 'Send for approval' : busy ? 'Publishing…' : 'Publish course'}</T></Pressable>
+      <Pressable accessibilityRole="button" disabled={busy} onPress={submit} style={{ flex: 1, height: 56, borderRadius: 28, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center', opacity: busy ? 0.7 : 1 }}><T style={{ color: '#FFF', fontFamily: fonts.semibold }}>{busy ? 'Saving…' : mode === 'admin' ? 'Send for approval' : 'Publish course'}</T></Pressable>
     </BottomActions>}>
       <Row style={{ justifyContent: 'space-between' }}><T v="h1">Create course</T><Tag text="Draft" tone="butter" /></Row>
       {mode === 'admin' ? (
@@ -452,7 +474,7 @@ export function CourseEditorScreen({ mode }: { mode: 'admin' | 'super' }) {
             <Pressable accessibilityRole="button" onPress={pickLogo} style={{ height: 46, borderRadius: 16, borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.teal, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
               <Ionicons name="cloud-upload-outline" size={18} color={colors.teal} /><T style={{ color: colors.teal, fontFamily: fonts.semibold, fontSize: 13 }}>{logo ? 'Change logo' : 'Upload logo'}</T>
             </Pressable>
-            {logo ? <Pressable accessibilityRole="button" onPress={() => setLogo(null)}><T v="small" style={{ color: colors.red }}>Remove logo</T></Pressable> : null}
+            {logo ? <Pressable accessibilityRole="button" onPress={() => { setLogo(null); setLogoFile(null); }}><T v="small" style={{ color: colors.red }}>Remove logo</T></Pressable> : null}
             <T v="small">Square PNG or JPG, at least 512 × 512, max 2 MB. A transparent background looks best.</T>
           </View>
         </Row>
