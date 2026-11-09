@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 /** Super admin: manage madrasas (tenants) and create their first admin. */
 class TenantController extends Controller
@@ -40,7 +41,10 @@ class TenantController extends Controller
             'role' => 'admin',
         ]);
 
-        return $tenant;
+        return $tenant->loadCount([
+            'users as students_count' => fn ($q) => $q->where('role', 'student'),
+            'users as teachers_count' => fn ($q) => $q->where('role', 'teacher'),
+        ]);
     }
 
     /** 6 letters/digits, without look-alikes (0/O, 1/I). */
@@ -55,19 +59,45 @@ class TenantController extends Controller
 
     public function update(Request $request, Tenant $tenant)
     {
-        $tenant->update($request->validate([
+        $data = $request->validate([
             'name' => ['sometimes', 'string', 'max:120'],
             'plan' => ['sometimes', 'in:basic,pro,enterprise'],
             'active' => ['sometimes', 'boolean'],
             'leave_quota' => ['sometimes', 'integer', 'between:0,365'],
-        ]));
+            // Optional: reset the password of the madrasa's first admin
+            'admin_password' => ['sometimes', 'nullable', 'string', 'min:8'],
+        ]);
+        $tenant->update(collect($data)->except('admin_password')->all());
+        if (! empty($data['admin_password'])) {
+            $admin = $tenant->users()->where('role', 'admin')->orderBy('id')->first();
+            abort_unless($admin, 422, 'This madrasa has no admin yet.');
+            $admin->update(['password' => $data['admin_password']]);
+            $admin->tokens()->delete();
+        }
 
-        return $tenant;
+        return $tenant->loadCount([
+            'users as students_count' => fn ($q) => $q->where('role', 'student'),
+            'users as teachers_count' => fn ($q) => $q->where('role', 'teacher'),
+        ]);
     }
 
-    public function destroy(Tenant $tenant)
+    /**
+     * Suspends the madrasa. With ?permanent=1 it is deleted for good,
+     * together with all its people and data. That cannot be undone.
+     */
+    public function destroy(Request $request, Tenant $tenant)
     {
-        $tenant->update(['active' => false]); // soft-disable; never hard-delete a school's data from the app
+        if (! $request->boolean('permanent')) {
+            $tenant->update(['active' => false]);
+
+            return response()->noContent();
+        }
+        DB::transaction(function () use ($tenant) {
+            $ids = $tenant->users()->pluck('id');
+            DB::table('personal_access_tokens')->where('tokenable_type', User::class)->whereIn('tokenable_id', $ids)->delete();
+            User::whereIn('id', $ids)->delete();
+            $tenant->delete();
+        });
 
         return response()->noContent();
     }

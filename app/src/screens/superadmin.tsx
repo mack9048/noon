@@ -30,7 +30,7 @@ export function SuperOverviewScreen() {
       </Row>
       <View style={{ marginTop: 14 }}>
         <Grid cols={{ phone: 2, tablet: 4, desktop: 4 }} gap={8}>
-          <Pressable onPress={() => router.push('/super/tenants' as any)}><Stat label="Madrasas" value={tenants ? tenants.length : '…'} tint={pastel.lav} /></Pressable>
+          <Pressable onPress={() => router.push('/super/tenants' as any)}><Stat label="Tenants" value={tenants ? tenants.length : '…'} tint={pastel.lav} /></Pressable>
           <Pressable onPress={() => router.push('/super/users' as any)}><Stat label="Students" value={sum('students_count')} tint={pastel.sky} /></Pressable>
           <Pressable onPress={() => router.push('/super/users' as any)}><Stat label="Teachers" value={sum('teachers_count')} tint={pastel.mint} /></Pressable>
           <Pressable onPress={() => router.push('/super/billing' as any)}><Stat label="Monthly revenue" value="₹4.2L" tint={pastel.pink} /></Pressable>

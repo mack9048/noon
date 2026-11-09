@@ -187,6 +187,17 @@ const routes: [string, RegExp, Handler][] = [
   }],
   ['POST', /^\/auth\/logout$/, () => { me = superMe; superMe = null; return {}; }],
   ['GET', /^\/super\/tenants$/, () => mockTenants],
+  ['POST', /^\/super\/tenants$/, (_, b) => {
+    const t = { id: nextId++, name: b.name, code: Math.random().toString(36).slice(2, 8).toUpperCase(), plan: b.plan ?? 'basic', active: true, students_count: 0, teachers_count: 0 };
+    mockTenants = [t, ...mockTenants];
+    mockUsers.push({ id: nextId++, name: b.admin_name, role: 'admin', login: b.admin_email, admission_no: null, tenant_id: t.id, tenant_name: t.name, tenant_code: t.code, blocked: false });
+    return t;
+  }],
+  ['DELETE', /^\/super\/tenants\/(\d+)(\?permanent=1)?$/, (m) => {
+    if (m[2]) mockTenants = mockTenants.filter((t) => t.id !== +m[1]);
+    else mockTenants = mockTenants.map((t) => (t.id === +m[1] ? { ...t, active: false } : t));
+    return null;
+  }],
   ['PUT', /^\/super\/tenants\/(\d+)$/, (m, b) => { mockTenants = mockTenants.map((t) => (t.id === +m[1] ? { ...t, ...b } : t)); return mockTenants.find((t) => t.id === +m[1]); }],
   ['GET', /^\/super\/users(\?(.*))?$/, (m) => {
     const p = new URLSearchParams(m[2] ?? '');

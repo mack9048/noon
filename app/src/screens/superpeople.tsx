@@ -1,9 +1,9 @@
-// Super admin: madrasas (tenants), every user, and "Log in as" any user.
+// Super admin: tenants (madrasas), every user, and "Log in as" any user.
 import React, { useState } from 'react';
 import { Alert, Platform, Pressable, Switch, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Card, Empty, Header, Loading, Row, Screen, T } from '@/components/ui';
+import { Button, Card, Empty, Header, Loading, Row, Screen, T } from '@/components/ui';
 import { Avatar, Band, Chips, ListRow, pastel, Section, SmallButton, Tag } from '@/components/kit';
 import { api, ApiError } from '@/lib/api';
 import { useApi } from '@/lib/useApi';
@@ -11,7 +11,7 @@ import { homeFor, useAuth } from '@/lib/auth';
 import { colors, fonts } from '@/theme/tokens';
 
 export interface TenantRow {
-  id: number; name: string; code: string; plan: string; active: boolean;
+  id: number; name: string; code: string; plan: string; active: boolean; leave_quota?: number;
   students_count: number; teachers_count?: number; created_at?: string;
 }
 export interface UserRow {
@@ -95,7 +95,7 @@ export function SuperUsersScreen() {
   );
 }
 
-/* ---------- Madrasas ---------- */
+/* ---------- Tenants ---------- */
 export function SuperTenantsScreen() {
   const [q, setQ] = useState('');
   const [f, setF] = useState<'all' | 'active' | 'off'>('all');
@@ -104,14 +104,19 @@ export function SuperTenantsScreen() {
   return (
     <Screen>
       <Row style={{ justifyContent: 'space-between', marginBottom: 12 }}>
-        <T v="h1">Madrasas <T v="small">{data?.length ?? ''}</T></T>
-        <Pressable accessibilityLabel="All users" onPress={() => router.push('/super/users' as any)} style={{ height: 44, paddingHorizontal: 16, borderRadius: 22, backgroundColor: colors.ink, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <Ionicons name="people-outline" size={18} color="#FFF" /><T style={{ color: '#FFF', fontFamily: fonts.semibold }}>All users</T>
-        </Pressable>
+        <T v="h1">Tenants <T v="small">{data?.length ?? ''}</T></T>
+        <Row gap={8}>
+          <Pressable accessibilityLabel="All users" onPress={() => router.push('/super/users' as any)} style={{ height: 44, paddingHorizontal: 14, borderRadius: 22, backgroundColor: '#FFF', borderWidth: 1.5, borderColor: colors.line, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Ionicons name="people-outline" size={18} color={colors.ink} /><T style={{ fontFamily: fonts.semibold }}>Users</T>
+          </Pressable>
+          <Pressable accessibilityLabel="Add tenant" onPress={() => router.push('/super/tenants/new' as any)} style={{ height: 44, paddingHorizontal: 16, borderRadius: 22, backgroundColor: colors.ink, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Ionicons name="add" size={20} color="#FFF" /><T style={{ color: '#FFF', fontFamily: fonts.semibold }}>New tenant</T>
+          </Pressable>
+        </Row>
       </Row>
-      <SearchBox value={q} onChange={setQ} placeholder="Search madrasa or code" />
+      <SearchBox value={q} onChange={setQ} placeholder="Search tenant or code" />
       <Chips value={f} onChange={setF} options={[{ key: 'all', label: 'All' }, { key: 'active', label: 'Active' }, { key: 'off', label: 'Suspended' }]} />
-      {loading && !data ? <Loading /> : error ? <Empty text={error} /> : rows.length === 0 ? <Empty text="No madrasas yet." /> : (
+      {loading && !data ? <Loading /> : error ? <Empty text={error} /> : rows.length === 0 ? <Empty text="No tenants yet. Tap New tenant to add one." /> : (
         <View style={{ gap: 8 }}>
           {rows.map((t, i) => (
             <ListRow key={t.id} onPress={() => router.push(`/super/tenants/${t.id}` as any)} left={<Avatar name={t.name} size={44} tint={TINTS[i % 4]} />}
@@ -124,7 +129,7 @@ export function SuperTenantsScreen() {
   );
 }
 
-/* ---------- One madrasa: details, suspend, people with "Log in as" ---------- */
+/* ---------- One tenant: details, suspend, edit, people with "Log in as" ---------- */
 export function SuperTenantScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: tenants, setData, loading } = useApi<TenantRow[]>('/super/tenants');
@@ -132,7 +137,7 @@ export function SuperTenantScreen() {
   const { go, busyId } = useLogInAs();
   const t = tenants?.find((x) => String(x.id) === String(id));
   if (loading && !tenants) return <Loading />;
-  if (!t) return <Screen><Header title="Madrasa" /><Empty text="Madrasa not found." /></Screen>;
+  if (!t) return <Screen><Header title="Tenant" /><Empty text="Tenant not found." /></Screen>;
   const admin = people?.find((p) => p.role === 'admin');
   const count = (r: UserRow['role']) => people?.filter((p) => p.role === r).length ?? 0;
   const setActive = async (active: boolean) => {
@@ -144,7 +149,10 @@ export function SuperTenantScreen() {
   return (
     <Screen>
       <Band tint={colors.butter[0]} height={200} />
-      <Header title="" right={admin ? <SmallButton title={busyId === admin.id ? 'Opening…' : '↗ Open as admin'} filled tint={colors.violet} disabled={busyId !== null} onPress={() => go(admin)} /> : undefined} />
+      <Header title="" right={<Row gap={8}>
+        <SmallButton title="✎ Edit" onPress={() => router.push(`/super/tenants/${t.id}/edit` as any)} />
+        {admin ? <SmallButton title={busyId === admin.id ? 'Opening…' : '↗ Open as admin'} filled tint={colors.violet} disabled={busyId !== null} onPress={() => go(admin)} /> : null}
+      </Row>} />
       <T v="h1">{t.name}</T>
       <Tag text={`Code ${t.code} · ${t.plan} plan`} tone="white" />
       <Card style={{ marginTop: 14, gap: 4 }}>
@@ -154,12 +162,98 @@ export function SuperTenantScreen() {
           ))}
         </Row>
         <Row style={{ minHeight: 56, borderTopWidth: 1, borderTopColor: colors.line }}>
-          <View style={{ flex: 1 }}><T style={{ fontFamily: fonts.medium }}>Active</T><T v="small">Suspended madrasas cannot sign in</T></View>
-          <Switch accessibilityLabel="Madrasa active" value={t.active} onValueChange={setActive} />
+          <View style={{ flex: 1 }}><T style={{ fontFamily: fonts.medium }}>Active</T><T v="small">People of a suspended tenant cannot sign in</T></View>
+          <Switch accessibilityLabel="Tenant active" value={t.active} onValueChange={setActive} />
         </Row>
       </Card>
       <Section title="People" action="See all" onAction={() => router.push(`/super/users?tenant=${t.id}` as any)} />
       {people ? <UserList rows={people.slice(0, 12)} showTenant={false} /> : <Loading />}
+    </Screen>
+  );
+}
+
+/* ---------- Create / edit / delete a tenant ---------- */
+type Plan = 'basic' | 'pro' | 'enterprise';
+const PLANS: { key: Plan; label: string }[] = [{ key: 'basic', label: 'Basic' }, { key: 'pro', label: 'Pro' }, { key: 'enterprise', label: 'Enterprise' }];
+
+function confirmBox(msg: string): Promise<boolean> {
+  if (Platform.OS === 'web') return Promise.resolve(window.confirm(msg));
+  return new Promise((ok) => Alert.alert('Noon Learn', msg, [{ text: 'Cancel', style: 'cancel', onPress: () => ok(false) }, { text: 'Yes', style: 'destructive', onPress: () => ok(true) }]));
+}
+
+export function SuperTenantFormScreen() {
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const editing = !!id;
+  const { data: tenants } = useApi<TenantRow[]>(editing ? '/super/tenants' : null);
+  const t = tenants?.find((x) => String(x.id) === String(id));
+  const [f, setF] = useState({ name: '', plan: 'basic' as Plan, leave_quota: '15', admin_name: '', admin_email: '', admin_password: '' });
+  const [loaded, setLoaded] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  if (editing && t && !loaded) {
+    setF({ ...f, name: t.name, plan: (t.plan as Plan) ?? 'basic', leave_quota: String(t.leave_quota ?? 15) });
+    setLoaded(true);
+  }
+  if (editing && !t) return tenants ? <Screen><Header title="Edit tenant" /><Empty text="Tenant not found." /></Screen> : <Loading />;
+  const set = (k: keyof typeof f) => (v: string) => setF({ ...f, [k]: v });
+
+  const save = async () => {
+    setErr(null);
+    if (!f.name.trim()) return setErr('Enter the tenant name.');
+    if (!editing && (!f.admin_name.trim() || !f.admin_email.trim() || f.admin_password.length < 8)) return setErr('Enter the admin name, email and a password of at least 8 characters.');
+    if (editing && f.admin_password && f.admin_password.length < 8) return setErr('The new admin password needs at least 8 characters.');
+    setBusy(true);
+    try {
+      if (editing) {
+        await api.put(`/super/tenants/${id}`, { name: f.name.trim(), plan: f.plan, leave_quota: Number(f.leave_quota) || 0, ...(f.admin_password ? { admin_password: f.admin_password } : {}) });
+        say(f.admin_password ? 'Saved. The admin password was changed.' : 'Saved.');
+        router.replace(`/super/tenants/${id}` as any);
+      } else {
+        const made = await api.post<TenantRow>('/super/tenants', { name: f.name.trim(), plan: f.plan, admin_name: f.admin_name.trim(), admin_email: f.admin_email.trim(), admin_password: f.admin_password });
+        say(`${made.name} created. Tenant code: ${made.code}\nAdmin login: ${f.admin_email.trim()}`);
+        router.replace(`/super/tenants/${made.id}` as any);
+      }
+    } catch (e) { setErr(e instanceof ApiError ? e.friendly : 'Could not save.'); } finally { setBusy(false); }
+  };
+
+  const remove = async () => {
+    if (!t) return;
+    if (!(await confirmBox(`Delete ${t.name} permanently?\n\nAll its admins, teachers, parents, students, batches, marks and chats are deleted. This cannot be undone.`))) return;
+    setBusy(true);
+    try { await api.del(`/super/tenants/${t.id}?permanent=1`); router.replace('/super/tenants' as any); }
+    catch (e) { setErr(e instanceof ApiError ? e.friendly : 'Could not delete.'); setBusy(false); }
+  };
+
+  const field = (label: string, k: keyof typeof f, props: Partial<React.ComponentProps<typeof TextInput>> = {}) => (
+    <View style={{ gap: 6 }}>
+      <T v="small" style={{ fontFamily: fonts.medium }}>{label}</T>
+      <TextInput value={f[k]} onChangeText={set(k)} accessibilityLabel={label} placeholderTextColor={colors.faint} {...props}
+        style={{ height: 48, borderRadius: 16, borderWidth: 1.5, borderColor: colors.line, backgroundColor: '#FFF', paddingHorizontal: 14, fontFamily: fonts.regular, fontSize: 15, color: colors.ink, outlineStyle: 'none' } as any} />
+    </View>
+  );
+
+  return (
+    <Screen>
+      <Header title={editing ? 'Edit tenant' : 'New tenant'} subtitle={editing ? `Code ${t?.code}` : 'Creates the madrasa and its first admin login'} />
+      <Card style={{ gap: 14 }}>
+        {field('Tenant name', 'name', { placeholder: 'e.g. Al Noor Madrasa' })}
+        <View style={{ gap: 6 }}>
+          <T v="small" style={{ fontFamily: fonts.medium }}>Plan</T>
+          <Chips value={f.plan} onChange={(p) => setF({ ...f, plan: p })} options={PLANS} />
+        </View>
+        {editing ? field('Leave days per year (students)', 'leave_quota', { keyboardType: 'number-pad' }) : null}
+      </Card>
+      <Section title={editing ? 'Admin login' : 'First admin'} />
+      <Card style={{ gap: 14 }}>
+        {!editing ? field('Admin name', 'admin_name', { placeholder: 'e.g. Office Admin' }) : null}
+        {!editing ? field('Admin email (login)', 'admin_email', { placeholder: 'admin@example.com', keyboardType: 'email-address', autoCapitalize: 'none' }) : null}
+        {field(editing ? 'New admin password (leave empty to keep)' : 'Admin password', 'admin_password', { secureTextEntry: true, placeholder: 'At least 8 characters', autoCapitalize: 'none' })}
+      </Card>
+      {err ? <T style={{ color: '#C0392B', marginTop: 12 }}>{err}</T> : null}
+      <View style={{ marginTop: 16, gap: 10 }}>
+        <Button title={busy ? 'Saving…' : editing ? 'Save changes' : 'Create tenant'} onPress={save} disabled={busy} />
+        {editing ? <Button title="Delete tenant permanently" kind="danger" onPress={remove} disabled={busy} /> : null}
+      </View>
     </Screen>
   );
 }
