@@ -1,17 +1,21 @@
 // Super admin screens from the design canvas.
 import React, { useState } from 'react';
-import { Pressable, Switch, TextInput, View } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { Pressable, View } from 'react-native';
+import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Button, Card, Grid, Header, Row, Screen, Segmented, T } from '@/components/ui';
 import { Avatar, Band, Chips, demoNote, Glyph, ListRow, pastel, Progress, Section, SmallButton, Stat, Tabs, Tag } from '@/components/kit';
 import { colors, fonts } from '@/theme/tokens';
+import { useApi } from '@/lib/useApi';
+import type { TenantRow } from '@/screens/superpeople';
 
 const NEW_TENANTS = [['Jun', 2], ['Jul', 4], ['Aug', 3], ['Sep', 6], ['Oct', 5], ['Nov', 3]] as const;
 
 /* ---------- Overview ---------- */
 export function SuperOverviewScreen() {
+  const { data: tenants } = useApi<TenantRow[]>('/super/tenants');
+  const sum = (k: 'students_count' | 'teachers_count') => (tenants ? tenants.reduce((n, t) => n + (t[k] ?? 0), 0).toLocaleString() : '…');
   return (
     <Screen>
       <Row style={{ justifyContent: 'space-between' }}>
@@ -26,9 +30,9 @@ export function SuperOverviewScreen() {
       </Row>
       <View style={{ marginTop: 14 }}>
         <Grid cols={{ phone: 2, tablet: 4, desktop: 4 }} gap={8}>
-          <Pressable onPress={() => router.push('/super/tenants' as any)}><Stat label="Tenants" value={46} note="+3 this month" tint={pastel.lav} /></Pressable>
-          <Stat label="Students" value="12,480" tint={pastel.sky} />
-          <Stat label="Teachers" value={610} tint={pastel.mint} />
+          <Pressable onPress={() => router.push('/super/tenants' as any)}><Stat label="Madrasas" value={tenants ? tenants.length : '…'} tint={pastel.lav} /></Pressable>
+          <Pressable onPress={() => router.push('/super/users' as any)}><Stat label="Students" value={sum('students_count')} tint={pastel.sky} /></Pressable>
+          <Pressable onPress={() => router.push('/super/users' as any)}><Stat label="Teachers" value={sum('teachers_count')} tint={pastel.mint} /></Pressable>
           <Pressable onPress={() => router.push('/super/billing' as any)}><Stat label="Monthly revenue" value="₹4.2L" tint={pastel.pink} /></Pressable>
         </Grid>
       </View>
@@ -51,85 +55,9 @@ export function SuperOverviewScreen() {
       </View>
       <Section title="Needs attention" />
       <View style={{ gap: 8 }}>
-        <ListRow left={<Glyph text="⏱" size={44} tint={pastel.butter} />} title="Al Noor Madrasa" sub="Trial ends in 2 days" right={<SmallButton title="Open" filled tint={colors.ink} onPress={() => router.push('/super/tenants/alnoor' as any)} />} />
+        <ListRow left={<Glyph text="👤" size={44} tint={pastel.butter} />} title="Log in as a user" sub="See the app exactly as an admin, teacher, parent or student sees it" right={<SmallButton title="Users" filled tint={colors.ink} onPress={() => router.push('/super/users' as any)} />} />
         <ListRow left={<Glyph text="✓" size={44} tint={pastel.lav} />} title="3 items to review" sub="New games and an audio book" right={<SmallButton title="Review" filled tint={colors.ink} onPress={() => router.push('/super/content' as any)} />} />
       </View>
-    </Screen>
-  );
-}
-
-/* ---------- Tenants ---------- */
-const TENANTS = [
-  ['nla', 'Noon Learn Academy', 'Kozhikode', 312, 'Pro', 'active'], ['alnoor', 'Al Noor Madrasa', 'Malappuram', 88, 'Trial', 'trial'],
-  ['darul', 'Darul Huda Online', 'Muscat', 540, 'Pro', 'active'], ['hidaya', 'Hidaya Quran School', 'Dubai', 210, 'Basic', 'active'],
-  ['baitul', 'Baitul Ilm', 'Kannur', 64, 'Trial', 'trial'], ['rahma', 'Ar-Rahma Institute', 'Doha', 130, 'Basic', 'suspended'],
-] as const;
-const STATUS_TONE = { active: 'mint', trial: 'butter', suspended: 'pink' } as const;
-
-export function SuperTenantsScreen() {
-  const [q, setQ] = useState('');
-  const [f, setF] = useState<'all' | 'active' | 'trial' | 'suspended'>('all');
-  const rows = TENANTS.filter((t) => (f === 'all' || t[5] === f) && (t[1] + t[2]).toLowerCase().includes(q.toLowerCase()));
-  return (
-    <Screen>
-      <Row style={{ justifyContent: 'space-between', marginBottom: 12 }}>
-        <T v="h1">Tenants <T v="small">46</T></T>
-        <Pressable accessibilityLabel="Add tenant" onPress={() => demoNote('Demo: the new-madrasa form uses POST /super/tenants (already in the API).')} style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' }}><Ionicons name="add" size={26} color="#FFF" /></Pressable>
-      </Row>
-      <Row style={{ backgroundColor: '#FFF', borderRadius: 24, borderWidth: 1.5, borderColor: colors.line, paddingHorizontal: 14, height: 48 }}>
-        <Ionicons name="search" size={18} color={colors.muted} />
-        <TextInput value={q} onChangeText={setQ} placeholder="Search madrasa or city" placeholderTextColor={colors.faint} style={{ flex: 1, fontFamily: fonts.regular, fontSize: 15, color: colors.ink, outlineStyle: 'none' } as any} />
-      </Row>
-      <Chips value={f} onChange={setF} options={[{ key: 'all', label: 'All · 46' }, { key: 'active', label: 'Active' }, { key: 'trial', label: 'Trial' }, { key: 'suspended', label: 'Suspended' }]} />
-      <View style={{ gap: 8 }}>
-        {rows.map(([id, name, city, students, plan, status], i) => (
-          <ListRow key={id} onPress={() => router.push(`/super/tenants/${id}` as any)} left={<Avatar name={name} size={44} tint={[pastel.lav, pastel.sky, pastel.mint, pastel.pink][i % 4]} />}
-            title={name} sub={`${city} · ${students} students · ${plan}`} right={<Tag text={status === 'active' ? 'Active' : status === 'trial' ? 'Trial' : 'Suspended'} tone={STATUS_TONE[status]} />} />
-        ))}
-      </View>
-    </Screen>
-  );
-}
-
-/* ---------- Tenant detail ---------- */
-export function SuperTenantScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const t = TENANTS.find((x) => x[0] === id) ?? TENANTS[1];
-  const [mods, setMods] = useState({ live: true, ai: true, games: true, audio: t[4] === 'Pro' });
-  const [status, setStatus] = useState<string>(t[5]);
-  const [plan, setPlan] = useState<string>(t[4]);
-  const [first, ...rest] = t[1].split(' ');
-  const limit = plan === 'Pro' ? 500 : 100;
-  const modules: [keyof typeof mods, string, string, string][] = [
-    ['live', 'Live classes', 'Video classes and recordings', colors.teal], ['ai', 'Noon AI tutor', 'Study helper for students', colors.violet],
-    ['games', 'Games', '9 learning games', colors.green], ['audio', 'Audio books', 'Pro plan only', '#D6336C'],
-  ];
-  return (
-    <Screen>
-      <Band tint={colors.butter[0]} height={220} />
-      <Header title="" right={<SmallButton title="↗ Open as support" onPress={() => demoNote('Demo: opens this madrasa’s admin app as support, with an audit log entry (step 5).')} />} />
-      <T style={{ fontSize: 26, fontFamily: fonts.light }}>{first}</T>
-      <T v="h1">{rest.join(' ')}</T>
-      <Tag text={`${status === 'trial' ? 'Trial · ends Wed, 4 Nov' : status === 'suspended' ? 'Suspended' : `${plan} plan`} · ${t[2]}`} tone="white" />
-      <Card style={{ marginTop: 14, gap: 12 }}>
-        <View style={{ gap: 6 }}><Row style={{ justifyContent: 'space-between' }}><T>Students</T><T v="small">{t[3]} of {limit}</T></Row><Progress value={(t[3] / limit) * 100} color="#B07C00" /></View>
-        <View style={{ gap: 6 }}><Row style={{ justifyContent: 'space-between' }}><T>Storage</T><T v="small">3.2 of 5 GB</T></Row><Progress value={64} color={colors.teal} /></View>
-      </Card>
-      <Section title="Modules" />
-      <Card style={{ paddingVertical: 4 }}>
-        {modules.map(([k, name, note, dot], i) => (
-          <Row key={k} style={{ minHeight: 60, borderTopWidth: i ? 1 : 0, borderTopColor: colors.line }}>
-            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: dot }} />
-            <View style={{ flex: 1 }}><T style={{ fontFamily: fonts.medium }}>{name}</T><T v="small">{note}</T></View>
-            <Switch accessibilityLabel={name} value={mods[k]} onValueChange={(v) => setMods({ ...mods, [k]: v })} />
-          </Row>
-        ))}
-      </Card>
-      <Row gap={10} style={{ marginTop: 16 }}>
-        <View style={{ flex: 1 }}><Button title={status === 'suspended' ? 'Reactivate' : 'Suspend'} kind="ghost" onPress={() => setStatus(status === 'suspended' ? 'active' : 'suspended')} /></View>
-        <View style={{ flex: 1 }}><Button title={plan === 'Pro' ? 'On Pro plan' : 'Upgrade to Pro'} disabled={plan === 'Pro'} onPress={() => { setPlan('Pro'); setStatus('active'); }} /></View>
-      </Row>
-      <T v="small" style={{ textAlign: 'center', marginTop: 8 }}>Demo data. Suspend and plan changes already work in the API (PATCH /super/tenants/{'{id}'}).</T>
     </Screen>
   );
 }

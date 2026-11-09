@@ -160,7 +160,13 @@ class AuthController extends Controller
 
     public function me(Request $request)
     {
-        return $request->user()->load('tenant')->toApp();
+        $user = $request->user()->load('tenant');
+        $token = $user->currentAccessToken();
+        $by = $token && str_starts_with((string) $token->name, ImpersonationController::PREFIX)
+            ? User::find((int) substr($token->name, strlen(ImpersonationController::PREFIX)))?->name
+            : null;
+
+        return $user->toApp() + ($by ? ['impersonated_by' => $by] : []);
     }
 
     public function updateLearning(Request $request)

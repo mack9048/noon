@@ -12,7 +12,10 @@ class TenantController extends Controller
 {
     public function index()
     {
-        return Tenant::withCount(['users as students_count' => fn ($q) => $q->where('role', 'student')])->latest()->get();
+        return Tenant::withCount([
+            'users as students_count' => fn ($q) => $q->where('role', 'student'),
+            'users as teachers_count' => fn ($q) => $q->where('role', 'teacher'),
+        ])->latest()->get();
     }
 
     public function store(Request $request)

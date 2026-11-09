@@ -105,6 +105,7 @@ export const ADMIN_MORE: MoreLink[] = [
   ['Settings', '/admin/settings', 'settings-outline', colors.mint],
 ];
 export const SUPER_MORE: MoreLink[] = [
+  ['Users · Log in as', '/super/users', 'people-outline', colors.sky],
   ['Courses', '/super/courses', 'school-outline', colors.lav],
   ['Approvals', '/super/approvals', 'checkmark-done-outline', colors.mint],
   ['Games', '/super/games', 'game-controller-outline', colors.pink],

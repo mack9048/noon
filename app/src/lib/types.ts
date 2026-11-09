@@ -11,6 +11,8 @@ export interface User {
   board_id?: number | null;
   class_id?: number | null;
   avatar_initial?: string;
+  /** Set while a super admin is signed in as this user ("Log in as"). */
+  impersonated_by?: string;
 }
 
 export interface Board { id: number; code: string; name: string; meta?: string }

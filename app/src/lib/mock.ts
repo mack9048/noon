@@ -153,6 +153,18 @@ function learnDetail(type: string, id: number): LearnDetail {
   };
 }
 
+// ---- Super admin: madrasas, users and "Log in as" ----
+let mockTenants = [{ id: 1, name: 'Noon Demo Madrasa', code: 'DEMO01', plan: 'pro', active: true, students_count: 6, teachers_count: 3 }];
+const mockPeople: [string, Role, string, string | null][] = [
+  ['Demo Office Admin', 'admin', 'admin@demo.noonlearn.com', null],
+  ['Ustad Ahmed', 'teacher', 'teacher1@demo.noonlearn.com', null], ['Ayisha Miss', 'teacher', 'teacher2@demo.noonlearn.com', null], ['Safwan Usthad', 'teacher', 'teacher3@demo.noonlearn.com', null],
+  ['Muhammed Ali', 'parent', 'parent1@demo.noonlearn.com', null], ['Nasrin P', 'parent', 'parent2@demo.noonlearn.com', null], ['Abdul Rahman K', 'parent', 'parent3@demo.noonlearn.com', null],
+  ['Ayisha', 'student', 'DEMO-001', 'DEMO-001'], ['Rayan Ahmed', 'student', 'DEMO-002', 'DEMO-002'], ['Fathima Nasrin', 'student', 'DEMO-003', 'DEMO-003'],
+  ['Hana Fathima', 'student', 'DEMO-004', 'DEMO-004'], ['Shifa K', 'student', 'DEMO-005', 'DEMO-005'], ['Muhammed Zayan', 'student', 'DEMO-006', 'DEMO-006'],
+];
+const mockUsers = mockPeople.map(([name, role, login, adm], i) => ({ id: 500 + i, name, role, login, admission_no: adm, tenant_id: 1, tenant_name: 'Noon Demo Madrasa', tenant_code: 'DEMO01', blocked: false }));
+let superMe: User | null = null;
+
 type Handler = (m: RegExpMatchArray, body: any) => unknown;
 const routes: [string, RegExp, Handler][] = [
   ['POST', /^\/auth\/login$/, (_, b) => {
@@ -173,7 +185,22 @@ const routes: [string, RegExp, Handler][] = [
     me = { ...(me ?? demoUser('student', 'Guest')), role: 'student', tenant_id: 1, tenant_name: 'Noon Madrasa' };
     return me;
   }],
-  ['POST', /^\/auth\/logout$/, () => { me = null; return {}; }],
+  ['POST', /^\/auth\/logout$/, () => { me = superMe; superMe = null; return {}; }],
+  ['GET', /^\/super\/tenants$/, () => mockTenants],
+  ['PUT', /^\/super\/tenants\/(\d+)$/, (m, b) => { mockTenants = mockTenants.map((t) => (t.id === +m[1] ? { ...t, ...b } : t)); return mockTenants.find((t) => t.id === +m[1]); }],
+  ['GET', /^\/super\/users(\?(.*))?$/, (m) => {
+    const p = new URLSearchParams(m[2] ?? '');
+    const q = (p.get('q') ?? '').toLowerCase();
+    return mockUsers.filter((u) => (!p.get('role') || u.role === p.get('role')) && (!p.get('tenant_id') || String(u.tenant_id) === p.get('tenant_id'))
+      && (!q || `${u.name} ${u.login}`.toLowerCase().includes(q)));
+  }],
+  ['POST', /^\/super\/users\/(\d+)\/impersonate$/, (m) => {
+    const u = mockUsers.find((x) => x.id === +m[1]);
+    if (!u || me?.role !== 'super') throw new Error('You do not have access to this area.');
+    superMe = me;
+    me = { ...demoUser(u.role, u.name), tenant_id: 1, tenant_name: u.tenant_name, impersonated_by: superMe?.name };
+    return { token: 'demo-impersonated', user: me };
+  }],
   ['PUT', /^\/me\/learning$/, (_, b) => { if (me) Object.assign(me, { board_id: b.board_id, class_id: b.class_id }); return me; }],
 
   ['GET', /^\/boards$/, () => boards],

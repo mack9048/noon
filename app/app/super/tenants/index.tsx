@@ -1,3 +1,3 @@
-import { SuperTenantsScreen } from '@/screens/superadmin';
+import { SuperTenantsScreen } from '@/screens/superpeople';
 
 export default SuperTenantsScreen;

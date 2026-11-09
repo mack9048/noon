@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\CourseRequestController;
 use App\Http\Controllers\Api\CatalogController;
 use App\Http\Controllers\Api\ChatController;
 use App\Http\Controllers\Api\CourseController;
+use App\Http\Controllers\Api\ImpersonationController;
 use App\Http\Controllers\Api\LearnController;
 use App\Http\Controllers\Api\LeaveController;
 use App\Http\Controllers\Api\StudyToolController;
@@ -99,6 +100,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     // Super admin
     Route::middleware('role:super')->prefix('super')->group(function () {
         Route::apiResource('tenants', TenantController::class)->except('show');
+        Route::get('/users', [ImpersonationController::class, 'users']);
+        Route::post('/users/{user}/impersonate', [ImpersonationController::class, 'start']);
 
         Route::get('/courses', [CourseController::class, 'superIndex']);
         Route::post('/courses', [CourseController::class, 'superStore']);

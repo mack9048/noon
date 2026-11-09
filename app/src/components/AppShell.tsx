@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, shadow } from '@/theme/tokens';
 import { useLayout } from '@/lib/useLayout';
 import { useAuth } from '@/lib/auth';
+import { ImpersonationBar } from './ImpersonationBar';
 import { Logo } from './Logo';
 
 export interface NavItem {
@@ -40,7 +41,7 @@ export function AppShell({ items }: { items: NavItem[] }) {
 
   // Full-screen routes (chat thread on phones, live class everywhere) hide the navigation.
   const fullScreen = /\/live\/[^/]+$/.test(path) || (device === 'phone' && /\/chat\/[^/]+$/.test(path));
-  if (fullScreen) return <Slot />;
+  if (fullScreen) return <View style={{ flex: 1 }}><ImpersonationBar /><View style={{ flex: 1 }}><Slot /></View></View>;
 
   if (device === 'phone') {
     // The pop-up's little arrow points at the tab that opened it.
@@ -48,7 +49,8 @@ export function AppShell({ items }: { items: NavItem[] }) {
     const arrowLeft = 8 + tabW * Math.max(0, items.findIndex((it) => it.href === sheetFor)) + tabW / 2 - 9;
     return (
       <View style={{ flex: 1, backgroundColor: colors.bg }}>
-        <Slot />
+        <ImpersonationBar />
+        <View style={{ flex: 1 }}><Slot /></View>
         {sheetFor ? (
           <>
             <Pressable accessibilityLabel="Close menu" onPress={() => setSheetFor(null)} style={styles.scrim} />
@@ -79,7 +81,9 @@ export function AppShell({ items }: { items: NavItem[] }) {
 
   const wide = device === 'desktop';
   return (
-    <View style={{ flex: 1, flexDirection: 'row', backgroundColor: colors.bg }}>
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+    <ImpersonationBar />
+    <View style={{ flex: 1, flexDirection: 'row' }}>
       <View style={[styles.side, { width: wide ? 248 : 96, paddingTop: insets.top + 20 }]}>
         <View style={{ paddingHorizontal: wide ? 20 : 0, alignItems: wide ? 'flex-start' : 'center', marginBottom: 24 }}>
           <Logo compact={!wide} />
@@ -109,6 +113,7 @@ export function AppShell({ items }: { items: NavItem[] }) {
         ) : null}
       </View>
       <View style={{ flex: 1 }}><Slot /></View>
+    </View>
     </View>
   );
 }

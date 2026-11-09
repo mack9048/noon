@@ -97,7 +97,7 @@ export function LoginScreen() {
               <Button title="Log in" onPress={() => submit()} loading={busy} disabled={!id || !pw} />
             </Card>
           )}
-          {DEMO_LOGINS && !choices ? <DemoLogins busy={busy} onPick={(login) => submitAs(login, 'password')} /> : null}
+          {DEMO_LOGINS && !choices ? <DemoLogins busy={busy} onPick={(login) => submitAs(login, DEMO_PASSWORD)} /> : null}
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -110,12 +110,14 @@ export function LoginScreen() {
  */
 const DEMO_LOGINS = process.env.EXPO_PUBLIC_DEMO_LOGINS !== '0';
 const DEMO_ACCOUNTS: [label: string, login: string, icon: keyof typeof Ionicons.glyphMap, pastel: readonly [string, string]][] = [
-  ['Student', USE_MOCK ? 'student' : 'student@noon.test', 'school-outline', colors.sky],
-  ['Parent', USE_MOCK ? 'parent' : 'parent@noon.test', 'people-outline', colors.pink],
-  ['Teacher', USE_MOCK ? 'teacher' : 'teacher@noon.test', 'book-outline', colors.mint],
-  ['Institute admin', USE_MOCK ? 'admin' : 'admin@noon.test', 'grid-outline', colors.butter],
-  ['Super admin', USE_MOCK ? 'super' : 'super@noon.test', 'shield-checkmark-outline', colors.lav],
+  ['Student', USE_MOCK ? 'student' : 'DEMO-001', 'school-outline', colors.sky],
+  ['Parent', USE_MOCK ? 'parent' : 'parent1@demo.noonlearn.com', 'people-outline', colors.pink],
+  ['Teacher', USE_MOCK ? 'teacher' : 'teacher1@demo.noonlearn.com', 'book-outline', colors.mint],
+  ['Institute admin', USE_MOCK ? 'admin' : 'admin@demo.noonlearn.com', 'grid-outline', colors.butter],
+  ...(USE_MOCK ? [['Super admin', 'super', 'shield-checkmark-outline', colors.lav] as (typeof DEMO_ACCOUNTS)[number]] : []),
 ];
+/** Shared password of the demo madrasa logins (DEMO_PASSWORD on the server). */
+const DEMO_PASSWORD = 'Demo@1234';
 
 function DemoLogins({ busy, onPick }: { busy: boolean; onPick: (login: string) => void }) {
   return (
