@@ -1,4 +1,4 @@
-// Builds the Noon Learn website: src/pages/*.html + shared layout → dist/.
+// Builds the Noon Buds website: src/pages/*.html + shared layout → dist/.
 // Run: node website/build.mjs   (Vercel runs it as part of the build)
 // The site is served from /site/* and mapped to clean URLs by vercel.json.
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, cpSync, rmSync, existsSync } from 'node:fs';
@@ -95,27 +95,27 @@ function header(active) {
     ? `<span style="padding:12px 10px 4px;color:#4F646C;font-size:13px;font-weight:700">COURSES</span>${COURSES.map(([, l, , h]) => `<a class="sub" href="${h}">${l}</a>`).join('')}`
     : `<a href="${href}">${label}</a>`).join('');
   return `<header class="site-header"><div class="container nav">
-    <a class="logo" href="/" aria-label="Noon Learn home"><img src="${BASE}/img/logo.png" alt="Noon Learn" width="131" height="34"></a>
+    <a class="logo" href="/" aria-label="Noon Buds home"><img src="${BASE}/img/buds/logo-white.png" alt="Noon Buds — Islamic Early Learning" width="150" height="102"></a>
     <nav aria-label="Main"><ul class="nav-links">${links}</ul></nav>
-    <div class="nav-cta"><a class="login" href="${SITE.appLogin}">Log in</a><a class="btn btn-yellow btn-sm" href="${SITE.appStart}">Start free ${icon('arrow')}</a>
+    <div class="nav-cta"><a class="login" href="${SITE.appLogin}">Log in</a><a class="btn btn-yellow btn-sm" href="${SITE.appStart}">Join Now ${icon('arrow')}</a>
     <button class="menu-btn" data-menu-open aria-controls="mobile-menu" aria-expanded="false" aria-label="Open menu">${icon('menu')}</button></div>
   </div></header>
   <div class="mobile-menu" id="mobile-menu" role="dialog" aria-label="Menu"><div class="panel">
     <button class="close" data-menu-close aria-label="Close menu">×</button>${mobile}
-    <a class="btn btn-yellow" style="margin-top:12px" href="${SITE.appStart}">Start free</a><a class="btn btn-violet" style="margin-top:10px" href="${SITE.appLogin}">Log in</a>
+    <a class="btn btn-yellow" style="margin-top:12px" href="${SITE.appStart}">Join Now</a><a class="btn btn-violet" style="margin-top:10px" href="${SITE.appLogin}">Log in</a>
   </div></div>`;
 }
 
 function footer() {
   return `<footer class="site-footer">${WAVE('#1B3A8C', true).replace('class="wave-top"', 'class="wave-top" style="transform:translateY(-69px)"')}
   <div class="container"><div class="foot">
-    <div><a class="logo" href="/"><img src="${BASE}/img/logo.png" alt="Noon Learn" width="131" height="34"></a><p class="about">Islamic learning for children — made with love, care and good adab.</p></div>
+    <div><a class="logo foot-logo" href="/"><img src="${BASE}/img/buds/logo-white.png" alt="Noon Buds — Islamic Early Learning" width="190" height="129"></a><p class="about">Islamic learning for children — made with love, care and good adab.</p></div>
     <div><h4>Learn</h4><ul><li><a href="/courses/madrasa-support">Madrasa Support</a></li><li><a href="/courses/noon-courses">Noon Courses</a></li><li><a href="/courses/noon-buds">Noon Buds</a></li><li><a href="/resources">Resources</a></li><li><a href="/games">Games</a></li></ul></div>
     <div><h4>For madrasas</h4><ul><li><a href="/courses/madrasa-support#madrasas">Pricing</a></li><li><a href="/courses/madrasa-support#madrasas">Admissions & fees</a></li><li><a href="${SITE.appLogin}">Teacher app</a></li><li><a href="/contact">Request a demo</a></li></ul></div>
     <div><h4>Contact</h4><ul class="contact"><li>${icon('phone')}${SITE.phone}</li><li>${icon('mail')}<a href="mailto:${SITE.email}">${SITE.email}</a></li><li>${icon('pin')}${SITE.address}</li></ul></div>
     <div class="owl"><img src="${BASE}/art/owl.svg" alt="" width="120" height="128"></div>
   </div>
-  <div class="foot-bottom"><span>© <span data-year>2026</span> Noon Learn. All rights reserved.</span><span><a href="/contact">Privacy</a> · <a href="/contact">Terms</a> · <a href="/contact">Child safety</a></span></div></div></footer>`;
+  <div class="foot-bottom"><span>© <span data-year>2026</span> Noon Buds. All rights reserved.</span><span><a href="/contact">Privacy</a> · <a href="/contact">Terms</a> · <a href="/contact">Child safety</a></span></div></div></footer>`;
 }
 
 const CTA = ({ title, text, btn, href, art = 'nooni-wave' }) => `<section class="section" style="padding-top:20px"><div class="container"><div class="cta">
@@ -149,9 +149,9 @@ function page(file) {
 <title>${meta.title}</title>
 <meta name="description" content="${meta.desc}">
 <link rel="canonical" href="${url}">
-<meta property="og:type" content="website"><meta property="og:title" content="${meta.title}"><meta property="og:description" content="${meta.desc}"><meta property="og:url" content="${url}"><meta property="og:image" content="https://noonlearn.com${BASE}/img/logo.png">
+<meta property="og:type" content="website"><meta property="og:title" content="${meta.title}"><meta property="og:description" content="${meta.desc}"><meta property="og:url" content="${url}"><meta property="og:image" content="https://noonlearn.com${BASE}/img/buds/logo-3d.jpg">
 <meta name="theme-color" content="#5B43E0">
-<link rel="icon" href="${BASE}/img/favicon.png">
+<link rel="icon" href="${BASE}/img/buds/favicon.png"><link rel="apple-touch-icon" href="${BASE}/img/buds/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600;700&family=Fredoka:wght@500;600;700&family=Amiri:wght@700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="${BASE}/css/site.css?v=${Date.now().toString(36)}">

@@ -44,8 +44,9 @@ p { margin: 0; }
 /* ---------- Header ---------- */
 .site-header { position: absolute; top: 0; left: 0; right: 0; z-index: 50; }
 .nav { display: flex; align-items: center; gap: 24px; height: 84px; }
-.logo { display: inline-flex; align-items: center; background: #fff; border-radius: 14px; padding: 6px 12px; }
-.logo img { height: 34px; width: auto; display: block; }
+.logo { display: inline-flex; align-items: center; }
+.logo img { height: 54px; width: auto; display: block; }
+.foot-logo img { height: 92px; }
 .nav-links { display: flex; align-items: center; gap: 4px; margin: 0 auto; list-style: none; padding: 0; }
 .nav-links > li > a, .dd-btn { display: inline-flex; align-items: center; gap: 4px; height: 40px; padding: 0 12px; color: #fff; font-weight: 500; font-size: 15px; border-radius: 10px; background: none; border: 0; font-family: var(--body); cursor: pointer; }
 .nav-links > li > a:hover, .dd-btn:hover { background: rgba(255, 255, 255, .12); color: #fff; }
@@ -352,7 +353,8 @@ textarea.input { min-height: 120px; resize: vertical; }
   .foot { grid-template-columns: 1fr 1fr; }
   .foot > div:first-child { grid-column: 1 / -1; }
   .hero .actions .btn { flex: 1 1 auto; }
-  .logo img { height: 28px; }
+  .logo img { height: 46px; }
+  .foot-logo img { height: 80px; }
   .games-hero .side-art { display: none; }
   .cats .card { grid-template-columns: repeat(3, 1fr); }
 }
@@ -390,3 +392,18 @@ svg.big { width: 72px; height: 72px; }
 @media (max-width: 960px) { .promo.split, .layout-side.games-layout { grid-template-columns: 1fr; } }
 .card h3 svg { width: 20px; height: 20px; flex: none; }
 @media (max-width: 640px) { .tab { min-width: 0; } }
+
+/* ---------- Noon Buds home ---------- */
+.buds-scene { position: relative; width: 100%; max-width: 600px; justify-self: center; aspect-ratio: 1100 / 733; }
+.buds-scene .bg { width: 100%; height: 100%; object-fit: contain; }
+.buds-scene .kid { position: absolute; height: auto; }
+.buds-scene .boy { left: 14%; bottom: 8%; width: 30%; animation: buds-bob 3.2s ease-in-out infinite; }
+.buds-scene .nooni { right: 6%; bottom: 4%; width: 36%; transform-origin: 70% 100%; animation: buds-sway 4s ease-in-out infinite; }
+.buds-scene .books { left: -2%; bottom: -2%; width: 22%; animation: buds-bob 3.6s ease-in-out .6s infinite; }
+@keyframes buds-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+@keyframes buds-sway { 0%, 100% { transform: rotate(-2deg) translateY(0); } 50% { transform: rotate(2.5deg) translateY(-6px); } }
+.program .prog-img { width: 100%; max-width: 240px; height: 140px; object-fit: contain; margin: 0 auto 6px; display: block; }
+.circles.c3 { grid-template-columns: repeat(3, 1fr); }
+.app-card .phone-img { width: 100%; max-width: 230px; height: auto; justify-self: center; }
+@media (max-width: 640px) { .circles.c3 { grid-template-columns: repeat(3, 1fr); gap: 10px; } .circle { font-size: 13px; } }
+@media (prefers-reduced-motion: reduce) { .buds-scene .kid { animation: none; } }
