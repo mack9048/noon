@@ -88,4 +88,14 @@ class AdmissionPortalTest extends TestCase
         $this->as($adminB)->patchJson("/api/admin/leads/{$lead}", ['status' => 'lost'])->assertNotFound();
         $this->as($adminB)->getJson("/api/admin/students/{$kid}")->assertNotFound();
     }
+
+    public function test_admin_adds_a_teacher_with_login(): void
+    {
+        $t = $this->madrasa('NOON01');
+        $admin = $this->member($t, 'admin');
+        $pw = $this->as($admin)->postJson('/api/admin/teachers', ['name' => 'Ustad Ali', 'email' => 'ali@x.test'])->assertCreated()->json('credentials.0.password');
+        $this->as($admin)->getJson('/api/admin/teachers')->assertOk()->assertJsonCount(1)->assertJsonPath('0.name', 'Ustad Ali');
+        $this->app['auth']->forgetGuards();
+        $this->postJson('/api/auth/login', ['login' => 'ali@x.test', 'password' => $pw])->assertOk()->assertJsonPath('user.role', 'teacher');
+    }
 }

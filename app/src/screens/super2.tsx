@@ -212,9 +212,9 @@ export function SuperProfileScreen() {
       chips={[{ text: 'All tenants', tint: colors.sky }, { text: 'Billing', tint: colors.butter }, { text: 'Content & courses', tint: colors.lav }, { text: 'Approvals', tint: colors.mint }]}
       rows={[['Role', 'Owner (full access)'], ['Email', 'shameer@noonlearn.app'], ['Phone', '+91 98 •••• 210'], ['2-step login', 'On · authenticator app'], ['Last login', 'Today · Kochi'], ['Team members', '5 admins']]}
       tiles={[
-        { label: 'Team & roles', icon: 'people-outline', tint: colors.sky, note: 'Demo: add admins and choose what each can do.' },
+        { label: 'Team & roles', icon: 'people-outline', tint: colors.sky, note: 'Coming soon: add admins and choose what each can do.' },
         { label: 'Billing', icon: 'wallet-outline', tint: colors.butter, href: '/super/billing' },
-        { label: 'Activity log', icon: 'time-outline', tint: colors.lav, note: 'Demo: every admin action is listed here.' },
+        { label: 'Activity log', icon: 'time-outline', tint: colors.lav, note: 'Coming soon: every admin action is listed here.' },
         { label: 'Settings', icon: 'settings-outline', tint: colors.mint, href: '/super/settings' },
       ]} settingsHref="/super/settings" />
   );

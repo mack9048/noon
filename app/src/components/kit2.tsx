@@ -173,7 +173,7 @@ export function Input({ label, ...props }: React.ComponentProps<typeof TextInput
   return (
     <View style={{ gap: 6, flex: 1 }}>
       {label ? <T v="small" style={{ fontFamily: fonts.medium }}>{label}</T> : null}
-      <TextInput placeholderTextColor={colors.faint} {...props}
+      <TextInput placeholderTextColor={colors.faint} accessibilityLabel={label} {...props}
         style={[{ minHeight: 50, borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.line, backgroundColor: '#FFF', paddingHorizontal: 14, fontFamily: fonts.regular, fontSize: 15, color: colors.ink },
           props.multiline && { minHeight: 90, paddingTop: 12, textAlignVertical: 'top' }, props.style]} />
     </View>

@@ -1,1 +1,3 @@
-export { TeachersClassesScreen as default } from '@/screens/admin2';
+import { AdminTeachersRealScreen } from '@/screens/admissionsPortal';
+
+export default AdminTeachersRealScreen;

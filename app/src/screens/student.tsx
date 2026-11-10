@@ -73,7 +73,7 @@ export function AiTutorScreen() {
   const [draft, setDraft] = useState('');
   const ask = (q: string) => {
     if (!q.trim()) return;
-    const reply = TUTOR_ANSWERS[q] ?? { me: false, text: 'Demo: the AI tutor will answer any lesson question once it is connected. Try one of the suggestions above.' };
+    const reply = TUTOR_ANSWERS[q] ?? { me: false, text: 'The AI tutor is coming soon and will answer any lesson question. Try one of the suggestions above.' };
     setMsgs((m) => [...m, { me: true, text: q }, reply]);
     setDraft('');
   };

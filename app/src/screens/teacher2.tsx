@@ -410,9 +410,9 @@ export function TeacherProfileScreen() {
       chips={[{ text: 'Arabic · Class 5, 3', tint: colors.lav }, { text: 'Fiqh · Class 5, +1', tint: colors.sky }]}
       rows={[['Employee ID', 'NM-T-007'], ['Phone', '+971 55 •••• 21'], ['Email', 'ahmed@noonmadrasa.app'], ['Qualification', 'Faizy, MA Arabic'], ['Joined', 'June 2021'], ['Working days', 'Mon – Thu · evenings']]}
       tiles={[
-        { label: 'My timetable', icon: 'calendar-outline', tint: colors.sky, note: 'Demo: your weekly timetable shows here.' },
+        { label: 'My timetable', icon: 'calendar-outline', tint: colors.sky, note: 'Coming soon: your weekly timetable shows here.' },
         { label: 'My leave', icon: 'airplane-outline', tint: colors.pink, href: '/teacher/leave' },
-        { label: 'Salary slips', icon: 'cash-outline', tint: colors.butter, note: 'Demo: monthly salary slips show here.' },
+        { label: 'Salary slips', icon: 'cash-outline', tint: colors.butter, note: 'Coming soon: monthly salary slips show here.' },
         { label: 'Settings', icon: 'settings-outline', tint: colors.lav, href: '/teacher/settings' },
       ]} settingsHref="/teacher/settings" />
   );

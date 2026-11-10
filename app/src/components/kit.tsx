@@ -163,7 +163,14 @@ export function Band({ tint, height = 200 }: { tint: string; height?: number }) 
 }
 
 /** Plain demo message shown when a button would need the real backend. */
-export function demoNote(text = 'Demo: this will work once the backend for it is ready.') {
-  if (Platform.OS === 'web') (globalThis as any).alert?.(text);
-  else Alert.alert('Noon Learn', text);
+/**
+ * Short message popup. Messages written as "Demo: …" belong to features that are
+ * not live yet; users see a friendly "coming soon" note instead of developer wording.
+ */
+export function demoNote(text = 'This feature is coming soon, in sha Allah.') {
+  const msg = /^Demo[:\s]/i.test(text) || /\(demo\)|step \d/i.test(text)
+    ? 'This feature is coming soon, in sha Allah. We are working on it.'
+    : text;
+  if (Platform.OS === 'web') (globalThis as any).alert?.(msg);
+  else Alert.alert('Noon Learn', msg);
 }

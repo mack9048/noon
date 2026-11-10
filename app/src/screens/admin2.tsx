@@ -106,7 +106,7 @@ export function AdmissionDetailScreen() {
       <Row style={{ justifyContent: 'space-between' }}><T v="small">Application #{a.id}</T><Status text={{ new: 'New', review: 'In review', admitted: 'Admitted', rejected: 'Rejected' }[a.status]} /></Row>
       <Card style={{ marginTop: 10, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
         <View style={{ width: 62, height: 62, borderRadius: 20, backgroundColor: colors.lav[0], alignItems: 'center', justifyContent: 'center' }}><T style={{ fontSize: 22, fontFamily: fonts.semibold, color: colors.lav[1] }}>{initials(a.name)}</T></View>
-        <View style={{ flex: 1 }}><T v="h2">{a.name}</T><T v="small">{a.gender} · {a.age} years · born {a.dob}</T><T style={{ color: colors.violet, fontFamily: fonts.semibold, fontSize: 13 }}>Applying for Class {a.cls} · {a.board} board</T></View>
+        <View style={{ flex: 1 }}><T v="h2">{a.name}</T><T v="small">{a.gender}{a.dob !== '—' ? ` · ${a.age} years · born ${a.dob}` : ''}</T><T style={{ color: colors.violet, fontFamily: fonts.semibold, fontSize: 13 }}>Applying for Class {a.cls} · {a.board} board</T></View>
       </Card>
       <Panel title="PARENT / GUARDIAN">
         {[['Name', a.parent], ['Relation', a.relation], ['Phone', a.phone], ['Lives in', a.city]].map(([k, v]) => <Row key={k} style={{ justifyContent: 'space-between' }}><T v="small">{k}</T><T style={{ fontFamily: fonts.medium }}>{v}</T></Row>)}
@@ -138,6 +138,7 @@ export function AdmissionDetailScreen() {
 /** Public admission form (opened from the shared link, no login needed). */
 export function AdmissionFormScreen() {
   const { code } = useLocalSearchParams<{ code?: string }>();
+  const portal = useApi<{ institution: { name: string }; campaign: { title: string; year: string | null; closes_on: string | null; classes: string[] } | null }>(code ? `/portal/${encodeURIComponent(String(code))}` : null).data;
   const [name, setName] = useState('');
   const [dob, setDob] = useState('');
   const [gender, setGender] = useState<'Boy' | 'Girl'>('Boy');
@@ -161,7 +162,7 @@ export function AdmissionFormScreen() {
         <View style={{ alignItems: 'center', marginTop: 60, gap: 12, padding: 20 }}>
           <View style={{ width: 90, height: 90, borderRadius: 45, backgroundColor: colors.mint[0], alignItems: 'center', justifyContent: 'center' }}><Ionicons name="checkmark" size={48} color={colors.green} /></View>
           <T v="h1" style={{ textAlign: 'center' }}>Application sent</T>
-          <T style={{ textAlign: 'center' }}>Your application number is <T style={{ fontFamily: fonts.semibold }}>{done}</T>. The madrasa office will message you on WhatsApp.</T>
+          <T style={{ textAlign: 'center' }}>Your application number is <T style={{ fontFamily: fonts.semibold }}>{done}</T>. {portal?.institution.name ?? 'The office'} will message you on WhatsApp.</T>
         </View>
       </Screen>
     );
@@ -170,9 +171,9 @@ export function AdmissionFormScreen() {
     <Screen bar={false} overlay={<BottomActions><Pressable accessibilityRole="button" onPress={submit} style={{ flex: 1, height: 56, borderRadius: 28, backgroundColor: colors.yellow, alignItems: 'center', justifyContent: 'center', borderBottomWidth: 5, borderBottomColor: colors.yellowDeep }}><T style={{ fontFamily: fonts.semibold, fontSize: 16, color: '#2A1E00' }}>{busy ? 'Sending…' : 'Submit application'}</T></Pressable></BottomActions>}>
       <LinearGradient colors={['#0B5166', '#5B43E0']} style={{ marginHorizontal: -20, marginTop: -12, padding: 20, paddingBottom: 46, borderBottomLeftRadius: 32, borderBottomRightRadius: 32 }}>
         <View style={{ alignSelf: 'flex-start', backgroundColor: '#FFF', borderRadius: 12, padding: 6 }}><Logo height={24} /></View>
-        <T style={{ color: '#D9F2F5', marginTop: 16 }}>Noon Madrasa · 2026–27{code ? ` · ${String(code).toUpperCase()}` : ''}</T>
+        <T style={{ color: '#D9F2F5', marginTop: 16 }}>{[portal?.institution.name, portal?.campaign?.title ?? portal?.campaign?.year].filter(Boolean).join(' · ') || 'Admission'}</T>
         <Text style={{ fontFamily: fonts.fun, fontSize: 30, color: '#FFF' }}>Admission form</Text>
-        <T style={{ color: '#D9F2F5', fontSize: 12 }}>Takes about 3 minutes · last date 30 Nov</T>
+        <T style={{ color: '#D9F2F5', fontSize: 12 }}>Takes about 3 minutes{portal?.campaign?.closes_on ? ` · last date ${portal.campaign.closes_on}` : ''}</T>
       </LinearGradient>
       <Panel style={{ marginTop: -28 }}>
         <T style={{ color: colors.violet, fontFamily: fonts.semibold, fontSize: 12 }}>1 · STUDENT</T>
@@ -597,7 +598,7 @@ export function AdminProfileScreen() {
       tiles={[
         { label: 'Madrasa info', icon: 'business-outline', tint: colors.lav, href: '/admin/settings' },
         { label: 'Batches', icon: 'people-outline', tint: colors.sky, href: '/admin/batches' },
-        { label: 'Subscription', icon: 'card-outline', tint: colors.butter, note: 'Demo: your Madrasa Pro plan and invoices show here.' },
+        { label: 'Subscription', icon: 'card-outline', tint: colors.butter, note: 'Coming soon: your Madrasa Pro plan and invoices show here.' },
         { label: 'Settings', icon: 'settings-outline', tint: colors.mint, href: '/admin/settings' },
       ]} settingsHref="/admin/settings" />
   );

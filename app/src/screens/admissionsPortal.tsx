@@ -622,3 +622,179 @@ export function PublicAdmissionScreen() {
     </Screen>
   );
 }
+
+/* ---------- Teachers ---------- */
+type TeacherRow = { id: number; name: string; login: string | null; phone: string | null; email: string | null; blocked: boolean; batches: string[]; subjects: string[] };
+
+export function AdminTeachersRealScreen() {
+  const { data, loading, error, reload } = useApi<TeacherRow[]>('/admin/teachers');
+  const [adding, setAdding] = useState(false);
+  const [f, setF] = useState({ name: '', email: '', phone: '', password: '' });
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [creds, setCreds] = useState<Credential[] | null>(null);
+  const set = (k: keyof typeof f) => (v: string) => setF({ ...f, [k]: v });
+  const save = async () => {
+    setErr(null); setBusy(true);
+    try {
+      const body = Object.fromEntries(Object.entries(f).filter(([, v]) => v.trim()).map(([k, v]) => [k, v.trim()]));
+      const r = await api.post<{ credentials: Credential[] }>('/admin/teachers', body);
+      setCreds(r.credentials); setF({ name: '', email: '', phone: '', password: '' }); reload();
+    } catch (e) { setErr(errText(e, 'Could not add the teacher.')); } finally { setBusy(false); }
+  };
+  return (
+    <Screen>
+      <Row style={{ justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+        <T v="h1">Teachers <T v="small">{data?.length ?? ''}</T></T>
+        <Row gap={8}>
+          <Pill label="Batches" icon="people-outline" onPress={() => router.push('/admin/batches' as any)} />
+          <Pill label="Add teacher" icon="person-add-outline" filled onPress={() => { setCreds(null); setAdding(true); }} />
+        </Row>
+      </Row>
+      {loading && !data ? <Loading /> : error ? <Empty text={error} /> : !data?.length ? (
+        <Card style={{ alignItems: 'center', gap: 10, padding: 24 }}><T>No teachers yet.</T><Button title="Add the first teacher" icon="person-add-outline" onPress={() => setAdding(true)} /></Card>
+      ) : (
+        <View style={{ gap: 8 }}>
+          {data.map((t, i) => (
+            <ListRow key={t.id} left={<Avatar name={t.name} size={44} tint={TINTS[i % 4]} />} title={t.name}
+              sub={[t.subjects.length ? t.subjects.join(', ') : null, t.batches.length ? `${t.batches.length} batch${t.batches.length > 1 ? 'es' : ''}` : 'No batch yet', t.login].filter(Boolean).join(' · ')}
+              right={t.blocked ? <Tag text="Blocked" tone="pink" /> : t.phone ? <SmallButton title="WhatsApp" onPress={() => wa(t.phone!, `Assalamu alaikum ${t.name},`)} /> : undefined} />
+          ))}
+        </View>
+      )}
+      <T v="small" style={{ marginTop: 14 }}>Assign teachers to classes and subjects in Batches. Reset a teacher's password in More → People & passwords.</T>
+      <Sheet visible={adding} onClose={() => setAdding(false)} title="Add a teacher">
+        {creds ? (
+          <>
+            <CredentialsCard creds={creds} />
+            <Button title="Add another" kind="ghost" onPress={() => setCreds(null)} />
+          </>
+        ) : (
+          <Card style={{ gap: 12 }}>
+            <Input label="Full name" value={f.name} onChangeText={set('name')} placeholder="eg. Ustad Ahmed" />
+            <Input label="Email (login)" value={f.email} onChangeText={set('email')} keyboardType="email-address" autoCapitalize="none" />
+            <Input label="Phone / WhatsApp" value={f.phone} onChangeText={set('phone')} keyboardType="phone-pad" placeholder="+971 50 123 4567" />
+            <Input label="Password (optional)" value={f.password} onChangeText={set('password')} autoCapitalize="none" placeholder="Leave empty to create one" />
+            <T v="small">Give an email or a phone number; the teacher logs in with it.</T>
+            {err ? <T style={{ color: colors.red }}>{err}</T> : null}
+            <Button title="Add teacher" icon="checkmark-circle-outline" onPress={save} loading={busy} disabled={f.name.trim().length < 2 || (!f.email.trim() && !f.phone.trim())} />
+          </Card>
+        )}
+      </Sheet>
+    </Screen>
+  );
+}
+
+/* ---------- Bulk import from CSV (students or teachers) ---------- */
+const BULK_COLS = {
+  students: ['Name', 'Board', 'Class', 'Admission no', 'Date of birth', 'Parent name', 'Parent phone', 'Parent email'],
+  teachers: ['Name', 'Email', 'Phone'],
+} as const;
+const BULK_EXAMPLE = {
+  students: ['Rayan Ahmed', 'AP', '5', '', '2016-03-14', 'Abdul Rahman', '+971501234567', ''],
+  teachers: ['Ustad Ali', 'ali@example.com', '+971501112233'],
+} as const;
+
+/** Small CSV reader: commas, quotes and new lines inside quotes. */
+function parseCsv(text: string): string[][] {
+  const rows: string[][] = []; let row: string[] = []; let cell = ''; let q = false;
+  const s = text.replace(/^﻿/, '');
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (q) { if (c === '"' && s[i + 1] === '"') { cell += '"'; i++; } else if (c === '"') q = false; else cell += c; }
+    else if (c === '"') q = true;
+    else if (c === ',' || c === ';' || c === '\t') { row.push(cell); cell = ''; }
+    else if (c === '\n' || c === '\r') { if (c === '\r' && s[i + 1] === '\n') i++; row.push(cell); rows.push(row); row = []; cell = ''; }
+    else cell += c;
+  }
+  if (cell || row.length) { row.push(cell); rows.push(row); }
+  return rows.filter((r) => r.some((x) => x.trim()));
+}
+const csvLine = (cells: (string | null | undefined)[]) => cells.map((c) => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',');
+function download(name: string, text: string) {
+  if (Platform.OS !== 'web') return;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['﻿' + text], { type: 'text/csv;charset=utf-8' }));
+  a.download = name; a.click();
+}
+
+export function BulkImportScreen() {
+  const [kind, setKind] = useState<'students' | 'teachers'>('students');
+  const [rows, setRows] = useState<string[][] | null>(null);
+  const [file, setFile] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(0);
+  const [results, setResults] = useState<{ row: number; name: string; ok: boolean; msg: string; creds?: Credential[] }[]>([]);
+  const cols = BULK_COLS[kind];
+  const pick = () => {
+    if (Platform.OS !== 'web') return;
+    const input = document.createElement('input');
+    input.type = 'file'; input.accept = '.csv,text/csv';
+    input.onchange = async () => {
+      const f = input.files?.[0]; if (!f) return;
+      if (!/\.csv$/i.test(f.name)) { say('Please save the Excel file as CSV (File → Save as → CSV) and upload that.'); return; }
+      const all = parseCsv(await f.text());
+      const head = (all[0] ?? []).map((h) => h.trim().toLowerCase());
+      const body = head[0] === 'name' ? all.slice(1) : all;
+      setFile(f.name); setRows(body); setResults([]); setDone(0);
+    };
+    input.click();
+  };
+  const run = async () => {
+    if (!rows) return;
+    setBusy(true); setResults([]); setDone(0);
+    const out: typeof results = [];
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i].map((x) => (x ?? '').trim());
+      const body = kind === 'students'
+        ? { name: r[0], board: r[1] || 'AP', cls: r[2], admission_no: r[3] || undefined, dob: r[4] || undefined, parent_name: r[5] || undefined, parent_phone: r[6] || undefined, parent_email: r[7] || undefined }
+        : { name: r[0], email: r[1] || undefined, phone: r[2] || undefined };
+      try {
+        const res = await api.post<{ credentials: Credential[] }>(kind === 'students' ? '/admin/students' : '/admin/teachers', body);
+        out.push({ row: i + 2, name: r[0], ok: true, msg: 'Added', creds: res.credentials });
+      } catch (e) { out.push({ row: i + 2, name: r[0] || '(no name)', ok: false, msg: errText(e, 'Could not add') }); }
+      setDone(i + 1); setResults([...out]);
+    }
+    setBusy(false);
+  };
+  const okRows = results.filter((r) => r.ok);
+  const loginsCsv = () => [csvLine(['Row', 'Who', 'Name', 'Login', 'Password']), ...okRows.flatMap((r) => (r.creds ?? []).map((c) => csvLine([String(r.row), c.who, c.name, c.login, c.password ?? '(existing password)'])))].join('\n');
+  return (
+    <Screen>
+      <Header title="Bulk add" subtitle="Add many at once from a CSV file (Excel → Save as CSV)" />
+      <ChoiceChips value={kind} onChange={(k) => { setKind(k); setRows(null); setResults([]); }} options={[{ key: 'students', label: 'Students (with parents)' }, { key: 'teachers', label: 'Teachers' }]} />
+      <Card style={{ gap: 10, marginTop: 10 }}>
+        <Row style={{ justifyContent: 'space-between' }}><T v="h3">1 · Download the template</T>
+          <SmallButton title="Template" onPress={() => download(`noon_${kind}_template.csv`, [csvLine([...cols]), csvLine([...BULK_EXAMPLE[kind]])].join('\n'))} /></Row>
+        <Row gap={6} style={{ flexWrap: 'wrap' }}>{cols.map((c) => <Tag key={c} text={c} tone="white" />)}</Row>
+        {kind === 'students' ? <T v="small">Board: AP, EK or GEN. Class: 1–10, +1, +2. Admission no. is made for you if empty. Phone with country code.</T> : <T v="small">Each teacher needs an email or a phone number to log in.</T>}
+      </Card>
+      <Card style={{ marginTop: 10, gap: 10 }}>
+        <T v="h3">2 · Upload your filled file</T>
+        {rows ? (
+          <ListRow left={<Tag text="CSV" tone="mint" />} title={file} sub={`${rows.length} rows found`} right={<SmallButton title="Replace" onPress={pick} />} />
+        ) : (
+          <Pressable accessibilityRole="button" onPress={pick} style={{ height: 70, borderRadius: 18, borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.line, alignItems: 'center', justifyContent: 'center' }}><T v="small">Tap to choose a .csv file</T></Pressable>
+        )}
+      </Card>
+      {rows ? (
+        <Card style={{ marginTop: 10, gap: 10, marginBottom: 30 }}>
+          <T v="h3">3 · Import</T>
+          {results.length ? (
+            <Row gap={8}>
+              <MiniStat value={okRows.length} label="Added" tint={colors.mint} />
+              <MiniStat value={results.length - okRows.length} label="Need fixing" tint={colors.butter} />
+              <MiniStat value={`${done}/${rows.length}`} label="Done" tint={colors.sky} />
+            </Row>
+          ) : null}
+          {results.filter((r) => !r.ok).map((r) => <T key={r.row} style={{ color: '#8A5A0F', fontSize: 13 }}>Row {r.row} · {r.name}: {r.msg}</T>)}
+          {!busy && results.length === rows.length && okRows.length ? (
+            <Button title="Download logins (CSV)" icon="download-outline" onPress={() => download(`noon_${kind}_logins.csv`, loginsCsv())} />
+          ) : null}
+          <Button title={busy ? `Adding… ${done}/${rows.length}` : results.length ? 'Import again' : `Import ${rows.length} ${kind}`} onPress={run} loading={busy} disabled={busy} />
+          <T v="small">Rows that need fixing are skipped. Fix them in the file and upload just those rows again.</T>
+        </Card>
+      ) : null}
+    </Screen>
+  );
+}

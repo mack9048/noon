@@ -1,3 +1,3 @@
-import { AdminBulkScreen } from '@/screens/admin';
+import { BulkImportScreen } from '@/screens/admissionsPortal';
 
-export default AdminBulkScreen;
+export default BulkImportScreen;
