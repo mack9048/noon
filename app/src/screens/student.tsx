@@ -35,7 +35,7 @@ export function ClassroomScreen() {
         <T style={{ fontFamily: fonts.semibold, fontSize: 24, color: '#0B2A35' }}>{CLASSROOM.live.title}</T>
         <T v="small" style={{ color: '#1F4A58' }}>{CLASSROOM.live.teacher} · {CLASSROOM.live.time}</T>
         <View style={{ alignSelf: 'flex-end', marginTop: 8 }}>
-          <Button title="Join now" icon="videocam" onPress={() => router.push(`${base}/live/1` as any)} style={{ height: 42 }} />
+          <Button title="Join now" icon="videocam" onPress={() => router.push(`${base}/live` as any)} style={{ height: 42 }} />
         </View>
       </Card>
 

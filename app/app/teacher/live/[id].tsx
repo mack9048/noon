@@ -1,1 +1,1 @@
-export { LiveMeetScreen as default } from '@/screens/social';
+export { LiveSessionScreen as default } from '@/screens/live';

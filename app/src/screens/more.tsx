@@ -81,6 +81,7 @@ export type MoreLink = [label: string, href: string, icon: keyof typeof Ionicons
 const roleName: Record<string, string> = { student: 'Student', parent: 'Parent', teacher: 'Teacher', admin: 'Institute admin', super_admin: 'Super admin', guest: 'Guest' };
 
 export const STUDENT_MORE: MoreLink[] = [
+  ['Live classes', '/student/live', 'videocam-outline', colors.pink],
   ['Profile', '/student/profile', 'person-outline', colors.lav],
   ['Fees', '/student/fees', 'card-outline', colors.mint],
   ['Attendance', '/student/attendance', 'calendar-outline', colors.butter],
@@ -89,12 +90,14 @@ export const STUDENT_MORE: MoreLink[] = [
   ['Help', '/student/help', 'help-circle-outline', ['#FFFFFF', colors.ink]],
 ];
 export const TEACHER_MORE: MoreLink[] = [
+  ['Live classes', '/teacher/live', 'videocam-outline', colors.pink],
   ['Live class', '/teacher/course/1', 'videocam-outline', colors.pink],
   ['Review work', '/teacher/review', 'clipboard-outline', colors.sky],
   ['Assess Salah', '/teacher/assess', 'ribbon-outline', colors.mint],
   ['Leave', '/teacher/leave', 'calendar-outline', colors.lav],
 ];
 export const ADMIN_MORE: MoreLink[] = [
+  ['Live classes', '/admin/live', 'videocam-outline', colors.pink],
   ['People & passwords', '/admin/people', 'key-outline', colors.butter],
   ['Admissions', '/admin/admissions', 'person-add-outline', colors.mint],
   ['Batches', '/admin/batches', 'people-outline', colors.sky],

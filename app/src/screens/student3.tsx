@@ -341,7 +341,7 @@ export function NoonBudsScreen() {
         <View style={{ alignSelf: 'flex-start', backgroundColor: '#FF5C8A', borderRadius: 12, paddingHorizontal: 10, height: 24, justifyContent: 'center' }}><T style={{ color: '#FFF', fontFamily: fonts.semibold, fontSize: 11 }}>● LIVE TODAY · 4:00 PM</T></View>
         <Text style={{ fontFamily: fonts.fun, fontSize: 28, color: '#FFF', marginTop: 8 }}>Lesson 5</Text>
         <T style={{ color: '#E5F8EC' }}>Letters ث ت ب with Ayisha Miss</T>
-        <Pressable accessibilityRole="button" accessibilityLabel="Join live lesson" onPress={() => router.push(`${base}/live/1` as any)}
+        <Pressable accessibilityRole="button" accessibilityLabel="Join live lesson" onPress={() => router.push(`${base}/live` as any)}
           style={{ marginTop: 12, alignSelf: 'flex-start', backgroundColor: '#FFF', borderRadius: 22, height: 44, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
           <Ionicons name="play" size={16} color="#14945A" /><Text style={{ fontFamily: fonts.fun, fontSize: 18, color: '#14945A' }}>Join</Text>
         </Pressable>

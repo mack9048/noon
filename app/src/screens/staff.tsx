@@ -65,7 +65,7 @@ export function TeacherCourseScreen() {
       <GradientCard colors={['#F3CFEA', '#E9B8DD']} style={{ gap: 10 }}>
         <T v="label" style={{ color: colors.pink[1] }}>● NEXT LIVE CLASS</T>
         <T v="h2">Lesson 6 · Letters with harakath</T>
-        <Row><Button title="Start meet" icon="videocam" onPress={() => router.push('/teacher/live/1' as any)} /><Button title="Schedule new" kind="ghost" /></Row>
+        <Row><Button title="Live classes" icon="videocam" onPress={() => router.push('/teacher/live' as any)} /><Button title="Schedule new" kind="ghost" onPress={() => router.push('/teacher/live' as any)} /></Row>
       </GradientCard>
       <T v="h2" style={{ marginVertical: 12 }}>Add to this course</T>
       <Grid cols={{ phone: 4, tablet: 4, desktop: 4 }} gap={8}>

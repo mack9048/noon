@@ -74,7 +74,7 @@ function LessonsBlock({ subjects, selected, onSelect, detail, doneFirst }: {
         {list.map((l, i) => {
           const t = LESSON_TINTS[i % 5];
           const current = tab === 'up' && i === 0;
-          const href = tab === 'done' ? `${base}/class-done?space=${selected?.key ?? ''}&pos=${l.position}` : current ? `${base}/live/1` : null;
+          const href = tab === 'done' ? `${base}/class-done?space=${selected?.key ?? ''}&pos=${l.position}` : current ? `${base}/live` : null;
           return (
             <Pressable key={l.position} accessibilityRole="button" accessibilityLabel={`${name} lesson ${l.position}: ${l.title}`}
               onPress={() => (href ? router.push(href as any) : demoNote('This lesson opens on its class day.'))}
@@ -128,7 +128,7 @@ export function ClassroomScreen() {
           <T style={{ color: '#EDE7FF', marginTop: 6 }} numberOfLines={1}>{lessonLine}</T>
           <T style={{ color: '#FFF', fontFamily: fonts.fun, fontSize: 30, lineHeight: 38 }} numberOfLines={2}>{lessonTitle}</T>
           {liveWhen ? <T style={{ color: '#FFE6F6', fontFamily: fonts.semibold, fontSize: 11, marginTop: 2 }} numberOfLines={1}>● {liveWhen}{course?.teacher_name ? ` · ${course.teacher_name}` : ''}</T> : null}
-          <Pressable accessibilityRole="button" accessibilityLabel="Join class" onPress={() => router.push((course ? `${base}/courses/${course.id}` : `${base}/live/1`) as any)}
+          <Pressable accessibilityRole="button" accessibilityLabel="Join class" onPress={() => router.push((course ? `${base}/courses/${course.id}` : `${base}/live`) as any)}
             style={{ marginTop: 12, alignSelf: 'flex-start', backgroundColor: '#FFF', borderRadius: 24, height: 48, paddingLeft: 6, paddingRight: 18, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#5B36C9', alignItems: 'center', justifyContent: 'center' }}><Ionicons name="videocam" size={16} color="#FFF" /></View>
             <T style={{ fontFamily: fonts.fun, fontSize: 17, color: '#46308A' }}>Join Class</T>
