@@ -37,6 +37,8 @@ Route::middleware('throttle:auth')->group(function () {
     Route::post('/auth/otp/request', [AuthController::class, 'otpRequest']);
     Route::post('/auth/otp/verify', [AuthController::class, 'otpVerify']);
     Route::post('/auth/guest', [AuthController::class, 'guest']);
+    Route::post('/auth/password/forgot', [AuthController::class, 'passwordForgot']);
+    Route::post('/auth/password/reset', [AuthController::class, 'passwordReset']);
 });
 Route::get('/boards', [CatalogController::class, 'boards']);
 // Public admission form (from the link the madrasa shares)

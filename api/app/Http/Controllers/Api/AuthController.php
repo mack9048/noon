@@ -83,6 +83,45 @@ class AuthController extends Controller
         return $this->signIn(collect(array_filter([$user])), 'phone', 'No account found for this number.', $data['device_name'] ?? 'app');
     }
 
+    /** Forgot password, step 1: texts a 6-digit code if the number has an account. The reply is the same either way. */
+    public function passwordForgot(Request $request)
+    {
+        $data = $request->validate(['phone' => ['required', 'string', 'max:30']]);
+        $phone = Phone::normalize($data['phone']);
+        if ($phone && User::where('phone', $phone)->exists()) {
+            $this->otp->issue($phone, 'reset');
+        }
+
+        return [
+            'message' => 'If this number is registered, a code has been sent.',
+            'expires_in' => (int) config('noon.otp.ttl_minutes') * 60,
+            'resend_after' => (int) config('noon.otp.resend_after_seconds'),
+        ];
+    }
+
+    /** Forgot password, step 2: checks the code and sets a new password (on every account with this number). */
+    public function passwordReset(Request $request)
+    {
+        $data = $request->validate([
+            'phone' => ['required', 'string', 'max:30'],
+            'otp' => ['required', 'digits:6'],
+            'password' => ['required', 'string', 'min:8', 'max:255'],
+        ]);
+        $phone = (string) Phone::normalize($data['phone']);
+        $this->otp->verify($phone, $data['otp'], 'reset');
+
+        $users = User::where('phone', $phone)->get();
+        if ($users->isEmpty()) {
+            throw ValidationException::withMessages(['phone' => ['No account found for this number.']]);
+        }
+        foreach ($users as $user) {
+            $user->forceFill(['password' => Hash::make($data['password']), 'phone_verified_at' => $user->phone_verified_at ?? now()])->save();
+            $user->tokens()->delete(); // sign out everywhere
+        }
+
+        return ['message' => 'Your password has been changed. Please log in.'];
+    }
+
     /**
      * Guest sign-up: pick board/class and/or Noon Courses, no madrasa needed.
      * If the parent phone already has an account, the owner must prove it with an

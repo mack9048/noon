@@ -180,6 +180,8 @@ const routes: [string, RegExp, Handler][] = [
     return { token: 'demo-guest', user: me };
   }],
   ['GET', /^\/auth\/me$/, () => me],
+  ['POST', /^\/auth\/password\/forgot$/, () => ({ message: 'If this number is registered, a code has been sent.', expires_in: 300, resend_after: 30 })],
+  ['POST', /^\/auth\/password\/reset$/, (_, b) => { if (b?.otp !== '123456') throw new Error('The code is not correct.'); return { message: 'Your password has been changed.' }; }],
   ['POST', /^\/auth\/join-tenant$/, (_, b) => {
     if (String(b?.code ?? '').trim().toUpperCase() !== 'NOON01') throw new Error('This madrasa code is not valid.');
     me = { ...(me ?? demoUser('student', 'Guest')), role: 'student', tenant_id: 1, tenant_name: 'Noon Madrasa' };

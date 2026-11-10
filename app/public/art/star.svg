@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" data-dc-tpl="230" viewBox="0 0 150 150" width="105" height="105" aria-hidden="true">
+  <ellipse data-dc-tpl="231" cx="75" cy="144" rx="40" ry="6" fill="rgba(0,0,0,0.12)"></ellipse>
+  <path data-dc-tpl="232" d="M75 6 l20 42 46 6 -34 32 9 46 -41 -22 -41 22 9 -46 -34 -32 46 -6 z" fill="#FFD84D" stroke="#E8B21C" stroke-width="5" stroke-linejoin="round"></path>
+  <circle data-dc-tpl="233" cx="60" cy="72" r="7" fill="#2A1600"></circle><circle data-dc-tpl="234" cx="90" cy="72" r="7" fill="#2A1600"></circle>
+  <circle data-dc-tpl="235" cx="62" cy="69" r="2.5" fill="#FFF"></circle><circle data-dc-tpl="236" cx="92" cy="69" r="2.5" fill="#FFF"></circle>
+  <path data-dc-tpl="237" d="M64 88 q11 10 22 0" stroke="#2A1600" stroke-width="4" fill="none" stroke-linecap="round"></path>
+  <circle data-dc-tpl="238" cx="48" cy="86" r="6" fill="#FF8FA3" opacity="0.8"></circle><circle data-dc-tpl="239" cx="102" cy="86" r="6" fill="#FF8FA3" opacity="0.8"></circle></svg>
