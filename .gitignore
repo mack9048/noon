@@ -4,3 +4,4 @@ api/server/
 app/dist/
 .DS_Store
 website/dist/
+.claude/settings.local.json
