@@ -30,7 +30,7 @@ export function WelcomeScreen() {
     ['game-controller-outline', 'Fun games', colors.butter], ['school-outline', 'Noon Courses', colors.sky],
   ];
   return (
-    <AuthLayout title="Learn Islam, anytime, anywhere" subtitle="Explore every feature for free — courses, madrasa classes, games, Quran and more. No sign-up needed.">
+    <AuthLayout title="Learn Islam, anytime, anywhere" subtitle="Explore every feature for free — courses, live classes, games, Quran and more. No sign-up needed.">
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         {FEATURES.map(([icon, label, tint]) => (
           <View key={label} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 36, borderRadius: 18, backgroundColor: tint[0] }}>
@@ -71,7 +71,7 @@ function AuthLayout({ title, subtitle, children, onBack }: { title: string; subt
       {wide ? (
         <View style={{ gap: 6 }}>
           <T style={{ fontFamily: fonts.fun, fontSize: 30, lineHeight: 36, color: '#FFF' }}>Where little hearts{'\n'}learn Deen with joy</T>
-          <T style={{ color: '#E4DDFF' }}>Live madrasa classes, Quran, courses and games — in one safe app.</T>
+          <T style={{ color: '#E4DDFF' }}>Live classes, Quran, courses and games — in one safe app.</T>
         </View>
       ) : null}
     </LinearGradient>
@@ -171,7 +171,7 @@ export function LoginScreen() {
 
   if (choices) {
     return (
-      <AuthLayout title="Choose your madrasa" subtitle="This login is used in more than one madrasa." onBack={() => setChoices(null)}>
+      <AuthLayout title="Choose your institution" subtitle="This login is used in more than one institution." onBack={() => setChoices(null)}>
         {choices.map((c) => (
           <Button key={c.code} title={c.name} kind="ghost" icon="school-outline" disabled={busy} onPress={() => submit(c.code)} />
         ))}
@@ -181,7 +181,7 @@ export function LoginScreen() {
   }
 
   return (
-    <AuthLayout title="Welcome back!" subtitle="Log in to your madrasa, classes and courses.">
+    <AuthLayout title="Welcome back!" subtitle="Log in to your institution, classes and courses.">
       {done === 'reset' ? <Notice text="Your password was changed. Log in with your new password." tone="ok" /> : null}
       <IconField label="Phone, email or admission no." icon="person-outline" value={id} onChangeText={setId} autoCapitalize="none" autoComplete="username"
         placeholder="e.g. 9715XXXXXXX or DEMO-001" returnKeyType="next" />
@@ -256,7 +256,7 @@ export function ForgotPasswordScreen() {
           )}
           {err ? <Notice text={err} tone="error" /> : null}
           <Button title="Send code" icon="paper-plane-outline" onPress={send} loading={busy} disabled={!valid} />
-          <T v="small" style={{ textAlign: 'center' }}>No email or mobile on your account? Ask your madrasa office to set a new password for you.</T>
+          <T v="small" style={{ textAlign: 'center' }}>No email or mobile on your account? Ask your institution office to set a new password for you.</T>
         </>
       ) : (
         <>
@@ -295,17 +295,17 @@ export function SignUpScreen() {
   );
   return (
     <AuthLayout title="Join Noon Learn" subtitle="Pick the option that fits you." onBack={() => router.replace('/login' as any)}>
-      <Option icon="sparkles-outline" tint={colors.lav} title="Start learning free" text="For children and parents: courses, Quran, games. No madrasa needed."
+      <Option icon="sparkles-outline" tint={colors.lav} title="Start learning free" text="For children and parents: courses, Quran, games. No institution needed."
         onPress={() => router.push('/join')} />
-      <Option icon="school-outline" tint={colors.mint} title="Apply to a madrasa" text="Have a madrasa code? Send an admission form to your madrasa."
+      <Option icon="school-outline" tint={colors.mint} title="Apply to an institution" text="Have an institution code? Send an admission form to your institution."
         onPress={() => setAskCode(true)} />
       {askCode ? (
         <View style={{ gap: 10, padding: 14, borderRadius: 18, backgroundColor: colors.bg }}>
-          <IconField label="Madrasa code" icon="key-outline" value={code} onChangeText={(v) => setCode(v.toUpperCase())} autoCapitalize="characters" placeholder="e.g. DEMO01" />
+          <IconField label="Institution code" icon="key-outline" value={code} onChangeText={(v) => setCode(v.toUpperCase())} autoCapitalize="characters" placeholder="e.g. DEMO01" />
           <Button title="Open admission form" icon="arrow-forward" disabled={code.trim().length < 4} onPress={() => router.push(`/apply/${code.trim()}` as any)} />
         </View>
       ) : null}
-      <Option icon="business-outline" tint={colors.butter} title="Register your madrasa" text="Run your madrasa on Noon Learn. We set it up with you."
+      <Option icon="business-outline" tint={colors.butter} title="Register your institution" text="Run your institution on Noon Learn. We set it up with you."
         onPress={() => { if (Platform.OS === 'web') window.location.href = '/contact'; }} />
       <Divider text="Already have an account?" />
       <Button title="Log in" kind="ghost" icon="log-in-outline" onPress={() => router.replace('/login' as any)} />
