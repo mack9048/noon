@@ -95,6 +95,7 @@ export const TEACHER_MORE: MoreLink[] = [
   ['Leave', '/teacher/leave', 'calendar-outline', colors.lav],
 ];
 export const ADMIN_MORE: MoreLink[] = [
+  ['People & passwords', '/admin/people', 'key-outline', colors.butter],
   ['Admissions', '/admin/admissions', 'person-add-outline', colors.mint],
   ['Batches', '/admin/batches', 'people-outline', colors.sky],
   ['Courses', '/admin/courses', 'school-outline', colors.lav],

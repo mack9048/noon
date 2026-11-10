@@ -334,7 +334,7 @@ export function SettingsScreen() {
       <Card style={{ paddingVertical: 4 }}>
         {row('calendar-outline', colors.lav, 'Academic year', <SmallButton title={year} onPress={() => setYear(year === '2026–27' ? '2025–26' : '2026–27')} />, undefined, true)}
         {row('swap-horizontal', colors.mint, 'Switch student', chev, () => demoNote('Demo: parents with more than one child switch here.'))}
-        {row('key-outline', colors.butter, 'Change password', chev, () => demoNote('Demo: password change comes with the profile API (step 2).'))}
+        {row('key-outline', colors.butter, 'Change password', chev, () => router.push('/account/password' as any))}
       </Card>
       <Section title="More" />
       <Card style={{ paddingVertical: 4 }}>

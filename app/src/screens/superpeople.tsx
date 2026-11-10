@@ -9,6 +9,7 @@ import { api, ApiError } from '@/lib/api';
 import { useApi } from '@/lib/useApi';
 import { homeFor, useAuth } from '@/lib/auth';
 import { colors, fonts } from '@/theme/tokens';
+import { SetPasswordModal } from '@/screens/passwords';
 
 export interface TenantRow {
   id: number; name: string; code: string; plan: string; active: boolean; leave_quota?: number;
@@ -56,14 +57,19 @@ function SearchBox({ value, onChange, placeholder }: { value: string; onChange: 
 
 function UserList({ rows, showTenant }: { rows: UserRow[]; showTenant: boolean }) {
   const { go, busyId } = useLogInAs();
+  const [pick, setPick] = useState<UserRow | null>(null);
   if (!rows.length) return <Empty text="No users found." />;
   return (
     <View style={{ gap: 8 }}>
+      <SetPasswordModal person={pick} scope="super" onClose={() => setPick(null)} />
       {rows.map((u, i) => (
         <ListRow key={u.id} left={<Avatar name={u.name} size={44} tint={TINTS[i % 4]} />}
           title={u.name}
           sub={[ROLE_LABEL[u.role], u.login, showTenant ? u.tenant_name : null, u.blocked ? 'Blocked' : null].filter(Boolean).join(' · ')}
-          right={<SmallButton title={busyId === u.id ? 'Opening…' : 'Log in as'} filled tint={colors.violet} disabled={busyId !== null || u.blocked} onPress={() => go(u)} />} />
+          right={<Row gap={6}>
+            <SmallButton title="🔑" onPress={() => setPick(u)} />
+            <SmallButton title={busyId === u.id ? 'Opening…' : 'Log in as'} filled tint={colors.violet} disabled={busyId !== null || u.blocked} onPress={() => go(u)} />
+          </Row>} />
       ))}
     </View>
   );

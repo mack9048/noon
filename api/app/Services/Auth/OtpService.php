@@ -13,7 +13,8 @@ class OtpService
 
     public function __construct(private OtpSender $sender) {}
 
-    public function issue(string $phone, string $purpose = 'login'): void
+    /** @param \Closure(string $code): void|null $deliver  send the code another way (e.g. email) instead of SMS */
+    public function issue(string $phone, string $purpose = 'login', ?\Closure $deliver = null): void
     {
         $cooldown = (int) config('noon.otp.resend_after_seconds');
         $recent = OtpCode::where('phone', $phone)->where('purpose', $purpose)
@@ -34,7 +35,7 @@ class OtpService
             'code_hash' => $this->hash($phone, $code),
             'expires_at' => now()->addMinutes((int) config('noon.otp.ttl_minutes')),
         ]);
-        $this->sender->send($phone, $code);
+        $deliver ? $deliver($code) : $this->sender->send($phone, $code);
     }
 
     /** Checks the code and uses it up. */

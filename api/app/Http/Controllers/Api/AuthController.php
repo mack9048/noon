@@ -9,9 +9,11 @@ use App\Models\User;
 use App\Services\Auth\OtpService;
 use App\Support\Phone;
 use Illuminate\Http\JsonResponse;
+use Laravel\Sanctum\PersonalAccessToken;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -83,43 +85,101 @@ class AuthController extends Controller
         return $this->signIn(collect(array_filter([$user])), 'phone', 'No account found for this number.', $data['device_name'] ?? 'app');
     }
 
-    /** Forgot password, step 1: texts a 6-digit code if the number has an account. The reply is the same either way. */
+    /**
+     * Forgot password, step 1: sends a 6-digit code to the account's registered
+     * email (login contains "@") or by SMS to its mobile number.
+     * The reply is the same whether or not the account exists.
+     */
     public function passwordForgot(Request $request)
     {
-        $data = $request->validate(['phone' => ['required', 'string', 'max:30']]);
-        $phone = Phone::normalize($data['phone']);
-        if ($phone && User::where('phone', $phone)->exists()) {
-            $this->otp->issue($phone, 'reset');
+        $data = $request->validate([
+            'login' => ['required_without:phone', 'nullable', 'string', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:30'], // older app versions
+        ]);
+        $login = trim((string) ($data['login'] ?? $data['phone']));
+
+        if (str_contains($login, '@')) {
+            $email = strtolower($login);
+            $user = User::where('email', $email)->first();
+            if ($user) {
+                $this->otp->issue($this->mailKey($email), 'reset', function (string $code) use ($user, $email) {
+                    Mail::raw(
+                        "Assalamu alaikum {$user->name},\n\nYour Noon Learn password reset code is: {$code}\n\n"
+                        .'It expires in '.config('noon.otp.ttl_minutes')." minutes. If you did not ask for this, you can ignore this email.\n\nNoon Learn",
+                        fn ($m) => $m->to($email)->subject("Your Noon Learn reset code: {$code}")
+                    );
+                });
+            }
+            $message = 'If this email is registered, a code has been sent to it.';
+        } else {
+            $phone = Phone::normalize($login);
+            if ($phone && User::where('phone', $phone)->exists()) {
+                $this->otp->issue($phone, 'reset');
+            }
+            $message = 'If this number is registered, a code has been sent.';
         }
 
         return [
-            'message' => 'If this number is registered, a code has been sent.',
+            'message' => $message,
             'expires_in' => (int) config('noon.otp.ttl_minutes') * 60,
             'resend_after' => (int) config('noon.otp.resend_after_seconds'),
         ];
     }
 
-    /** Forgot password, step 2: checks the code and sets a new password (on every account with this number). */
+    /** Forgot password, step 2: checks the code and sets the new password. */
     public function passwordReset(Request $request)
     {
         $data = $request->validate([
-            'phone' => ['required', 'string', 'max:30'],
+            'login' => ['required_without:phone', 'nullable', 'string', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:30'],
             'otp' => ['required', 'digits:6'],
             'password' => ['required', 'string', 'min:8', 'max:255'],
         ]);
-        $phone = (string) Phone::normalize($data['phone']);
-        $this->otp->verify($phone, $data['otp'], 'reset');
+        $login = trim((string) ($data['login'] ?? $data['phone']));
 
-        $users = User::where('phone', $phone)->get();
+        if (str_contains($login, '@')) {
+            $email = strtolower($login);
+            $this->otp->verify($this->mailKey($email), $data['otp'], 'reset');
+            $users = User::where('email', $email)->get();
+        } else {
+            $phone = (string) Phone::normalize($login);
+            $this->otp->verify($phone, $data['otp'], 'reset');
+            $users = User::where('phone', $phone)->get();
+        }
         if ($users->isEmpty()) {
-            throw ValidationException::withMessages(['phone' => ['No account found for this number.']]);
+            throw ValidationException::withMessages(['login' => ['No account found.']]);
         }
         foreach ($users as $user) {
-            $user->forceFill(['password' => Hash::make($data['password']), 'phone_verified_at' => $user->phone_verified_at ?? now()])->save();
+            $user->forceFill(['password' => $data['password']])->save();
             $user->tokens()->delete(); // sign out everywhere
         }
 
         return ['message' => 'Your password has been changed. Please log in.'];
+    }
+
+    /** Signed-in users change their own password. */
+    public function changePassword(Request $request)
+    {
+        $data = $request->validate([
+            'current_password' => ['required', 'string'],
+            'password' => ['required', 'string', 'min:8', 'max:255', 'different:current_password'],
+        ]);
+        $user = $request->user();
+        if (! Hash::check($data['current_password'], $user->password)) {
+            throw ValidationException::withMessages(['current_password' => ['Your current password is not correct.']]);
+        }
+        $user->forceFill(['password' => $data['password']])->save();
+        // Keep this device signed in, sign out the others
+        $current = $user->currentAccessToken();
+        $user->tokens()->when($current instanceof PersonalAccessToken, fn ($q) => $q->whereKeyNot($current->getKey()))->delete();
+
+        return ['message' => 'Password changed.'];
+    }
+
+    /** Short key for email codes (the codes table keeps 20 characters). */
+    private function mailKey(string $email): string
+    {
+        return 'm:'.substr(hash('sha256', $email), 0, 18);
     }
 
     /**

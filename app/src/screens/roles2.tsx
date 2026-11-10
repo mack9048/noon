@@ -78,6 +78,9 @@ export function RoleSettingsScreen({ roleLine, profileHref, groups, footer }: { 
           ))}
         </SettingsGroup>
       ))}
+      <SettingsGroup title="Security">
+        <SettingRow icon="key-outline" tint={colors.butter} label="Change password" onPress={() => router.push('/account/password' as any)} />
+      </SettingsGroup>
       <Pressable accessibilityRole="button" onPress={() => logout().then(() => router.replace('/login' as any))}
         style={{ marginTop: 18, height: 54, borderRadius: 27, backgroundColor: '#FBD9DC', alignItems: 'center', justifyContent: 'center' }}>
         <T style={{ color: colors.red, fontFamily: fonts.semibold }}>Log out</T>

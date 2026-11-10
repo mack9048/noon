@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\CourseController;
 use App\Http\Controllers\Api\ImpersonationController;
 use App\Http\Controllers\Api\LearnController;
 use App\Http\Controllers\Api\LeaveController;
+use App\Http\Controllers\Api\PasswordAdminController;
 use App\Http\Controllers\Api\StudyToolController;
 use App\Http\Controllers\Api\TenantController;
 use Illuminate\Support\Facades\DB;
@@ -50,6 +51,7 @@ Route::get('/classes/{class}/subjects', [CatalogController::class, 'subjects']);
 Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::get('/auth/me', [AuthController::class, 'me']);
     Route::post('/auth/logout', [AuthController::class, 'logout']);
+    Route::put('/me/password', [AuthController::class, 'changePassword']);
     Route::post('/auth/join-tenant', [AuthController::class, 'joinTenant'])->middleware('throttle:join');
     Route::put('/me/learning', [AuthController::class, 'updateLearning']);
 
@@ -97,6 +99,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/batches', [BatchController::class, 'index']);
         Route::get('/batches/people', [BatchController::class, 'people']);
         Route::post('/batches', [BatchController::class, 'store']);
+        Route::get('/people', [PasswordAdminController::class, 'people']);
+        Route::put('/users/{user}/password', [PasswordAdminController::class, 'adminSet']);
     });
 
     // Super admin
@@ -104,6 +108,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::apiResource('tenants', TenantController::class)->except('show');
         Route::get('/users', [ImpersonationController::class, 'users']);
         Route::post('/users/{user}/impersonate', [ImpersonationController::class, 'start']);
+        Route::put('/users/{user}/password', [PasswordAdminController::class, 'superSet']);
 
         Route::get('/courses', [CourseController::class, 'superIndex']);
         Route::post('/courses', [CourseController::class, 'superStore']);

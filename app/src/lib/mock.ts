@@ -181,6 +181,12 @@ const routes: [string, RegExp, Handler][] = [
   }],
   ['GET', /^\/auth\/me$/, () => me],
   ['POST', /^\/auth\/password\/forgot$/, () => ({ message: 'If this number is registered, a code has been sent.', expires_in: 300, resend_after: 30 })],
+  ['PUT', /^\/me\/password$/, (_, b) => { if (!b?.current_password) throw new Error('Your current password is not correct.'); return { message: 'Password changed.' }; }],
+  ['PUT', /^\/(admin|super)\/users\/(\d+)\/password$/, () => ({ message: 'New password saved.' })],
+  ['GET', /^\/admin\/people(\?(.*))?$/, (m) => {
+    const p = new URLSearchParams(m[2] ?? ''); const q = (p.get('q') ?? '').toLowerCase();
+    return mockUsers.filter((u) => u.role !== 'guest' && (!p.get('role') || u.role === p.get('role')) && (!q || `${u.name} ${u.login}`.toLowerCase().includes(q)));
+  }],
   ['POST', /^\/auth\/password\/reset$/, (_, b) => { if (b?.otp !== '123456') throw new Error('The code is not correct.'); return { message: 'Your password has been changed.' }; }],
   ['POST', /^\/auth\/join-tenant$/, (_, b) => {
     if (String(b?.code ?? '').trim().toUpperCase() !== 'NOON01') throw new Error('This madrasa code is not valid.');

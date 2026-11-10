@@ -201,20 +201,25 @@ export function LoginScreen() {
 
 /* ---------- Forgot password: SMS code, then a new password ---------- */
 export function ForgotPasswordScreen() {
-  const [step, setStep] = useState<'phone' | 'code'>('phone');
-  const [phone, setPhone] = useState('');
+  const [via, setVia] = useState<'email' | 'phone'>('email');
+  const [step, setStep] = useState<'ask' | 'code'>('ask');
+  const [login, setLogin] = useState('');
   const [otp, setOtp] = useState('');
   const [pw, setPw] = useState('');
   const [pw2, setPw2] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const value = login.trim();
+  const valid = via === 'email' ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) : value.replace(/\D/g, '').length >= 9;
 
   const send = async () => {
     setBusy(true); setErr(null);
     try {
-      await api.post('/auth/password/forgot', { phone: phone.trim() });
-      setInfo(`If ${phone.trim()} is registered, we have sent a 6-digit code by SMS.`);
+      await api.post('/auth/password/forgot', { login: value });
+      setInfo(via === 'email'
+        ? `If ${value} is registered, we have emailed you a 6-digit code. Check your inbox and spam folder.`
+        : `If ${value} is registered, we have sent a 6-digit code by SMS.`);
       setStep('code');
     } catch (e: any) { setErr(e instanceof ApiError ? e.friendly : 'Could not send the code.'); } finally { setBusy(false); }
   };
@@ -223,21 +228,35 @@ export function ForgotPasswordScreen() {
     if (pw !== pw2) return setErr('The two passwords do not match.');
     setBusy(true); setErr(null);
     try {
-      await api.post('/auth/password/reset', { phone: phone.trim(), otp: otp.trim(), password: pw });
+      await api.post('/auth/password/reset', { login: value, otp: otp.trim(), password: pw });
       router.replace('/login?done=reset' as any);
     } catch (e: any) { setErr(e instanceof ApiError ? e.friendly : 'Could not change the password.'); } finally { setBusy(false); }
   };
 
   return (
-    <AuthLayout title="Forgot password?" onBack={() => (step === 'code' ? setStep('phone') : router.replace('/login' as any))}
-      subtitle={step === 'phone' ? 'Enter the mobile number on your account. We will text you a code.' : 'Enter the code and choose a new password.'}>
-      {step === 'phone' ? (
+    <AuthLayout title="Forgot password?" onBack={() => (step === 'code' ? setStep('ask') : router.replace('/login' as any))}
+      subtitle={step === 'ask' ? 'We will send a code to your registered email or mobile number.' : 'Enter the code and choose a new password.'}>
+      {step === 'ask' ? (
         <>
-          <IconField label="Mobile number" icon="call-outline" value={phone} onChangeText={setPhone} keyboardType="phone-pad" autoComplete="tel"
-            placeholder="+91 / +971 …" onSubmitEditing={() => phone.trim().length >= 9 && send()} />
+          <View accessibilityRole="tablist" style={{ flexDirection: 'row', backgroundColor: colors.bg, borderRadius: 18, padding: 4 }}>
+            {([['email', 'Email', 'mail-outline'], ['phone', 'Mobile', 'call-outline']] as const).map(([k, label, icon]) => (
+              <Pressable key={k} accessibilityRole="tab" accessibilityState={{ selected: via === k }} onPress={() => { setVia(k); setLogin(''); setErr(null); }}
+                style={{ flex: 1, height: 42, borderRadius: 14, flexDirection: 'row', gap: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: via === k ? '#FFF' : 'transparent' }}>
+                <Ionicons name={icon} size={17} color={via === k ? colors.violet : colors.muted} />
+                <T style={{ fontFamily: fonts.semibold, color: via === k ? colors.violet : colors.muted }}>{label}</T>
+              </Pressable>
+            ))}
+          </View>
+          {via === 'email' ? (
+            <IconField label="Registered email" icon="mail-outline" value={login} onChangeText={setLogin} keyboardType="email-address" autoCapitalize="none"
+              autoComplete="email" placeholder="you@example.com" onSubmitEditing={() => valid && send()} />
+          ) : (
+            <IconField label="Registered mobile number" icon="call-outline" value={login} onChangeText={setLogin} keyboardType="phone-pad" autoComplete="tel"
+              placeholder="+91 / +971 …" onSubmitEditing={() => valid && send()} />
+          )}
           {err ? <Notice text={err} tone="error" /> : null}
-          <Button title="Send code" icon="chatbubble-ellipses-outline" onPress={send} loading={busy} disabled={phone.replace(/\D/g, '').length < 9} />
-          <T v="small" style={{ textAlign: 'center' }}>Students without a mobile number: ask your madrasa office to reset your password.</T>
+          <Button title="Send code" icon="paper-plane-outline" onPress={send} loading={busy} disabled={!valid} />
+          <T v="small" style={{ textAlign: 'center' }}>No email or mobile on your account? Ask your madrasa office to set a new password for you.</T>
         </>
       ) : (
         <>
