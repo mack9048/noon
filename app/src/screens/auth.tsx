@@ -13,7 +13,6 @@ import { useLayout } from '@/lib/useLayout';
 import { colors, fonts, radius } from '@/theme/tokens';
 
 export function WelcomeScreen() {
-  const { device } = useLayout();
   const { startGuest } = useAuth();
   const [busy, setBusy] = useState(false);
   // No sign-up needed: start a guest session straight away (design: Guest · Welcome).
@@ -26,28 +25,26 @@ export function WelcomeScreen() {
       router.push('/join');
     } finally { setBusy(false); }
   };
-  const wide = device !== 'phone';
+  const FEATURES: [keyof typeof Ionicons.glyphMap, string, readonly [string, string]][] = [
+    ['videocam-outline', 'Live classes', colors.lav], ['book-outline', 'Quran & Hifz', colors.mint],
+    ['game-controller-outline', 'Fun games', colors.butter], ['school-outline', 'Noon Courses', colors.sky],
+  ];
   return (
-    <LinearGradient colors={['#0B5166', '#5B43E0', '#9B7BE8']} start={{ x: 0, y: 0 }} end={{ x: 0.6, y: 1 }} style={{ flex: 1 }}>
-      <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24 }}>
-        <View style={{ width: '100%', maxWidth: wide ? 980 : 480, alignSelf: 'center', flexDirection: wide ? 'row' : 'column', gap: 32, alignItems: wide ? 'center' : 'stretch' }}>
-          <View style={{ flex: wide ? 1 : undefined, gap: 16 }}>
-            <View style={{ alignSelf: 'flex-start', backgroundColor: '#FFF', borderRadius: 18, padding: 10 }}><Logo /></View>
-            <T style={{ fontFamily: fonts.fun, fontSize: wide ? 48 : 36, lineHeight: wide ? 54 : 42, color: '#FFF', marginTop: 12 }}>
-              Learn Islam,{'\n'}anytime, anywhere
-            </T>
-            <T style={{ color: '#E4DDFF', fontSize: 16, lineHeight: 23 }}>
-              Explore every feature for free — courses, madrasa classes, games, Quran and more. No sign-up needed.
-            </T>
+    <AuthLayout title="Learn Islam, anytime, anywhere" subtitle="Explore every feature for free — courses, madrasa classes, games, Quran and more. No sign-up needed.">
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        {FEATURES.map(([icon, label, tint]) => (
+          <View key={label} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 36, borderRadius: 18, backgroundColor: tint[0] }}>
+            <Ionicons name={icon} size={16} color={tint[1]} />
+            <T style={{ color: tint[1], fontFamily: fonts.semibold, fontSize: 13 }}>{label}</T>
           </View>
-          <View style={{ flex: wide ? 0.8 : undefined, gap: 12 }}>
-            <Button title="Explore as a guest" kind="yellow" icon="arrow-forward" loading={busy} onPress={explore} />
-            <Button title="Sign in" kind="outlineLight" icon="log-in-outline" onPress={() => router.push('/login')} />
-            <InstallAppButton light />
-          </View>
-        </View>
-      </ScrollView>
-    </LinearGradient>
+        ))}
+      </View>
+      <Button title="Explore as a guest" kind="yellow" icon="arrow-forward" loading={busy} onPress={explore} />
+      <Button title="Log in" icon="log-in-outline" onPress={() => router.push('/login')} />
+      <Divider text="New to Noon Learn?" />
+      <Button title="Sign up" kind="ghost" icon="person-add-outline" onPress={() => router.push('/signup' as any)} />
+      <InstallAppButton />
+    </AuthLayout>
   );
 }
 
@@ -82,7 +79,7 @@ function AuthLayout({ title, subtitle, children, onBack }: { title: string; subt
   const form = (
     <View style={{ gap: 14, width: '100%', maxWidth: 440, alignSelf: 'center' }}>
       <View style={{ gap: 4 }}>
-        <T style={{ fontFamily: fonts.fun, fontSize: 28, color: colors.ink }}>{title}</T>
+        <T style={{ fontFamily: fonts.fun, fontSize: 28, lineHeight: 34, color: colors.ink }}>{title}</T>
         {subtitle ? <T v="small" style={{ fontSize: 14 }}>{subtitle}</T> : null}
       </View>
       {children}
