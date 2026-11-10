@@ -3,6 +3,9 @@
 use App\Http\Controllers\Api\AdmissionController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BatchController;
+use App\Http\Controllers\Api\CampaignController;
+use App\Http\Controllers\Api\LeadController;
+use App\Http\Controllers\Api\StudentController;
 use App\Http\Controllers\Api\CourseRequestController;
 use App\Http\Controllers\Api\CatalogController;
 use App\Http\Controllers\Api\ChatController;
@@ -44,6 +47,8 @@ Route::middleware('throttle:auth')->group(function () {
 Route::get('/boards', [CatalogController::class, 'boards']);
 // Public admission form (from the link the madrasa shares)
 Route::post('/apply/{code}', [AdmissionController::class, 'apply'])->middleware('throttle:join');
+Route::get('/portal/{code}', [AdmissionController::class, 'portal'])->middleware('throttle:60,1');
+Route::post('/portal/{code}/enquire', [AdmissionController::class, 'enquire'])->middleware('throttle:join');
 Route::get('/boards/{board}/classes', [CatalogController::class, 'classes']);
 Route::get('/classes/{class}/subjects', [CatalogController::class, 'subjects']);
 
@@ -96,6 +101,20 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/admissions', [AdmissionController::class, 'index']);
         Route::get('/admissions/{ref}', [AdmissionController::class, 'show']);
         Route::patch('/admissions/{ref}', [AdmissionController::class, 'update']);
+        Route::post('/admissions/{ref}/admit', [AdmissionController::class, 'admit']);
+        Route::get('/students', [StudentController::class, 'index']);
+        Route::get('/students/{id}', [StudentController::class, 'show'])->whereNumber('id');
+        Route::post('/students', [StudentController::class, 'store']);
+        Route::get('/campaigns', [CampaignController::class, 'index']);
+        Route::post('/campaigns', [CampaignController::class, 'store']);
+        Route::get('/campaigns/{id}', [CampaignController::class, 'show'])->whereNumber('id');
+        Route::put('/campaigns/{id}', [CampaignController::class, 'update'])->whereNumber('id');
+        Route::delete('/campaigns/{id}', [CampaignController::class, 'destroy'])->whereNumber('id');
+        Route::get('/leads', [LeadController::class, 'index']);
+        Route::post('/leads', [LeadController::class, 'store']);
+        Route::patch('/leads/{id}', [LeadController::class, 'update'])->whereNumber('id');
+        Route::delete('/leads/{id}', [LeadController::class, 'destroy'])->whereNumber('id');
+        Route::post('/leads/{id}/convert', [LeadController::class, 'convert'])->whereNumber('id');
         Route::get('/batches', [BatchController::class, 'index']);
         Route::get('/batches/people', [BatchController::class, 'people']);
         Route::post('/batches', [BatchController::class, 'store']);

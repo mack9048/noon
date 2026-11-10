@@ -49,6 +49,16 @@ class User extends Authenticatable
         return $this->belongsTo(SchoolClass::class, 'class_id');
     }
 
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'parent_id');
+    }
+
+    public function batches(): BelongsToMany
+    {
+        return $this->belongsToMany(Batch::class);
+    }
+
     public function courses(): BelongsToMany
     {
         return $this->belongsToMany(Course::class)->withPivot(['progress', 'trial_ends_at'])->withTimestamps();

@@ -3,6 +3,8 @@
 namespace Database\Seeders;
 
 use App\Models\Admission;
+use App\Models\AdmissionCampaign;
+use App\Models\Lead;
 use App\Models\Assessment;
 use App\Models\Batch;
 use App\Models\Board;
@@ -112,6 +114,23 @@ class DemoSchoolSeeder extends Seeder
             Admission::create(['tenant_id' => $tenant->id, 'ref' => 'APL-DEMO-'.str_pad((string) ($i + 1), 3, '0', STR_PAD_LEFT), 'student_name' => $n, 'gender' => $g, 'dob' => $dob,
                 'board' => 'AP', 'class_label' => $c, 'parent_name' => $p, 'relation' => $r, 'phone' => $ph, 'city' => $city,
                 'docs' => ['birth' => true, 'tc' => $i === 0, 'photo' => true], 'status' => $st, 'timeline' => [['Form submitted via WhatsApp link', 'Today, 9:42 AM']]]);
+        }
+
+        // ---- Admission campaign and leads ----
+        $campaign = AdmissionCampaign::create(['tenant_id' => $tenant->id, 'code' => 'ADMDEMO26', 'title' => 'Admissions 2026–27', 'academic_year' => '2026–27',
+            'classes' => ['1', '2', '3', '4', '5'], 'seats' => 60, 'opens_on' => now()->subDays(20)->toDateString(), 'closes_on' => now()->addDays(40)->toDateString(),
+            'description' => 'Live online madrasa classes for children in Kerala and the Gulf.', 'fee_note' => '₹299 / month · first week free', 'status' => 'open']);
+        foreach ([
+            ['Zainab Ali', 'Ali K', '971501230001', '3', 'portal', 'new', 1],
+            ['Ibrahim Faisal', 'Faisal M', '971501230002', '5', 'whatsapp', 'contacted', 2],
+            ['Maryam Noor', 'Noor A', '971501230003', '1', 'referral', 'interested', -1],
+            ['Hamdan Rashid', 'Rashid P', '971501230004', '4', 'walk_in', 'visit', 3],
+            ['Aisha Basheer', 'Basheer T', '971501230005', '2', 'social', 'lost', null],
+        ] as [$n, $p, $ph, $c, $src, $st, $days]) {
+            $l = new Lead(['tenant_id' => $tenant->id, 'campaign_id' => $campaign->id, 'student_name' => $n, 'parent_name' => $p, 'phone' => $ph,
+                'class_label' => $c, 'source' => $src, 'status' => $st, 'follow_up_on' => $days === null ? null : now()->addDays($days)->toDateString()]);
+            $l->addNote('Enquiry received');
+            $l->save();
         }
 
         // ---- A course this madrasa made, waiting for Noon's approval ----

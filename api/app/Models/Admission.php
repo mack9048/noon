@@ -9,7 +9,7 @@ class Admission extends Model
 {
     use BelongsToTenant;
 
-    protected $fillable = ['tenant_id', 'ref', 'student_name', 'gender', 'dob', 'board', 'class_label', 'parent_name', 'relation', 'phone', 'city', 'prev_madrasa', 'preferred_time', 'docs', 'status', 'timeline'];
+    protected $fillable = ['tenant_id', 'campaign_id', 'email', 'student_id', 'ref', 'student_name', 'gender', 'dob', 'board', 'class_label', 'parent_name', 'relation', 'phone', 'city', 'prev_madrasa', 'preferred_time', 'docs', 'status', 'timeline'];
 
     protected $casts = ['dob' => 'date', 'docs' => 'array', 'timeline' => 'array'];
 
@@ -27,6 +27,7 @@ class Admission extends Model
             'parent' => $this->parent_name,
             'relation' => $this->relation,
             'phone' => $this->phone,
+            'email' => $this->email,
             'city' => $this->city ?? '—',
             'prevMadrasa' => $this->prev_madrasa,
             'time' => $this->preferred_time,
@@ -34,6 +35,8 @@ class Admission extends Model
             'status' => $this->status,
             'when' => $this->created_at?->diffForHumans() ?? '',
             'timeline' => $this->timeline ?? [],
+            'student_id' => $this->student_id,
+            'campaign_id' => $this->campaign_id,
         ];
     }
 }
