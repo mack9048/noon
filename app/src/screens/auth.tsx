@@ -184,7 +184,7 @@ export function LoginScreen() {
     <AuthLayout title="Welcome back!" subtitle="Log in to your institution, classes and courses.">
       {done === 'reset' ? <Notice text="Your password was changed. Log in with your new password." tone="ok" /> : null}
       <IconField label="Phone, email or admission no." icon="person-outline" value={id} onChangeText={setId} autoCapitalize="none" autoComplete="username"
-        placeholder="e.g. 9715XXXXXXX or DEMO-001" returnKeyType="next" />
+        placeholder="Phone number or email" returnKeyType="next" />
       <IconField label="Password" icon="lock-closed-outline" value={pw} onChangeText={setPw} secure autoComplete="current-password"
         placeholder="Your password" returnKeyType="go" onSubmitEditing={() => id && pw && submit()} />
       <Pressable accessibilityRole="link" onPress={() => router.push('/forgot' as any)} style={{ alignSelf: 'flex-end', paddingVertical: 2 }}>
