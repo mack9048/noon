@@ -1,9 +1,10 @@
 // Quran & Hifz screens from the design canvas.
-import React, { useState } from 'react';
-import { Pressable, Switch, Text, View } from 'react-native';
-import { router } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
+import { Platform, Pressable, Switch, Text, TextInput, View } from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Button, Card, Grid, Header, Row, Screen, T } from '@/components/ui';
+import { Button, Card, Grid, Header, Loading, Row, Screen, T } from '@/components/ui';
+import { ayahAudio, BISMILLAH_TEXT, getLast, getMarks, getPrefs, JUZ_START, loadSurah, type Mark, RECITERS, type Reciter, setLast, setPrefs, showBismillah, surahList, toggleMark } from '@/lib/quran';
 import { Avatar, Band, Chips, demoNote, Glyph, ListRow, pastel, Progress, Section, SmallButton, Tabs, Tag } from '@/components/kit';
 import { useBase } from '@/lib/useBase';
 import { colors, fonts } from '@/theme/tokens';
@@ -18,7 +19,7 @@ export function QuranHubScreen() {
     ['Usthad & kids', 'people-outline', colors.lav, 'quran/usthad'],
     ['Easy Hifz Tool', 'bulb-outline', colors.butter, 'quran/hifz'],
     ['Video Generator', 'videocam-outline', colors.sky, 'quran/video'],
-    ["Qari'u Ahmad Naseem", 'mic-outline', colors.pink, 'quran/qari'],
+    ['Reciters', 'mic-outline', colors.pink, 'quran/qari'],
     ['Thajweed Quran', 'reader-outline', ['#E3ECEF', colors.muted], null],
     ['Thajweed Rules', 'checkmark-done-outline', colors.mint, 'quran/rules'],
   ];
@@ -44,79 +45,159 @@ export function QuranHubScreen() {
   );
 }
 
-/* ---------- Quran Kareem (surah list) ---------- */
-const SURAHS = [
-  [1, 'Al-Fatihah', 'The Opening · 7 ayahs · Makki', 'الفاتحة'], [2, 'Al-Baqarah', 'The Cow · 286 ayahs · Madani', 'البقرة'],
-  [18, 'Al-Kahf', 'The Cave · 110 ayahs · Makki', 'الكهف'], [36, 'Ya-Sin', 'Ya-Sin · 83 ayahs · Makki', 'يس'],
-  [67, 'Al-Mulk', 'The Kingdom · 30 ayahs · Makki', 'الملك'], [112, 'Al-Ikhlas', 'Sincerity · 4 ayahs · Makki', 'الإخلاص'],
-] as const;
-const JUZ = [
-  [1, 'Juz 1', 'Al-Fatihah 1 – Al-Baqarah 141', 'الم'], [2, 'Juz 2', 'Al-Baqarah 142 – 252', 'سيقول'], [3, 'Juz 3', 'Al-Baqarah 253 – Aal-Imran 92', 'تلك الرسل'],
-  [28, 'Juz 28', 'Al-Mujadilah – At-Tahrim', 'قد سمع'], [29, 'Juz 29', 'Al-Mulk – Al-Mursalat', 'تبارك'], [30, 'Juz 30', 'An-Naba – An-Nas', 'عمّ'],
-] as const;
-const SAVED = [[18, 'Al-Kahf', 'Bookmarked · ayah 12', 'الكهف'], [67, 'Al-Mulk', 'Bookmarked · ayah 1', 'الملك'], [2, 'Al-Baqarah', 'Bookmarked · ayah 58', 'البقرة']] as const;
+/* ---------- Quran Kareem (surah list) — the full Quran ---------- */
+function useAsync<T>(fn: () => Promise<T>, deps: unknown[]) {
+  const [data, setData] = useState<T | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    let live = true;
+    setError(null);
+    fn().then((d) => live && setData(d)).catch((e) => live && setError(e?.message ?? 'Could not load.'));
+    return () => { live = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [...deps, tick]);
+  return { data, error, retry: () => setTick((t) => t + 1) };
+}
+
+function LoadError({ text, retry }: { text: string; retry: () => void }) {
+  return (
+    <Card style={{ alignItems: 'center', gap: 10, padding: 24 }}>
+      <Ionicons name="cloud-offline-outline" size={36} color={colors.muted} />
+      <T style={{ textAlign: 'center' }}>{text}</T>
+      <SmallButton title="Try again" filled tint={colors.ink} onPress={retry} />
+    </Card>
+  );
+}
 
 export function QuranListScreen() {
   const base = useBase();
   const [tab, setTab] = useState<'surah' | 'juz' | 'saved'>('surah');
-  const rows = tab === 'surah' ? SURAHS : tab === 'juz' ? JUZ : SAVED;
+  const [q, setQ] = useState('');
+  const { data: list, error, retry } = useAsync(surahList, []);
+  const { data: last } = useAsync(getLast, []);
+  const [marks, setMarks] = useState<Mark[]>([]);
+  useEffect(() => { getMarks().then(setMarks); }, [tab]);
+  const open = (s: number, ayah?: number) => router.push(`${base}/quran/reader?s=${s}${ayah ? `&a=${ayah}` : ''}` as any);
+  const name = (n: number) => list?.find((x) => x.number === n)?.englishName ?? `Surah ${n}`;
+  const shown = (list ?? []).filter((s) => !q.trim() || `${s.number} ${s.englishName} ${s.englishNameTranslation} ${s.name}`.toLowerCase().includes(q.trim().toLowerCase()));
   return (
     <Screen>
       <Header title="Quran Kareem" subtitle="114 surahs · 30 juz" right={<Text style={ar(30, colors.mint[1])}>القرآن</Text>} />
-      <Card tint={colors.mint[0]} onPress={() => router.push(`${base}/quran/reader` as any)} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-        <View style={{ flex: 1 }}><T v="small" style={{ color: colors.mint[1] }}>Continue reading</T><T v="h3">Al-Fatihah</T><T v="small">Ayah 4 of 7 · Juz 1</T></View>
+      <Card tint={colors.mint[0]} onPress={() => open(last?.surah ?? 1, last?.ayah)} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        <View style={{ flex: 1 }}><T v="small" style={{ color: colors.mint[1] }}>{last ? 'Continue reading' : 'Start reading'}</T><T v="h3">{last?.name ?? 'Al-Faatiha'}</T><T v="small">{last ? `Ayah ${last.ayah}` : 'The Opening'}</T></View>
         <Ionicons name="play-circle" size={40} color={colors.mint[1]} />
       </Card>
-      <Tabs value={tab} onChange={setTab} options={[{ key: 'surah', label: 'Surah' }, { key: 'juz', label: 'Juz' }, { key: 'saved', label: 'Saved' }]} />
-      <View style={{ gap: 8 }}>
-        {rows.map(([n, name, meta, arabic]) => (
-          <ListRow key={`${tab}-${n}`} onPress={() => router.push(`${base}/quran/reader` as any)} left={<Glyph text={String(n)} size={40} tint={pastel.mint} />} title={name} sub={meta} right={<Text style={ar(22, colors.mint[1])}>{arabic}</Text>} />
-        ))}
-      </View>
+      <Tabs value={tab} onChange={setTab} options={[{ key: 'surah', label: 'Surah' }, { key: 'juz', label: 'Juz' }, { key: 'saved', label: `Saved · ${marks.length}` }]} />
+      {tab === 'surah' ? (
+        <Row style={{ backgroundColor: '#FFF', borderRadius: 22, borderWidth: 1.5, borderColor: colors.line, paddingHorizontal: 14, height: 46, marginBottom: 8 }}>
+          <Ionicons name="search" size={18} color={colors.muted} />
+          <TextInput value={q} onChangeText={setQ} placeholder="Search surah name or number" placeholderTextColor={colors.faint} accessibilityLabel="Search surah"
+            style={{ flex: 1, fontFamily: fonts.regular, fontSize: 15, color: colors.ink, outlineStyle: 'none' } as any} />
+        </Row>
+      ) : null}
+      {error ? <LoadError text={error} retry={retry} /> : !list ? <Loading /> : (
+        <View style={{ gap: 8 }}>
+          {tab === 'surah' ? shown.map((s) => (
+            <ListRow key={s.number} onPress={() => open(s.number)} left={<Glyph text={String(s.number)} size={40} tint={pastel.mint} />}
+              title={s.englishName} sub={`${s.englishNameTranslation} · ${s.numberOfAyahs} ayahs · ${s.revelationType === 'Meccan' ? 'Makki' : 'Madani'}`}
+              right={<Text style={ar(22, colors.mint[1])}>{s.name.replace('سُورَةُ ', '')}</Text>} />
+          )) : tab === 'juz' ? JUZ_START.map(([j, s, a]) => (
+            <ListRow key={j} onPress={() => open(s, a)} left={<Glyph text={String(j)} size={40} tint={pastel.sky} />} title={`Juz ${j}`} sub={`Starts at ${name(s)} ${a}`} />
+          )) : marks.length ? marks.map((m) => (
+            <ListRow key={`${m.surah}-${m.ayah}`} onPress={() => open(m.surah, m.ayah)} left={<Glyph text={String(m.surah)} size={40} tint={pastel.butter} />} title={m.name} sub={`Bookmarked · ayah ${m.ayah}`} />
+          )) : <T v="small" style={{ textAlign: 'center', padding: 20 }}>Tap the bookmark next to an ayah to save it here.</T>}
+        </View>
+      )}
     </Screen>
   );
 }
 
-/* ---------- Reader ---------- */
-const FATIHA = [
-  ['ٱلْحَمْدُ لِلَّهِ رَبِّ ٱلْعَٰلَمِينَ', 'All praise belongs to Allah, Lord of all the worlds.'],
-  ['ٱلرَّحْمَٰنِ ٱلرَّحِيمِ', 'The Most Merciful, the Most Kind.'],
-  ['مَٰلِكِ يَوْمِ ٱلدِّينِ', 'Master of the Day of Judgement.'],
-  ['إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ', 'You alone we worship, and You alone we ask for help.'],
-  ['ٱهْدِنَا ٱلصِّرَٰطَ ٱلْمُسْتَقِيمَ', 'Guide us along the straight path,'],
-  ['صِرَٰطَ ٱلَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ ٱلْمَغْضُوبِ عَلَيْهِمْ وَلَا ٱلضَّآلِّينَ', 'the path of those You have blessed, not of those who earned anger, nor of those who went astray.'],
-];
-
+/* ---------- Reader with recitation ---------- */
 export function QuranReaderScreen() {
   const base = useBase();
-  const [tr, setTr] = useState(true);
-  const [size, setSize] = useState(1);
-  const [cur, setCur] = useState(4);
+  const { s: sParam, a: aParam } = useLocalSearchParams<{ s?: string; a?: string }>();
+  const n = Math.min(114, Math.max(1, Number(sParam) || 1));
+  const { data: surah, error, retry } = useAsync(() => loadSurah(n), [n]);
+  const [prefs, setP] = useState<{ reciter: string; translation: 'en' | 'ml' | 'both' | 'none'; size: number }>({ reciter: 'ar.alafasy', translation: 'en', size: 1 });
+  const [cur, setCur] = useState(Number(aParam) || 1);
   const [playing, setPlaying] = useState(false);
   const [repeat, setRepeat] = useState(false);
-  const fs = [24, 30, 38][size];
+  const [marks, setMarks] = useState<Mark[]>([]);
+  const audio = useRef<HTMLAudioElement | null>(null);
+  const reciter = RECITERS.find((r) => r.id === prefs.reciter) ?? RECITERS[0];
+  const fs = [24, 30, 38][prefs.size] ?? 30;
+
+  useEffect(() => { getPrefs().then(setP); getMarks().then(setMarks); }, []);
+  useEffect(() => { setCur(Number(aParam) || 1); setPlaying(false); }, [n, aParam]);
+  useEffect(() => { if (surah) setLast({ surah: n, ayah: cur, name: surah.englishName }); }, [surah, cur, n]);
+  useEffect(() => {
+    if (!surah || Platform.OS !== 'web') return;
+    const el = audio.current ?? new Audio();
+    audio.current = el;
+    if (!playing) { el.pause(); return; }
+    const ayah = surah.ayahs.find((x) => x.n === cur);
+    if (!ayah) { setPlaying(false); return; }
+    el.src = ayahAudio(reciter, ayah.global);
+    el.onended = () => { if (repeat) { el.currentTime = 0; el.play(); } else if (cur < surah.numberOfAyahs) setCur(cur + 1); else setPlaying(false); };
+    el.onerror = () => setPlaying(false);
+    el.play().catch(() => setPlaying(false));
+    if (typeof document !== 'undefined') document.getElementById(`ayah-${cur}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [playing, cur, surah, reciter.id, repeat]);
+  useEffect(() => () => { audio.current?.pause(); }, []);
+
+  const save = (p: Partial<typeof prefs>) => { const next = { ...prefs, ...p }; setP(next); setPrefs(p); };
+  const marked = (a: number) => marks.some((m) => m.surah === n && m.ayah === a);
+  const go = (to: number) => router.replace(`${base}/quran/reader?s=${to}` as any);
+  const tr = prefs.translation;
+  const player = surah ? (
+        <View style={{ position: 'absolute', left: 16, right: 16, bottom: 96, maxWidth: 640, alignSelf: 'center' }}>
+          <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 10, shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 14, shadowOffset: { width: 0, height: 6 } }}>
+            <Pressable accessibilityLabel="Choose reciter" onPress={() => router.push(`${base}/quran/qari` as any)}><Avatar name={reciter.name} size={40} tint={pastel.pink} /></Pressable>
+            <View style={{ flex: 1 }}><T style={{ fontFamily: fonts.semibold }} numberOfLines={1}>{reciter.name}</T><T v="small">Ayah {cur} of {surah.numberOfAyahs}{repeat ? ' · repeating' : ''}</T></View>
+            <Pressable accessibilityLabel="Previous ayah" onPress={() => setCur(Math.max(1, cur - 1))} style={{ padding: 6 }}><Ionicons name="play-skip-back" size={20} color={colors.ink} /></Pressable>
+            <Pressable accessibilityLabel={playing ? 'Pause' : 'Play'} onPress={() => setPlaying(!playing)} style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' }}><Ionicons name={playing ? 'pause' : 'play'} size={22} color="#FFF" /></Pressable>
+            <Pressable accessibilityLabel="Next ayah" onPress={() => setCur(Math.min(surah.numberOfAyahs, cur + 1))} style={{ padding: 6 }}><Ionicons name="play-skip-forward" size={20} color={colors.ink} /></Pressable>
+            <Pressable accessibilityLabel="Repeat ayah" onPress={() => setRepeat(!repeat)} style={{ padding: 6 }}><Ionicons name="repeat" size={22} color={repeat ? colors.teal : colors.muted} /></Pressable>
+          </Card>
+        </View>
+  ) : undefined;
   return (
-    <Screen>
-      <Header title="Al-Fatihah" subtitle="The Opening · 7 ayahs · Juz 1" right={<Pressable accessibilityLabel="Bookmark surah" onPress={() => demoNote('Saved to your bookmarks (demo).')}><Ionicons name="bookmark-outline" size={24} color={colors.ink} /></Pressable>} />
+    <Screen overlay={player}>
+      <Header title={surah?.englishName ?? `Surah ${n}`} subtitle={surah ? `${surah.englishNameTranslation} · ${surah.numberOfAyahs} ayahs · ${surah.revelationType === 'Meccan' ? 'Makki' : 'Madani'}` : 'Loading…'}
+        right={surah ? <Text style={ar(28, colors.mint[1])}>{surah.name.replace('سُورَةُ ', '')}</Text> : undefined} />
       <Row gap={8} style={{ flexWrap: 'wrap' }}>
-        <SmallButton title={tr ? 'Translation on' : 'Translation off'} filled={tr} onPress={() => setTr(!tr)} />
-        <SmallButton title={`Text size: ${['Small', 'Medium', 'Large'][size]}`} onPress={() => setSize((size + 1) % 3)} />
+        <SmallButton title={`Translation: ${{ en: 'English', ml: 'മലയാളം', both: 'Both', none: 'Off' }[tr]}`} filled={tr !== 'none'}
+          onPress={() => save({ translation: (['en', 'ml', 'both', 'none'] as const)[(['en', 'ml', 'both', 'none'].indexOf(tr) + 1) % 4] })} />
+        <SmallButton title={`Text: ${['Small', 'Medium', 'Large'][prefs.size]}`} onPress={() => save({ size: (prefs.size + 1) % 3 })} />
       </Row>
-      <Card style={{ marginTop: 12, gap: 14 }}>
-        <Text style={[ar(fs, colors.teal), { textAlign: 'center' }]}>بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</Text>
-        {FATIHA.map(([a, t], i) => (
-          <Pressable key={i} onPress={() => setCur(i + 2)} style={{ backgroundColor: cur === i + 2 ? colors.mint[0] : 'transparent', borderRadius: 14, padding: 8 }}>
-            <Text style={ar(fs)}>{a} ﴿{i + 2}﴾</Text>
-            {tr ? <T v="small" style={{ fontSize: 13 }}>{i + 2}. {t}</T> : null}
-          </Pressable>
-        ))}
-      </Card>
-      <Card style={{ marginTop: 12, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-        <Pressable accessibilityLabel="Choose reciter" onPress={() => router.push(`${base}/quran/qari` as any)}><Avatar name="Ahmad Naseem" size={40} tint={pastel.pink} /></Pressable>
-        <View style={{ flex: 1 }}><T v="h3">Qari Ahmad Naseem</T><T v="small">Ayah {cur} of 7{repeat ? ' · repeating' : ''}</T></View>
-        <Pressable accessibilityLabel="Repeat ayah" onPress={() => setRepeat(!repeat)} style={{ padding: 8 }}><Ionicons name="repeat" size={22} color={repeat ? colors.teal : colors.muted} /></Pressable>
-        <Pressable accessibilityLabel={playing ? 'Pause' : 'Play'} onPress={() => setPlaying(!playing)} style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' }}><Ionicons name={playing ? 'pause' : 'play'} size={22} color="#FFF" /></Pressable>
-      </Card>
+      {error ? <View style={{ marginTop: 12 }}><LoadError text={error} retry={retry} /></View> : !surah ? <Loading /> : (
+        <Card style={{ marginTop: 12, gap: 10, marginBottom: 110 }}>
+          {showBismillah(n) ? <Text style={[ar(fs, colors.teal), { textAlign: 'center' }]}>{BISMILLAH_TEXT}</Text> : null}
+          {surah.ayahs.map((a) => (
+            <Pressable key={a.n} nativeID={`ayah-${a.n}`} onPress={() => setCur(a.n)}
+              style={{ backgroundColor: cur === a.n ? colors.mint[0] : 'transparent', borderRadius: 14, padding: 8, gap: 4 }}>
+              <Row style={{ justifyContent: 'space-between' }}>
+                <Glyph text={String(a.n)} size={30} tint={pastel.mint} />
+                <Row gap={4}>
+                  <Pressable accessibilityLabel={`Play ayah ${a.n}`} onPress={() => { setCur(a.n); setPlaying(true); }} hitSlop={8} style={{ padding: 4 }}><Ionicons name="play-circle-outline" size={22} color={colors.mint[1]} /></Pressable>
+                  <Pressable accessibilityLabel={marked(a.n) ? 'Remove bookmark' : 'Bookmark ayah'} hitSlop={8} style={{ padding: 4 }}
+                    onPress={async () => setMarks(await toggleMark({ surah: n, ayah: a.n, name: surah.englishName }))}>
+                    <Ionicons name={marked(a.n) ? 'bookmark' : 'bookmark-outline'} size={20} color={colors.mint[1]} />
+                  </Pressable>
+                </Row>
+              </Row>
+              <Text style={ar(fs)}>{a.ar} ﴿{a.n}﴾</Text>
+              {tr === 'en' || tr === 'both' ? <T style={{ fontSize: 14, lineHeight: 21 }}>{a.en}</T> : null}
+              {tr === 'ml' || tr === 'both' ? <T style={{ fontSize: 14, lineHeight: 22, color: colors.muted }}>{a.ml}</T> : null}
+            </Pressable>
+          ))}
+          <Row gap={10} style={{ marginTop: 6 }}>
+            <View style={{ flex: 1 }}>{n > 1 ? <Button title="Previous surah" kind="ghost" icon="arrow-back" onPress={() => go(n - 1)} /> : null}</View>
+            <View style={{ flex: 1 }}>{n < 114 ? <Button title="Next surah" kind="ghost" icon="arrow-forward" onPress={() => go(n + 1)} /> : null}</View>
+          </Row>
+        </Card>
+      )}
     </Screen>
   );
 }
@@ -240,35 +321,32 @@ export function VideoGenScreen() {
 const RECITATIONS = [[1, 'Al-Fatihah', '1:05', 'الفاتحة'], [67, 'Al-Mulk', '9:40', 'الملك'], [36, 'Ya-Sin', '14:20', 'يس'], [112, 'Al-Ikhlas', '0:25', 'الإخلاص'], [114, 'An-Nas', '0:40', 'الناس']] as const;
 
 export function QariScreen() {
-  const [now, setNow] = useState<(typeof RECITATIONS)[number]>(RECITATIONS[1]);
-  const [playing, setPlaying] = useState(true);
-  const [slow, setSlow] = useState(false);
+  const base = useBase();
+  const [sel, setSel] = useState('ar.alafasy');
+  const [sample, setSample] = useState<string | null>(null);
+  const audio = useRef<HTMLAudioElement | null>(null);
+  useEffect(() => { getPrefs().then((p) => setSel(p.reciter)); return () => audio.current?.pause(); }, []);
+  const listen = (r: Reciter) => {
+    if (Platform.OS !== 'web') return;
+    const el = audio.current ?? new Audio(); audio.current = el;
+    if (sample === r.id) { el.pause(); setSample(null); return; }
+    el.src = ayahAudio(r, 1); el.onended = () => setSample(null); el.play().catch(() => setSample(null)); setSample(r.id);
+  };
   return (
     <Screen>
-      <Band tint={colors.pink[0]} height={240} />
-      <Header title="" />
-      <Row gap={14}>
-        <Avatar name="Ahmad Naseem" size={76} tint={pastel.white} />
-        <View><T style={{ fontSize: 22, fontFamily: fonts.light }}>Qari’u Ahmad</T><T style={{ fontSize: 26, fontFamily: fonts.semibold }}>Naseem</T><T v="small">Hafiz · Murattal style · 114 surahs</T></View>
-      </Row>
-      <Row style={{ justifyContent: 'space-between', marginTop: 16 }}><T>Slow learning mode</T><Switch value={slow} onValueChange={setSlow} accessibilityLabel="Slow learning mode" /></Row>
-      <Card style={{ marginTop: 10, gap: 10 }}>
-        <T v="small">Now playing</T>
-        <Row style={{ justifyContent: 'space-between' }}><T v="h3">{now[1]}</T><Text style={ar(24, colors.pink[1])}>{now[3]}</Text></Row>
-        <Progress value={35} color={colors.pink[1]} />
-        <Row style={{ justifyContent: 'space-between' }}><T v="small">0:42</T><T v="small">{now[2]}</T></Row>
-        <Row gap={24} style={{ justifyContent: 'center' }}>
-          <Pressable accessibilityLabel="Previous"><Ionicons name="play-skip-back" size={24} color={colors.ink} /></Pressable>
-          <Pressable accessibilityLabel={playing ? 'Pause' : 'Play'} onPress={() => setPlaying(!playing)} style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' }}><Ionicons name={playing ? 'pause' : 'play'} size={24} color="#FFF" /></Pressable>
-          <Pressable accessibilityLabel="Next"><Ionicons name="play-skip-forward" size={24} color={colors.ink} /></Pressable>
-        </Row>
-      </Card>
-      <Section title="Recitations" />
-      <View style={{ gap: 8 }}>
-        {RECITATIONS.map((r) => (
-          <ListRow key={r[0]} onPress={() => { setNow(r); setPlaying(true); }} left={<Glyph text={String(r[0])} size={40} tint={pastel.pink} />} title={r[1]} sub={r[2]} right={<Text style={ar(22, colors.pink[1])}>{r[3]}</Text>} />
+      <Band tint={colors.pink[0]} height={200} />
+      <Header title="Reciters" subtitle="Choose who recites in the Quran reader" />
+      <View style={{ gap: 8, marginTop: 8 }}>
+        {RECITERS.map((r) => (
+          <ListRow key={r.id} onPress={() => { setSel(r.id); setPrefs({ reciter: r.id }); }} left={<Avatar name={r.name} size={44} tint={sel === r.id ? pastel.mint : pastel.pink} />}
+            title={r.name} sub={r.style}
+            right={<Row gap={8}>
+              <SmallButton title={sample === r.id ? '■ Stop' : '▶ Listen'} onPress={() => listen(r)} />
+              {sel === r.id ? <Tag text="Selected" tone="mint" /> : null}
+            </Row>} />
         ))}
       </View>
+      <Button title="Open the Quran" icon="book-outline" style={{ marginTop: 16 }} onPress={() => router.push(`${base}/quran/read` as any)} />
     </Screen>
   );
 }

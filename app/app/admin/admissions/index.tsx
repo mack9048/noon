@@ -1,1 +1,1 @@
-export { AdmissionsScreen as default } from '@/screens/admin2';
+export { AdmissionsHubScreen as default } from '@/screens/admissionsPortal';

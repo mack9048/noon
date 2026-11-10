@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npx expo export --platform web && node ../website/build.mjs && node ../website/combine.mjs",
+  "buildCommand": "npx expo export --platform web --clear && node ../website/build.mjs && node ../website/combine.mjs",
   "outputDirectory": "dist",
   "framework": null,
   "rewrites": [

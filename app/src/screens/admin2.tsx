@@ -12,7 +12,8 @@ import { Logo } from '@/components/Logo';
 import { CourseLogo } from '@/components/CourseLogo';
 import * as DocumentPicker from 'expo-document-picker';
 import { RoleProfileScreen, RoleSettingsScreen, T_ } from './roles2';
-import { Application, AppStatus, setStatus, submitApplication, useApplications } from '@/lib/admissions';
+import { Application, AppStatus, refreshApplications, setStatus, submitApplication, useApplications } from '@/lib/admissions';
+import { CredentialsCard, type Credential } from './admissionsPortal';
 import { requestApproval, uploadLogo } from '@/lib/approvals';
 import { api, ApiError } from '@/lib/api';
 import { useApi } from '@/lib/useApi';
@@ -78,7 +79,17 @@ export function AdmissionsScreen() {
 export function AdmissionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const a = useApplications().find((x) => x.id === id);
+  const [creds, setCreds] = useState<Credential[] | null>(null);
+  const [admitting, setAdmitting] = useState(false);
   if (!a) return <Screen><T>Application not found.</T></Screen>;
+  const admit = async () => {
+    setAdmitting(true);
+    try {
+      const r = await api.post<{ credentials: Credential[] }>(`/admin/admissions/${encodeURIComponent(a.id)}/admit`, {});
+      setCreds(r.credentials);
+      await refreshApplications();
+    } catch (e: any) { demoNote(e instanceof ApiError ? e.friendly : 'Could not admit.'); } finally { setAdmitting(false); }
+  };
   const phone = a.phone.replace(/[^\d+]/g, '');
   const act = async (s: AppStatus, _note: string, msg: string) => {
     try { await setStatus(a.id, s); demoNote(msg); } catch (e: any) { demoNote(e instanceof ApiError ? e.friendly : e?.message ?? 'Could not update.'); }
@@ -88,9 +99,10 @@ export function AdmissionDetailScreen() {
       <BottomActions>
         <Pressable accessibilityRole="button" onPress={() => act('rejected', 'Application rejected', `${a.name}'s application was rejected. The parent gets a message.`)} style={{ height: 54, paddingHorizontal: 22, borderRadius: 27, backgroundColor: '#FFF', borderWidth: 1.5, borderColor: '#F3B7BD', justifyContent: 'center' }}><T style={{ color: colors.red, fontFamily: fonts.semibold }}>Reject</T></Pressable>
         <Pressable accessibilityRole="button" onPress={() => act('review', 'Interview booked', `Interview booked. ${a.parent} gets the time on WhatsApp.`)} style={{ height: 54, paddingHorizontal: 18, borderRadius: 27, backgroundColor: '#FFF', borderWidth: 1.5, borderColor: colors.line, justifyContent: 'center' }}><T style={{ fontFamily: fonts.semibold }}>Interview</T></Pressable>
-        <Pressable accessibilityRole="button" onPress={() => act('admitted', 'Admitted', `${a.name} is admitted to Class ${a.cls}. Login details go to the parent by SMS.`)} style={{ flex: 1, height: 54, borderRadius: 27, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' }}><T style={{ color: '#FFF', fontFamily: fonts.semibold }}>Admit ✓</T></Pressable>
+        <Pressable accessibilityRole="button" disabled={admitting} onPress={admit} style={{ flex: 1, height: 54, borderRadius: 27, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' }}><T style={{ color: '#FFF', fontFamily: fonts.semibold }}>{admitting ? 'Admitting…' : 'Admit ✓'}</T></Pressable>
       </BottomActions>
     )}>
+      {creds ? <View style={{ marginBottom: 12 }}><CredentialsCard creds={creds} phone={a.phone} /></View> : null}
       <Row style={{ justifyContent: 'space-between' }}><T v="small">Application #{a.id}</T><Status text={{ new: 'New', review: 'In review', admitted: 'Admitted', rejected: 'Rejected' }[a.status]} /></Row>
       <Card style={{ marginTop: 10, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
         <View style={{ width: 62, height: 62, borderRadius: 20, backgroundColor: colors.lav[0], alignItems: 'center', justifyContent: 'center' }}><T style={{ fontSize: 22, fontFamily: fonts.semibold, color: colors.lav[1] }}>{initials(a.name)}</T></View>
