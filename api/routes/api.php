@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BatchController;
 use App\Http\Controllers\Api\CampaignController;
 use App\Http\Controllers\Api\LeadController;
+use App\Http\Controllers\Api\LiveSessionController;
 use App\Http\Controllers\Api\StudentController;
 use App\Http\Controllers\Api\CourseRequestController;
 use App\Http\Controllers\Api\CatalogController;
@@ -79,6 +80,9 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/leave-requests', [LeaveController::class, 'index']);
         Route::post('/leave-requests', [LeaveController::class, 'store']);
 
+        Route::get('/live-sessions', [LiveSessionController::class, 'index']);
+        Route::get('/live-sessions/{id}', [LiveSessionController::class, 'show'])->whereNumber('id');
+
         Route::get('/conversations', [ChatController::class, 'index']);
         Route::get('/conversations/{conversation}/messages', [ChatController::class, 'messages']);
         Route::post('/conversations/{conversation}/messages', [ChatController::class, 'send']);
@@ -90,6 +94,10 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::patch('/staff/leave-requests/{leave}', [LeaveController::class, 'decide']);
         Route::post('/teacher/courses/{course}/items', [CourseController::class, 'teacherAddItem']);
         Route::post('/staff/assessments', [LearnController::class, 'store']);
+        Route::get('/staff/batches', [LiveSessionController::class, 'batches']);
+        Route::post('/staff/live-sessions', [LiveSessionController::class, 'store']);
+        Route::put('/staff/live-sessions/{id}', [LiveSessionController::class, 'update'])->whereNumber('id');
+        Route::delete('/staff/live-sessions/{id}', [LiveSessionController::class, 'destroy'])->whereNumber('id');
         Route::post('/staff/assessments/{assessment}/results', [LearnController::class, 'storeResults']);
     });
 
