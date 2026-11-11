@@ -407,3 +407,7 @@ svg.big { width: 72px; height: 72px; }
 .app-card .phone-img { width: 100%; max-width: 230px; height: auto; justify-self: center; }
 @media (max-width: 640px) { .circles.c3 { grid-template-columns: repeat(3, 1fr); gap: 10px; } .circle { font-size: 13px; } }
 @media (prefers-reduced-motion: reduce) { .buds-scene .kid { animation: none; } }
+
+.foot-company { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.foot-company img { width: 120px; height: auto; background: #fff; border-radius: 10px; padding: 5px 9px; }
+.foot-company small { color: rgba(255, 255, 255, .75); font-size: 12px; }
