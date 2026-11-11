@@ -16,6 +16,8 @@ import { colors, ContentKind, fonts, gradients, scriptFont } from '@/theme/token
 
 const pastels = [colors.lav, colors.sky, colors.mint, colors.pink, colors.butter];
 const open = (url?: string | null) => { if (url && url !== '#') Linking.openURL(url); };
+/** A real meeting link set by a teacher (old built-in test rooms are ignored → Live classes). */
+const meetLink = (url?: string | null) => (url && /^https:\/\//.test(url) && !/jit\.si/i.test(url) ? url : null);
 
 /* ================= Noon Courses ================= */
 
@@ -140,7 +142,7 @@ function CourseIntro({ c, onJoin }: { c: CourseDetail; onJoin: () => Promise<voi
         <Row style={{ justifyContent: 'space-between', marginTop: 16, marginBottom: 8 }}><T v="h2">Lessons</T><T v="small">{c.items.length} items</T></Row>
         <View style={{ gap: 8 }}>
           {items.map((it, i) => (
-            <Card key={it.id} onPress={() => (i < 2 ? (it.kind === 'live' && !it.url ? router.push(`${base}/live` as any) : open(it.url)) : demoNote('Join the course to open this lesson.'))}
+            <Card key={it.id} onPress={() => (i < 2 ? (it.kind === 'live' ? (meetLink(it.url) ? open(it.url) : router.push(`${base}/live` as any)) : open(it.url)) : demoNote('Join the course to open this lesson.'))}
               style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 }}>
               <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: i < 2 ? colors.pink[0] : '#EEF3F5', alignItems: 'center', justifyContent: 'center' }}><T style={{ fontFamily: fonts.semibold, color: i < 2 ? colors.pink[1] : colors.muted }}>{i + 1}</T></View>
               <View style={{ flex: 1 }}><T style={{ fontFamily: fonts.semibold }} numberOfLines={1}>{it.title}</T><T v="small">{it.meta ?? it.kind}</T></View>
@@ -187,10 +189,10 @@ export function CourseDetailScreen() {
       {c.progress != null ? <Progress value={c.progress} /> : null}
       <View style={{ marginTop: 14 }}><LearnTiles space={{ key: `course-${c.id}`, type: 'course', id: c.id, title: c.title, subtitle: 'Noon Course' }} /></View>
       {live ? (
-        <Card tint={colors.pink[0]} onPress={() => (live.url ? open(live.url) : router.push(`${base}/live` as any))} style={{ marginTop: 14, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        <Card tint={colors.pink[0]} onPress={() => (meetLink(live.url) ? open(live.url) : router.push(`${base}/live` as any))} style={{ marginTop: 14, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <TypeIcon kind="live" />
           <View style={{ flex: 1 }}><T v="label" style={{ color: colors.pink[1] }}>{live.meta?.toUpperCase()}</T><T v="h3">{live.title}</T></View>
-          <Button title="Join" style={{ height: 42 }} onPress={() => (live.url ? open(live.url) : router.push(`${base}/live` as any))} />
+          <Button title="Join" style={{ height: 42 }} onPress={() => (meetLink(live.url) ? open(live.url) : router.push(`${base}/live` as any))} />
         </Card>
       ) : null}
       <View style={{ marginTop: 14 }}>
@@ -203,7 +205,7 @@ export function CourseDetailScreen() {
             <TypeIcon kind={it.kind} />
             <View style={{ flex: 1 }}><T v="h3" numberOfLines={1}>{it.title}</T><T v="small">{it.meta}</T></View>
             {it.done ? <Ionicons name="checkmark-circle" size={28} color={colors.green} accessibilityLabel="Done" />
-              : <Button title={action[it.kind]} kind="ghost" style={{ height: 38, paddingHorizontal: 14 }} onPress={() => (it.kind === 'live' && !it.url ? router.push(`${base}/live` as any) : open(it.url))} />}
+              : <Button title={action[it.kind]} kind="ghost" style={{ height: 38, paddingHorizontal: 14 }} onPress={() => (it.kind === 'live' ? (meetLink(it.url) ? open(it.url) : router.push(`${base}/live` as any)) : open(it.url))} />}
           </Card>
         ))}
         {!items.length ? <Empty text="Nothing in this section yet." /> : null}

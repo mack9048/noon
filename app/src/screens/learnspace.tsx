@@ -135,7 +135,7 @@ function Materials({ d }: { d: LearnDetail }) {
   const kinds = (['live', 'video', 'audio', 'pdf'] as const).filter((k) => d.materials.some((m) => m.kind === k));
   const list = d.materials.filter((m) => kind === 'all' || m.kind === kind);
   const openIt = (m: LearnDetail['materials'][number]) => {
-    if (m.kind === 'live' && (!m.url || m.url === '#')) return router.push(`${base}/live` as any);
+    if (m.kind === 'live' && (!m.url || !/^https:\/\//.test(m.url) || /jit\.si/i.test(m.url))) return router.push(`${base}/live` as any);
     if (m.url && m.url !== '#') Linking.openURL(m.url);
   };
   const names = { all: 'All', live: 'Live', video: 'Video', audio: 'Audio', pdf: 'PDF' };

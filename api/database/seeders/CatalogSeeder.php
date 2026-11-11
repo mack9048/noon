@@ -58,7 +58,7 @@ class CatalogSeeder extends Seeder
         foreach ($courses as [$title, $cat, $cover, $status, $free, $desc, $price]) {
             $course = Course::create(['title' => $title, 'category' => $cat, 'cover' => $cover, 'status' => $status, 'is_free' => $free, 'description' => $desc, 'price' => $price]);
             $course->items()->createMany([
-                ['kind' => 'live', 'title' => 'Lesson 6 · Live class', 'starts_at' => now()->addDay()->setTime(17, 0), 'url' => 'https://meet.jit.si/noon-'.$course->id, 'position' => 1],
+                ['kind' => 'live', 'title' => 'Lesson 6 · Live class', 'starts_at' => now()->addDay()->setTime(17, 0), 'position' => 1],
                 ['kind' => 'video', 'title' => 'Lesson 5 · Recorded class', 'meta' => 'Recorded video · 11:20', 'position' => 2],
                 ['kind' => 'audio', 'title' => 'Listen and repeat', 'meta' => 'Audio note · 3:05', 'position' => 3],
                 ['kind' => 'pdf', 'title' => 'Worksheet 5', 'meta' => 'PDF note · 2 pages', 'position' => 4],
