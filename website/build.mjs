@@ -11,10 +11,10 @@ const BASE = '/site'; // where the files live on the server
 
 // Contact details shown on the site. Fill these in before launch.
 const SITE = {
-  phone: '[PHONE NUMBER]',
-  whatsapp: '', // digits with country code, e.g. 9715XXXXXXXX — forms open WhatsApp when set, email otherwise
+  phone: '+973 3687 4210',
+  whatsapp: '97336874210', // digits with country code, e.g. 9715XXXXXXXX — forms open WhatsApp when set, email otherwise
   email: 'hello@noonlearn.app',
-  address: '[OFFICE ADDRESS]',
+  address: 'Manama, Bahrain',
   appLogin: '/login',
   appStart: '/welcome',
   playStore: '#',
