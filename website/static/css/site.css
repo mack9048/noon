@@ -397,7 +397,14 @@ svg.big { width: 72px; height: 72px; }
 .buds-scene { position: relative; width: 100%; max-width: 600px; justify-self: center; aspect-ratio: 1100 / 733; }
 .buds-scene .bg { width: 100%; height: 100%; object-fit: contain; }
 .buds-scene .kid { position: absolute; height: auto; }
-.buds-scene .boy { left: 14%; bottom: 8%; width: 30%; animation: buds-bob 3.2s ease-in-out infinite; }
+.buds-scene .boy { left: 14%; bottom: 8%; width: 30%; }
+.buds-scene .boy img { width: 100%; height: auto; display: block; }
+/* The boy stays still and blinks: skin-coloured eyelids close over his eyes for a moment */
+.buds-scene .lid { position: absolute; top: 30.2%; height: 8.6%; background: #fcc59b; border-radius: 50% 50% 46% 46%; border-bottom: 2px solid #3a1c0c;
+  transform-origin: 50% 0; transform: scaleY(0); animation: buds-blink 4.6s infinite; }
+.buds-scene .lid-l { left: 39.8%; width: 8.4%; }
+.buds-scene .lid-r { left: 55.2%; width: 7.8%; }
+@keyframes buds-blink { 0%, 90%, 100% { transform: scaleY(0); } 93%, 95% { transform: scaleY(1); } 97% { transform: scaleY(0); } }
 .buds-scene .nooni { right: 6%; bottom: 4%; width: 36%; transform-origin: 70% 100%; animation: buds-sway 4s ease-in-out infinite; }
 .buds-scene .books { left: -2%; bottom: -2%; width: 22%; animation: buds-bob 3.6s ease-in-out .6s infinite; }
 @keyframes buds-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
@@ -406,7 +413,7 @@ svg.big { width: 72px; height: 72px; }
 .circles.c3 { grid-template-columns: repeat(3, 1fr); }
 .app-card .phone-img { width: 100%; max-width: 230px; height: auto; justify-self: center; }
 @media (max-width: 640px) { .circles.c3 { grid-template-columns: repeat(3, 1fr); gap: 10px; } .circle { font-size: 13px; } }
-@media (prefers-reduced-motion: reduce) { .buds-scene .kid { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .buds-scene .kid, .buds-scene .lid { animation: none; } }
 
 .foot-company { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
 .foot-company img { width: 120px; height: auto; background: #fff; border-radius: 10px; padding: 5px 9px; }
