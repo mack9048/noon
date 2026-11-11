@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Card, Grid, Header, IconButton, Loading, Pill, Row, Screen, Segmented, T } from '@/components/ui';
+import { DateInput } from '@/components/kit2';
 import { Field } from './auth';
 import { Chips, demoNote } from '@/components/kit';
 import { api } from '@/lib/api';
@@ -213,8 +214,8 @@ export function LeaveScreen() {
               {leaveTypes.map((t) => <Pressable key={t} onPress={() => setType(t)}><Pill text={t} tint={t === type ? colors.violet : '#FFF'} ink={t === type ? '#FFF' : colors.ink} /></Pressable>)}
             </Row>
             <Row gap={10}>
-              <View style={{ flex: 1 }}><Field label="Start date" value={start} onChangeText={setStart} placeholder="YYYY-MM-DD" /></View>
-              <View style={{ flex: 1 }}><Field label="End date" value={end} onChangeText={setEnd} placeholder="YYYY-MM-DD" /></View>
+              <View style={{ flex: 1 }}><DateInput label="Start date" value={start} onChange={setStart} min={new Date().toISOString().slice(0, 10)} /></View>
+              <View style={{ flex: 1 }}><DateInput label="End date" value={end} onChange={setEnd} min={start || new Date().toISOString().slice(0, 10)} /></View>
             </Row>
             <Field label="Reason" value={reason} onChangeText={setReason} multiline placeholder="Write the reason for leave" />
             <Button title="Submit request" kind="yellow" icon="paper-plane" loading={busy} disabled={!start} onPress={submit} />

@@ -1,7 +1,7 @@
 // Building blocks for the second round of designs: app-style icon tiles, gradient
 // profile headers, settings rows with switches, dropdowns, step tabs and colour swatches.
 import React, { useState } from 'react';
-import { Modal, Pressable, ScrollView, Switch, Text, TextInput, View, StyleProp, ViewStyle } from 'react-native';
+import { Modal, Platform, Pressable, ScrollView, Switch, Text, TextInput, View, StyleProp, ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { router, usePathname } from 'expo-router';
@@ -325,3 +325,31 @@ export function Status({ text }: { text: string }) {
 }
 
 export const go = (href: string) => router.push(href as any);
+
+/**
+ * Date or time field with a calendar / clock picker.
+ * Web (and the installed app): the browser's own picker. Value: "YYYY-MM-DD" or "HH:MM" (24h).
+ */
+export function DateInput({ label, value, onChange, mode = 'date', min, max, required }: {
+  label?: string; value: string; onChange: (v: string) => void; mode?: 'date' | 'time'; min?: string; max?: string; required?: boolean;
+}) {
+  const [focus, setFocus] = useState(false);
+  const box = { minHeight: 50, borderRadius: radius.md, borderWidth: 1.5, borderColor: focus ? colors.violet : colors.line, backgroundColor: '#FFF', paddingHorizontal: 14, flexDirection: 'row' as const, alignItems: 'center' as const, gap: 8 };
+  if (Platform.OS === 'web') {
+    return (
+      <View style={{ gap: 6, flex: 1 }}>
+        {label ? <T v="small" style={{ fontFamily: fonts.medium }}>{label}</T> : null}
+        <View style={box}>
+          {React.createElement('input', {
+            type: mode, value: value ?? '', min, max, required, 'aria-label': label,
+            onChange: (e: any) => onChange(e.target.value),
+            onFocus: () => setFocus(true), onBlur: () => setFocus(false),
+            onClick: (e: any) => { try { e.target.showPicker?.(); } catch { /* older browsers open on click anyway */ } },
+            style: { flex: 1, minWidth: 0, height: 46, border: 'none', outline: 'none', background: 'transparent', fontFamily: fonts.regular, fontSize: 15, color: value ? colors.ink : colors.faint, cursor: 'pointer' },
+          })}
+        </View>
+      </View>
+    );
+  }
+  return <Input label={label} value={value} onChangeText={onChange} placeholder={mode === 'date' ? 'YYYY-MM-DD' : 'HH:MM'} keyboardType="numbers-and-punctuation" />;
+}

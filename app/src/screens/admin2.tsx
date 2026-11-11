@@ -7,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Card, IconButton, Row, Screen, T } from '@/components/ui';
 import { demoNote, Tag } from '@/components/kit';
-import { BottomActions, ChoiceChips, Input, MiniStat, Panel, Select, Status, Stepper, Swatches, TileRows, ToggleChips } from '@/components/kit2';
+import { BottomActions, ChoiceChips, DateInput, Input, MiniStat, Panel, Select, Status, Stepper, Swatches, TileRows, ToggleChips } from '@/components/kit2';
 import { Logo } from '@/components/Logo';
 import { CourseLogo } from '@/components/CourseLogo';
 import * as DocumentPicker from 'expo-document-picker';
@@ -178,7 +178,7 @@ export function AdmissionFormScreen() {
       <Panel style={{ marginTop: -28 }}>
         <T style={{ color: colors.violet, fontFamily: fonts.semibold, fontSize: 12 }}>1 · STUDENT</T>
         <Input label="Student full name" value={name} onChangeText={setName} placeholder="eg. Rayan Ahmed" />
-        <Row gap={10}><Input label="Date of birth" value={dob} onChangeText={setDob} placeholder="YYYY-MM-DD" /><Select label="Gender" value={gender} options={['Boy', 'Girl']} onChange={setGender} /></Row>
+        <Row gap={10}><DateInput label="Date of birth" value={dob} onChange={setDob} max={new Date().toISOString().slice(0, 10)} /><Select label="Gender" value={gender} options={['Boy', 'Girl']} onChange={setGender} /></Row>
         <Row gap={10}><Select label="Board" value={board} options={['AP board', 'EK board', 'General']} onChange={setBoard} /><Select label="Class" value={cls} options={['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '+1', '+2']} onChange={setCls} /></Row>
       </Panel>
       <Panel>

@@ -6,7 +6,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Button, Card, Empty, Header, Loading, Row, Screen, T } from '@/components/ui';
 import { Tag } from '@/components/kit';
-import { ChoiceChips, Input, Select } from '@/components/kit2';
+import { ChoiceChips, DateInput, Input, Select } from '@/components/kit2';
 import { api, ApiError } from '@/lib/api';
 import { useApi } from '@/lib/useApi';
 import { useAuth } from '@/lib/auth';
@@ -158,7 +158,7 @@ function LiveForm({ value, onClose, onSaved }: { value: LiveSession | 'new' | nu
     setErr(null);
     const start = new Date(`${f.date}T${f.time}:00`);
     if (f.title.trim().length < 2) return setErr('Enter a title.');
-    if (isNaN(start.getTime())) return setErr('Enter the date as YYYY-MM-DD and the time as HH:MM (24-hour).');
+    if (isNaN(start.getTime())) return setErr('Choose the date and time.');
     if (!/^https:\/\//i.test(f.url.trim())) return setErr('Paste the meeting link (it starts with https://meet.google.com/…).');
     setBusy(true);
     const body = { title: f.title.trim(), kind: f.kind, batch_id: f.batch ? Number(f.batch) : null, starts_at: start.toISOString(), duration_min: Number(f.duration) || 45, meet_url: f.url.trim(), notes: f.notes.trim() || null };
@@ -188,8 +188,8 @@ function LiveForm({ value, onClose, onSaved }: { value: LiveSession | 'new' | nu
                 <Select label="Who joins" value={f.batch} options={[{ key: '', label: 'Everyone' }, ...(batches ?? []).map((b) => ({ key: String(b.id), label: b.name }))]} onChange={set('batch')} />
               </Row>
               <Row gap={10}>
-                <Input label="Date" value={f.date} onChangeText={set('date')} placeholder="YYYY-MM-DD" />
-                <Input label="Time (24h)" value={f.time} onChangeText={set('time')} placeholder="17:00" />
+                <DateInput label="Date" value={f.date} onChange={set('date')} min={new Date().toISOString().slice(0, 10)} />
+                <DateInput label="Time" mode="time" value={f.time} onChange={set('time')} />
                 <Input label="Minutes" value={f.duration} onChangeText={set('duration')} keyboardType="number-pad" />
               </Row>
             </Card>

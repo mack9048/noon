@@ -8,7 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Button, Card, Empty, Header, Loading, Row, Screen, T } from '@/components/ui';
 import { Avatar, ListRow, pastel, Section, SmallButton, Tag } from '@/components/kit';
-import { ChoiceChips, Input, MiniStat, Panel, Select, Status } from '@/components/kit2';
+import { ChoiceChips, DateInput, Input, MiniStat, Panel, Select, Status } from '@/components/kit2';
 import { Logo } from '@/components/Logo';
 import { api, ApiError } from '@/lib/api';
 import { useApi } from '@/lib/useApi';
@@ -193,7 +193,7 @@ export function NewStudentScreen() {
       <Panel title="STUDENT">
         <Input label="Full name" value={f.name} onChangeText={set('name')} placeholder="eg. Rayan Ahmed" />
         <Row gap={10}><Select label="Board" value={f.board} options={BOARDS} onChange={set('board')} /><Select label="Class" value={f.cls} options={CLASSES} onChange={set('cls')} /></Row>
-        <Row gap={10}><Input label="Date of birth (optional)" value={f.dob} onChangeText={set('dob')} placeholder="YYYY-MM-DD" /><Input label="Admission no. (optional)" value={f.admission_no} onChangeText={set('admission_no')} placeholder="Auto" autoCapitalize="characters" /></Row>
+        <Row gap={10}><DateInput label="Date of birth (optional)" value={f.dob} onChange={set('dob')} max={new Date().toISOString().slice(0, 10)} /><Input label="Admission no. (optional)" value={f.admission_no} onChangeText={set('admission_no')} placeholder="Auto" autoCapitalize="characters" /></Row>
         <Input label="Student email (optional)" value={f.email} onChangeText={set('email')} placeholder="for password reset by email" keyboardType="email-address" autoCapitalize="none" />
       </Panel>
       <Panel title="PARENT">
@@ -359,7 +359,7 @@ function LeadSheet({ lead, onClose, onSaved }: { lead: Lead | null; onClose: () 
       </View>
       <Card style={{ gap: 10 }}>
         <Input label="Add a note" value={note} onChangeText={setNote} placeholder="eg. Called, visiting on Friday" />
-        <Input label={`Next follow-up${lead.follow_up_on ? ` (now ${lead.follow_up_on})` : ''}`} value={follow} onChangeText={setFollow} placeholder="YYYY-MM-DD" />
+        <DateInput label={`Next follow-up${lead.follow_up_on ? ` (now ${lead.follow_up_on})` : ''}`} value={follow} onChange={setFollow} min={new Date().toISOString().slice(0, 10)} />
         <Button title="Save" onPress={() => patch({ ...(note.trim() ? { note: note.trim() } : {}), ...(follow.trim() ? { follow_up_on: follow.trim() } : {}) })} loading={busy} disabled={!note.trim() && !follow.trim()} />
       </Card>
       {!lead.admission ? (
@@ -490,7 +490,7 @@ export function CampaignFormScreen() {
       <Panel title="CAMPAIGN">
         <Input label="Title" value={f.title} onChangeText={set('title')} placeholder="eg. Admissions 2026–27" />
         <Row gap={10}><Input label="Academic year" value={f.academic_year} onChangeText={set('academic_year')} placeholder="2026–27" /><Input label="Seats (optional)" value={f.seats} onChangeText={set('seats')} keyboardType="number-pad" /></Row>
-        <Row gap={10}><Input label="Opens on" value={f.opens_on} onChangeText={set('opens_on')} placeholder="YYYY-MM-DD" /><Input label="Closes on" value={f.closes_on} onChangeText={set('closes_on')} placeholder="YYYY-MM-DD" /></Row>
+        <Row gap={10}><DateInput label="Opens on" value={f.opens_on} onChange={set('opens_on')} /><DateInput label="Closes on" value={f.closes_on} onChange={set('closes_on')} min={f.opens_on || undefined} /></Row>
         <T v="small" style={{ fontFamily: fonts.medium }}>Classes open for admission</T>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
           {CLASSES.map((c) => (

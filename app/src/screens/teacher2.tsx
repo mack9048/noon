@@ -7,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Button, Card, IconButton, Row, Screen, T } from '@/components/ui';
 import { demoNote, Tag } from '@/components/kit';
-import { BottomActions, ChoiceChips, Input, MiniStat, Panel, Select, SettingRow, SettingsGroup, Stepper, ToggleChips } from '@/components/kit2';
+import { BottomActions, ChoiceChips, Input, MiniStat, Panel, Select, SettingRow, SettingsGroup, Stepper, ToggleChips, DateInput } from '@/components/kit2';
 import { RoleProfileScreen, RoleSettingsScreen, T_ } from './roles2';
 import { api, ApiError } from '@/lib/api';
 import { useApi } from '@/lib/useApi';
@@ -283,7 +283,7 @@ export function ExamNewScreen() {
   const [subject, setSubject] = useState('Arabic');
   const [batches, setBatches] = useState(['Madrasa 5 · Morning']);
   const [date, setDate] = useState('2026-12-15');
-  const [start, setStart] = useState('04:30 PM');
+  const [start, setStart] = useState('16:30');
   const [duration, setDuration] = useState('1 h 30 min');
   const [pass, setPass] = useState('18');
   const [notes, setNotes] = useState('Answer all questions. Section D is oral — keep your microphone on.');
@@ -329,7 +329,7 @@ export function ExamNewScreen() {
           <Row gap={10}><Select label="Type" value={type} options={['Term', 'Half-yearly', 'Annual', 'Unit test']} onChange={setType} /><Select label="Subject" value={subject} options={['Arabic', 'Fiqh', 'Quran', 'Thajweed', 'Akhlaq']} onChange={setSubject} /></Row>
           <T v="small" style={{ fontFamily: fonts.medium }}>Classes / batches</T>
           <ToggleChips options={['Madrasa 5 · Morning', 'Madrasa 5 · Evening', 'Madrasa 3']} value={batches} onChange={setBatches} />
-          <Row gap={10}><Input label="Date" value={date} onChangeText={setDate} placeholder="YYYY-MM-DD" /><Input label="Start" value={start} onChangeText={setStart} /></Row>
+          <Row gap={10}><DateInput label="Date" value={date} onChange={setDate} min={new Date().toISOString().slice(0, 10)} /><DateInput label="Start" mode="time" value={start} onChange={setStart} /></Row>
           <Row gap={10}><Select label="Duration" value={duration} options={['30 min', '45 min', '1 h', '1 h 30 min', '2 h']} onChange={setDuration} /><Input label="Pass mark" value={pass} onChangeText={setPass} keyboardType="number-pad" /></Row>
           <Input label="Instructions for students" value={notes} onChangeText={setNotes} multiline />
         </Panel>
