@@ -135,7 +135,7 @@ export function MoreMenu({ links, onNavigate, profileHref, logout: withLogout }:
     while (row.length < 3) row.push(null);
     rows.push(row);
   }
-  const name = user?.role === 'parent' ? 'Ayisha Abdulla' : user?.name ?? 'Ayisha Abdulla';
+  const name = user?.name ?? 'Me';
   const sub = user?.role === 'student' || user?.role === 'parent' ? `Madrasa 5 · ${roleName[user.role]}` : roleName[user?.role ?? ''] ?? '';
   return (
     <View style={{ gap: 12 }}>

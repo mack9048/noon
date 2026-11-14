@@ -284,7 +284,7 @@ export function ProfileHubScreen() {
   const go = (p: string) => () => router.push(`${base}${p}` as any);
   return (
     <Screen bar={false}>
-      <HeroHeader g={['#0B5166', '#5B43E0']} logo initials={fullName[0]} name={fullName} sub="Madrasa 5 · Roll 1 · AP board" pill={`★ ${PERFORMANCE.stats.stars} stars · Level 6`}
+      <HeroHeader g={['#0B5166', '#5B43E0']} logo initials={fullName[0]} name={fullName} sub={profileLine(user)} pill={`★ ${PERFORMANCE.stats.stars} stars · Level 6`}
         right={user?.role === 'parent' ? (
           <Pressable accessibilityRole="button" accessibilityLabel="Switch child" onPress={() => demoNote('Demo: parents with more than one child switch between them here.')}
             style={{ height: 36, paddingHorizontal: 14, borderRadius: 18, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.6)', flexDirection: 'row', alignItems: 'center', gap: 4 }}>

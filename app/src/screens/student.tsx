@@ -327,7 +327,7 @@ export function SettingsScreen() {
   const chev = <Ionicons name="chevron-forward" size={18} color={colors.muted} />;
   return (
     <Screen>
-      <ListRow left={<Avatar name={user?.name ?? 'A'} tint={pastel.lav} />} title={user?.role === 'parent' ? 'Ayisha Abdulla' : user?.name ?? 'Ayisha Abdulla'} sub="Madrasa 5 · Roll 1"
+      <ListRow left={<Avatar name={user?.name ?? 'A'} tint={pastel.lav} />} title={user?.name ?? 'Me'} sub={profileLine(user)}
         right={<Ionicons name="chevron-down" size={20} color={colors.ink} />} onPress={() => demoNote('Demo: parents with more than one child switch here.')} />
       <T v="h1" style={{ marginTop: 16 }}>Settings</T>
       <Card tint={colors.sky[0]} style={{ marginTop: 12, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
