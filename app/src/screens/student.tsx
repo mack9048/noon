@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Button, Card, Grid, Header, Row, Screen, Segmented, T } from '@/components/ui';
 import { Avatar, Band, Chips, demoNote, Glyph, ListRow, pastel, Progress, Section, SmallButton, Stat, Tabs, Tag, Tile } from '@/components/kit';
 import { useAuth } from '@/lib/auth';
+import { profileLine, profileRows, splitName } from '@/lib/profile';
 import { useLearnSpaces } from '@/lib/learnSpace';
 import { LearnTiles, SpacePicker } from './learnspace';
 import { useBase } from '@/lib/useBase';
@@ -171,16 +172,18 @@ export function ReportPdfScreen() {
 
 /* ---------- Profile ---------- */
 export function ProfileScreen() {
+  const { user } = useAuth();
+  const nm = splitName(user?.name);
   return (
     <Screen>
       <Band tint={colors.pink[0]} height={230} />
-      <Header title="" right={<SmallButton title="Edit" onPress={() => demoNote('Demo: profile changes are done by the madrasa office for now.')} />} />
+      <Header title="" right={<SmallButton title="Edit" onPress={() => demoNote('To change these details, please ask your madrasa office.')} />} />
       <Row gap={14}>
-        <Avatar name={PROFILE.first} size={84} tint={pastel.white} />
-        <View>
-          <T style={{ fontSize: 26, fontFamily: fonts.light }}>{PROFILE.first}</T>
-          <T style={{ fontSize: 28, fontFamily: fonts.semibold }}>{PROFILE.last}</T>
-          <T v="small">{PROFILE.line}</T>
+        <Avatar name={nm.first} size={84} tint={pastel.white} />
+        <View style={{ flex: 1 }}>
+          <T style={{ fontSize: 26, fontFamily: fonts.light }}>{nm.first}</T>
+          {nm.last ? <T style={{ fontSize: 28, fontFamily: fonts.semibold }}>{nm.last}</T> : null}
+          <T v="small">{profileLine(user)}</T>
         </View>
       </Row>
       <View style={{ marginTop: 22 }}>
@@ -192,7 +195,7 @@ export function ProfileScreen() {
       </View>
       <Section title="Details" />
       <Card style={{ paddingVertical: 6 }}>
-        {PROFILE.details.map(([k, v], i) => (
+        {profileRows(user).map(([k, v], i) => (
           <Row key={k} style={{ justifyContent: 'space-between', minHeight: 50, borderTopWidth: i ? 1 : 0, borderTopColor: colors.line }}>
             <T v="small" style={{ fontSize: 14 }}>{k}</T><T style={{ fontFamily: fonts.medium }}>{v}</T>
           </Row>

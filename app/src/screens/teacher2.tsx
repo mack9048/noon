@@ -11,6 +11,8 @@ import { BottomActions, ChoiceChips, Input, MiniStat, Panel, Select, SettingRow,
 import { RoleProfileScreen, RoleSettingsScreen, T_ } from './roles2';
 import { api, ApiError } from '@/lib/api';
 import { useApi } from '@/lib/useApi';
+import { profileRows } from '@/lib/profile';
+import { useAuth } from '@/lib/auth';
 import type { Board, SchoolClass, Subject } from '@/lib/types';
 import { colors, fonts } from '@/theme/tokens';
 
@@ -404,11 +406,14 @@ function Counter({ label, value, onChange }: { label: string; value: number; onC
 
 /* ---------- Profile & Settings ---------- */
 export function TeacherProfileScreen() {
+  const { user } = useAuth();
+  const batches = useApi<{ id: number; name: string }[]>('/staff/batches').data;
+  const live = useApi<{ state: string }[]>('/live-sessions').data;
   return (
-    <RoleProfileScreen g={['#0B5166', '#5CC7C9']} sub="Arabic & Fiqh teacher · Noon Madrasa" pill="★ Class teacher · Class 5"
-      stats={[['4', 'Classes'], ['89', 'Students'], ['4.9★', 'Parent rating']]} chipsTitle="Subjects I teach"
-      chips={[{ text: 'Arabic · Class 5, 3', tint: colors.lav }, { text: 'Fiqh · Class 5, +1', tint: colors.sky }]}
-      rows={[['Employee ID', 'NM-T-007'], ['Phone', '+971 55 •••• 21'], ['Email', 'ahmed@noonmadrasa.app'], ['Qualification', 'Faizy, MA Arabic'], ['Joined', 'June 2021'], ['Working days', 'Mon – Thu · evenings']]}
+    <RoleProfileScreen g={['#0B5166', '#5CC7C9']} sub={`Teacher · ${user?.tenant_name ?? ''}`} pill="Teacher"
+      stats={[[String(batches?.length ?? '–'), 'Batches'], [String(live?.filter((l) => l.state !== 'ended').length ?? '–'), 'Live classes'], [user?.joined ?? '–', 'Joined']]} chipsTitle="My batches"
+      chips={(batches?.length ? batches : [{ id: 0, name: 'No batches yet' }]).map((b, i) => ({ text: b.name, tint: [colors.lav, colors.sky, colors.mint][i % 3] }))}
+      rows={profileRows(user)}
       tiles={[
         { label: 'My timetable', icon: 'calendar-outline', tint: colors.sky, note: 'Coming soon: your weekly timetable shows here.' },
         { label: 'My leave', icon: 'airplane-outline', tint: colors.pink, href: '/teacher/leave' },

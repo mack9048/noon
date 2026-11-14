@@ -46,6 +46,7 @@ Route::middleware('throttle:auth')->group(function () {
     Route::post('/auth/password/reset', [AuthController::class, 'passwordReset']);
 });
 Route::get('/boards', [CatalogController::class, 'boards']);
+Route::get('/catalog/courses', [CourseController::class, 'catalog']);
 // Public admission form (from the link the madrasa shares)
 Route::post('/apply/{code}', [AdmissionController::class, 'apply'])->middleware('throttle:join');
 Route::get('/portal/{code}', [AdmissionController::class, 'portal'])->middleware('throttle:60,1');

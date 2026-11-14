@@ -67,7 +67,12 @@ const messages: Message[] = [
 ];
 
 function demoUser(role: Role, name: string): User {
-  return { id: 1, name, role, tenant_id: role === 'guest' || role === 'super' ? null : 1, tenant_name: 'Noon Madrasa', board_id: 1, class_id: 105, avatar_initial: name[0] };
+  const inSchool = role !== 'guest' && role !== 'super';
+  const login = ({ student: null, parent: 'parent1@demo.noonlearn.com', teacher: 'teacher1@demo.noonlearn.com', admin: 'admin@demo.noonlearn.com', super: 'super@noonlearn.com' } as Record<string, string | null>)[role] ?? null;
+  return { id: 1, name, role, tenant_id: inSchool ? 1 : null, tenant_name: inSchool ? 'Noon Demo Madrasa' : null, tenant_code: inSchool ? 'DEMO01' : null, board_id: 1, class_id: 105, avatar_initial: name[0],
+    email: login, phone: role === 'parent' ? '+97336800100' : null, admission_no: role === 'student' ? 'DEMO-001' : null,
+    board_name: role === 'student' ? 'Sunni Vidyabhyasa Board' : null, class_label: role === 'student' ? '5' : null,
+    parent: role === 'student' ? { name: 'Muhammed Ali', phone: '+97336800100' } : null, joined: 'Jun 2026' };
 }
 
 // ---- Batches ----
@@ -164,6 +169,47 @@ const mockPeople: [string, Role, string, string | null][] = [
 ];
 const mockUsers = mockPeople.map(([name, role, login, adm], i) => ({ id: 500 + i, name, role, login, admission_no: adm, tenant_id: 1, tenant_name: 'Noon Demo Madrasa', tenant_code: 'DEMO01', blocked: false }));
 let superMe: User | null = null;
+
+// ---- Sample data for live classes, students, teachers, campaigns and leads ----
+const STAFF_BATCHES = [{ id: 1, name: 'Madrasa 5 · Evening' }, { id: 2, name: 'Madrasa 3 · Morning' }];
+type MockLive = { id: number; title: string; kind: 'class' | 'meeting'; starts_at: string; duration_min: number; meet_url: string; notes: string | null; batch: { id: number; name: string } | null; host: string | null };
+const inMinutes = (min: number) => new Date(Date.now() + min * 60000).toISOString();
+let liveSessions: MockLive[] = [
+  { id: 1, title: 'Thajweed revision', kind: 'class', starts_at: inMinutes(-10), duration_min: 45, meet_url: 'https://meet.google.com/new', notes: 'Bring your Quran and notebook.', batch: STAFF_BATCHES[0], host: 'Ustad Ahmed' },
+  { id: 2, title: 'Arabic · Lesson 6', kind: 'class', starts_at: inMinutes(60 * 20), duration_min: 40, meet_url: 'https://meet.google.com/new', notes: null, batch: STAFF_BATCHES[0], host: 'Ayisha Miss' },
+  { id: 3, title: 'Parents meeting', kind: 'meeting', starts_at: inMinutes(60 * 48), duration_min: 30, meet_url: 'https://meet.google.com/new', notes: 'Term 2 progress.', batch: null, host: 'Office Admin' },
+];
+const liveState = (s: MockLive) => {
+  const start = new Date(s.starts_at).getTime(); const end = start + s.duration_min * 60000; const now = Date.now();
+  return { ...s, ends_at: new Date(end).toISOString(), state: now > end ? 'ended' : now >= start - 15 * 60000 ? 'live' : 'upcoming' };
+};
+const liveRow = (b: any): MockLive => {
+  if (!b?.title || !b?.starts_at) throw new Error('Enter a title and choose the date and time.');
+  if (!/^https:\/\//i.test(b.meet_url ?? '')) throw new Error('Paste the meeting link (it starts with https://meet.google.com/…).');
+  return { id: nextId++, title: b.title, kind: b.kind ?? 'class', starts_at: b.starts_at, duration_min: b.duration_min ?? 45, meet_url: b.meet_url, notes: b.notes ?? null,
+    batch: STAFF_BATCHES.find((x) => x.id === b.batch_id) ?? null, host: me?.name ?? null };
+};
+let studentRows = mockPeople.filter((p) => p[1] === 'student').map(([name, , , adm], i) => ({
+  id: 9 + i, name, admission_no: adm, cls: i < 3 ? 'Class 5' : 'Class 3', class_id: (i < 3 ? 5 : 3) as number | null, board: 'AP', parent: ['Muhammed Ali', 'Nasrin P', 'Abdul Rahman K'][i % 3], parent_phone: `+97336${String(800100 + i)}`, blocked: false,
+}));
+let teacherRows = mockPeople.filter((p) => p[1] === 'teacher').map(([name, , login], i) => ({
+  id: 3 + i, name, login, phone: null as string | null, email: login as string | null, blocked: false, batches: [STAFF_BATCHES[i % 2].name], subjects: [['Thajweed', 'Arabic'], ['Fiqh'], ['Akhlaq', 'Thareekh']][i] ?? [],
+}));
+type MockCampaign = { id: number; code: string; title: string; year: string | null; classes: string[]; seats: number | null; opens_on: string | null; closes_on: string | null; description: string | null; fee_note: string | null; status: 'open' | 'closed' };
+let campaigns: MockCampaign[] = [{ id: 1, code: 'ADMDEMO26', title: 'Admissions 2026–27', year: '2026–27', classes: ['Class 1', 'Class 2', 'Class 3', 'Class 5'], seats: 40, opens_on: '2026-11-01', closes_on: '2026-12-31',
+  description: 'New admissions for the coming year. Morning and evening batches.', fee_note: 'Admission fee BHD 10', status: 'open' }];
+type MockLead = { id: number; student: string; parent: string | null; phone: string; email: string | null; cls: string | null; source: string; status: 'new' | 'contacted' | 'interested' | 'visit' | 'applied' | 'admitted' | 'lost';
+  follow_up_on: string | null; overdue: boolean; notes: { text: string; by: string | null; at: string }[]; campaign: { id: number; title: string } | null; admission: string | null; when: string };
+let leads: MockLead[] = ([
+  ['Zainab Fathima', 'Faisal K', '+97333100201', 'Class 1', 'online', 'new'], ['Muhammed Rizwan', 'Shabeer P', '+97333100202', 'Class 3', 'walk-in', 'contacted'],
+  ['Aysha Nida', 'Rafeeq M', '+97333100203', 'Class 2', 'phone', 'interested'], ['Ahmed Shahil', 'Nazar A', '+97333100204', 'Class 5', 'referral', 'visit'], ['Fathima Hiba', 'Sameer T', '+97333100205', 'Class 1', 'online', 'lost'],
+] as const).map(([student, parent, phone, cls, source, status], i) => ({ id: i + 1, student, parent, phone, email: null, cls, source, status, follow_up_on: i === 1 ? '2026-11-20' : null, overdue: false,
+  notes: i === 1 ? [{ text: 'Called, will visit on Saturday.', by: 'Office Admin', at: '12 Nov, 4:10 pm' }] : [], campaign: { id: 1, title: 'Admissions 2026–27' }, admission: null, when: `${i + 1} days ago` }));
+const campaignStats = (c: MockCampaign) => {
+  const ls = leads.filter((l) => l.campaign?.id === c.id);
+  const admitted = ls.filter((l) => l.status === 'admitted').length;
+  return { ...c, is_open: c.status === 'open', leads: ls.length, applications: ls.filter((l) => l.admission).length, admitted, seats_left: c.seats == null ? null : Math.max(0, c.seats - admitted) };
+};
 
 type Handler = (m: RegExpMatchArray, body: any) => unknown;
 const routes: [string, RegExp, Handler][] = [
@@ -278,6 +324,7 @@ const routes: [string, RegExp, Handler][] = [
     const list = courses.filter((c) => c.status === 'published');
     return (scope === 'mine' ? list.filter((c) => c.enrolled) : scope === 'explore' ? list.filter((c) => !c.enrolled) : list).map(({ items, ...c }) => c);
   }],
+  ['GET', /^\/catalog\/courses$/, () => courses.filter((c) => c.status === 'published').map(({ items, ...c }) => ({ ...c, enrolled: false }))],
   ['GET', /^\/courses\/(\d+)$/, (m) => courses.find((c) => c.id === +m[1])],
   ['POST', /^\/courses\/(\d+)\/enroll$/, (m) => { const c = courses.find((x) => x.id === +m[1]); if (c) c.enrolled = true; return c; }],
   ['GET', /^\/super\/courses$/, () => courses.map(({ items, ...c }) => ({ ...c, items_count: items.length }))],
@@ -311,6 +358,99 @@ const routes: [string, RegExp, Handler][] = [
   ['GET', /^\/conversations$/, () => conversations],
   ['GET', /^\/conversations\/(\d+)\/messages$/, (m) => messages.filter((x) => x.conversation_id === +m[1])],
   ['POST', /^\/conversations\/(\d+)\/messages$/, (m, b) => { const msg: Message = { id: nextId++, conversation_id: +m[1], mine: true, sender_name: 'Me', kind: b.kind ?? 'text', body: b.body, created_at: 'now', seen: false }; messages.push(msg); return msg; }],
+
+  // ---- Live classes (Google Meet) ----
+  ['GET', /^\/live-sessions$/, () => liveSessions.map(liveState)],
+  ['GET', /^\/live-sessions\/(\d+)$/, (m) => { const s = liveSessions.find((x) => x.id === +m[1]); if (!s) throw new Error('This class was not found.'); return liveState(s); }],
+  ['GET', /^\/staff\/batches$/, () => STAFF_BATCHES],
+  ['POST', /^\/staff\/live-sessions$/, (_, b) => { const s = liveRow(b); liveSessions = [...liveSessions, s]; return liveState(s); }],
+  ['PUT', /^\/staff\/live-sessions\/(\d+)$/, (m, b) => { liveSessions = liveSessions.map((s) => (s.id === +m[1] ? { ...liveRow(b), id: s.id } : s)); return liveState(liveSessions.find((s) => s.id === +m[1])!); }],
+  ['DELETE', /^\/staff\/live-sessions\/(\d+)$/, (m) => { liveSessions = liveSessions.filter((s) => s.id !== +m[1]); return null; }],
+
+  // ---- Students and teachers ----
+  ['GET', /^\/admin\/students(\?q=(.*))?$/, (m) => { const q = decodeURIComponent(m[2] ?? '').toLowerCase(); return studentRows.filter((s) => !q || `${s.name} ${s.admission_no} ${s.parent}`.toLowerCase().includes(q)); }],
+  ['GET', /^\/admin\/students\/(\d+)$/, (m) => {
+    const s = studentRows.find((x) => x.id === +m[1]); if (!s) throw new Error('This student was not found.');
+    return { ...s, email: null, batches: [{ id: 1, name: 'Madrasa 5 · Evening' }], courses: [{ id: 1, title: 'Arabic for Beginners', progress: 40 }], joined: 'Jun 2026' };
+  }],
+  ['POST', /^\/admin\/students$/, (_, b) => {
+    const rows = Array.isArray(b?.students) ? b.students : [b];
+    const credentials: { who: 'student' | 'parent'; name: string; login: string; password: string | null }[] = [];
+    let last = studentRows[0];
+    rows.forEach((r: any) => {
+      if (!r?.name) throw new Error('Enter the student\'s name.');
+      const adm = `DEMO01-${String(studentRows.length + 1).padStart(4, '0')}`;
+      last = { id: nextId++, name: r.name, admission_no: adm, cls: r.cls ?? null, class_id: r.class_id ?? null, board: r.board ?? null, parent: r.parent_name ?? null, parent_phone: r.parent_phone ?? null, blocked: false };
+      studentRows = [last, ...studentRows];
+      credentials.push({ who: 'student', name: r.name, login: adm, password: 'Noon' + Math.floor(1000 + Math.random() * 9000) });
+      if (r.parent_phone) credentials.push({ who: 'parent', name: r.parent_name ?? 'Parent', login: r.parent_phone, password: 'Noon' + Math.floor(1000 + Math.random() * 9000) });
+    });
+    return { student: last, credentials };
+  }],
+  ['GET', /^\/admin\/teachers$/, () => teacherRows],
+  ['POST', /^\/admin\/teachers$/, (_, b) => {
+    const rows = Array.isArray(b?.teachers) ? b.teachers : [b];
+    const credentials = rows.map((r: any) => {
+      if (!r?.name) throw new Error('Enter the teacher\'s name.');
+      teacherRows = [{ id: nextId++, name: r.name, login: r.email ?? r.phone ?? null, phone: r.phone ?? null, email: r.email ?? null, blocked: false, batches: [], subjects: [] }, ...teacherRows];
+      return { who: 'teacher', name: r.name, login: r.email ?? r.phone, password: 'Noon' + Math.floor(1000 + Math.random() * 9000) };
+    });
+    return { teacher: teacherRows[0], credentials };
+  }],
+
+  // ---- Admission campaigns, leads and the public admission page ----
+  ['GET', /^\/admin\/campaigns$/, () => campaigns.map(campaignStats)],
+  ['GET', /^\/admin\/campaigns\/(\d+)$/, (m) => { const c = campaigns.find((x) => x.id === +m[1]); if (!c) throw new Error('This campaign was not found.'); return campaignStats(c); }],
+  ['POST', /^\/admin\/campaigns$/, (_, b) => {
+    if (!b?.title) throw new Error('Give the campaign a title.');
+    const c = { id: nextId++, code: 'ADM' + Math.random().toString(36).slice(2, 7).toUpperCase(), title: b.title, year: b.year ?? null, classes: b.classes ?? [], seats: b.seats ?? null, opens_on: b.opens_on ?? null, closes_on: b.closes_on ?? null, description: b.description ?? null, fee_note: b.fee_note ?? null, status: (b.status ?? 'open') as 'open' | 'closed' };
+    campaigns = [c, ...campaigns]; return campaignStats(c);
+  }],
+  ['PUT', /^\/admin\/campaigns\/(\d+)$/, (m, b) => { campaigns = campaigns.map((c) => (c.id === +m[1] ? { ...c, ...b } : c)); return campaignStats(campaigns.find((c) => c.id === +m[1])!); }],
+  ['DELETE', /^\/admin\/campaigns\/(\d+)$/, (m) => { campaigns = campaigns.filter((c) => c.id !== +m[1]); return null; }],
+  ['GET', /^\/admin\/leads(\?campaign_id=(\d+))?$/, (m) => leads.filter((l) => !m[2] || l.campaign?.id === +m[2])],
+  ['POST', /^\/admin\/leads$/, (_, b) => {
+    if (!b?.student || !b?.phone) throw new Error('Enter the student\'s name and a phone number.');
+    const c = campaigns.find((x) => x.id === b.campaign_id);
+    const l: MockLead = { id: nextId++, student: b.student, parent: b.parent ?? null, phone: b.phone, email: b.email ?? null, cls: b.cls ?? null, source: b.source ?? 'walk-in', status: 'new', follow_up_on: b.follow_up_on ?? null, overdue: false,
+      notes: b.note ? [{ text: b.note, by: 'Office Admin', at: nowStr() }] : [], campaign: c ? { id: c.id, title: c.title } : null, admission: null, when: 'Just now' };
+    leads = [l, ...leads]; return l;
+  }],
+  ['PATCH', /^\/admin\/leads\/(\d+)$/, (m, b) => {
+    leads = leads.map((l) => (l.id !== +m[1] ? l : { ...l, status: b.status ?? l.status, follow_up_on: b.follow_up_on !== undefined ? b.follow_up_on : l.follow_up_on,
+      notes: b.note ? [...l.notes, { text: b.note, by: 'Office Admin', at: nowStr() }] : l.notes }));
+    return leads.find((l) => l.id === +m[1]);
+  }],
+  ['DELETE', /^\/admin\/leads\/(\d+)$/, (m) => { leads = leads.filter((l) => l.id !== +m[1]); return null; }],
+  ['POST', /^\/admin\/leads\/(\d+)\/convert$/, (m, b) => {
+    const l = leads.find((x) => x.id === +m[1]); if (!l) throw new Error('This lead was not found.');
+    const id = `APL-2026-${String(nextId++).slice(-4)}`;
+    admissionRows = [{ id, name: l.student, gender: b?.gender ?? '—', dob: b?.dob ?? '—', age: 0, board: b?.board ?? '—', cls: l.cls ?? b?.cls ?? '—', parent: l.parent ?? '—', relation: 'Parent', phone: l.phone, city: '—', docs: { birth: false, tc: false, photo: false }, status: 'new', when: 'Just now', timeline: [['Created from an enquiry', nowStr()]] }, ...admissionRows];
+    leads = leads.map((x) => (x.id === l.id ? { ...x, status: 'applied', admission: id } : x));
+    return { lead: leads.find((x) => x.id === l.id), application: { id } };
+  }],
+  ['POST', /^\/admin\/admissions\/([^/]+)\/admit$/, (m) => {
+    const ref = decodeURIComponent(m[1]); const a = admissionRows.find((x) => x.id === ref); if (!a) throw new Error('This application was not found.');
+    admissionRows = admissionRows.map((x) => (x.id === ref ? { ...x, status: 'admitted', timeline: [...x.timeline, ['Admitted', nowStr()]] } : x));
+    const adm = `DEMO01-${String(studentRows.length + 1).padStart(4, '0')}`;
+    studentRows = [{ id: nextId++, name: a.name, admission_no: adm, cls: a.cls, class_id: null, board: a.board, parent: a.parent, parent_phone: a.phone, blocked: false }, ...studentRows];
+    return { application: admissionRows.find((x) => x.id === ref), student_id: studentRows[0].id,
+      credentials: [{ who: 'student', name: a.name, login: adm, password: 'Noon' + Math.floor(1000 + Math.random() * 9000) }, { who: 'parent', name: a.parent, login: a.phone, password: 'Noon' + Math.floor(1000 + Math.random() * 9000) }] };
+  }],
+  ['GET', /^\/portal\/([^/?]+)$/, (m) => {
+    const code = decodeURIComponent(m[1]).toUpperCase();
+    const c = campaigns.find((x) => x.code === code);
+    if (!c && code !== 'DEMO01' && code !== 'NOON01') throw new Error('This admission link is not valid.');
+    const pub = (x: typeof c) => x && { code: x.code, title: x.title, year: x.year, classes: x.classes, closes_on: x.closes_on, description: x.description, fee_note: x.fee_note, is_open: x.status === 'open', seats_left: x.seats };
+    return { institution: { name: 'Noon Demo Madrasa', code: 'DEMO01' }, campaign: pub(c) ?? null, campaigns: campaigns.filter((x) => x.status === 'open').map(pub) };
+  }],
+  ['POST', /^\/portal\/([^/?]+)\/enquire$/, (m, b) => {
+    if (!b?.student || String(b?.phone ?? '').replace(/\D/g, '').length < 7) throw new Error('Enter the student\'s name and a phone number.');
+    const c = campaigns.find((x) => x.code === decodeURIComponent(m[1]).toUpperCase());
+    leads = [{ id: nextId++, student: b.student, parent: b.parent ?? null, phone: b.phone, email: b.email ?? null, cls: b.cls ?? null, source: 'online', status: 'new', follow_up_on: null, overdue: false,
+      notes: b.message ? [{ text: b.message, by: null, at: nowStr() }] : [], campaign: c ? { id: c.id, title: c.title } : null, admission: null, when: 'Just now' }, ...leads];
+    return { ok: true, institution: 'Noon Demo Madrasa' };
+  }],
 ];
 
 export async function mockRequest<T>(method: string, path: string, body?: unknown): Promise<T> {

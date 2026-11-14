@@ -12,6 +12,9 @@ import { BottomActions, ChoiceChips, Input, MiniStat, Panel, Select, Status, Swa
 import { RoleProfileScreen, RoleSettingsScreen, T_ } from './roles2';
 import { ApprovalStatus, decide, useApprovals } from '@/lib/approvals';
 import { colors, fonts } from '@/theme/tokens';
+import { useApi } from '@/lib/useApi';
+import { useAuth } from '@/lib/auth';
+import { profileRows } from '@/lib/profile';
 
 /* ---------- Games store (demo, in memory) ---------- */
 type GameRow = { name: string; cat: 'Letters' | 'Quran puzzles' | 'Duas & manners' | 'Fun & skill'; src: string; plays: string; status: 'Live' | 'Review' | 'Draft'; icon: keyof typeof Ionicons.glyphMap; g: [string, string] };
@@ -206,11 +209,14 @@ export function ApprovalsScreen() {
 
 /* ---------- Super admin profile & settings ---------- */
 export function SuperProfileScreen() {
+  const { user } = useAuth();
+  const tenants = useApi<{ students_count?: number; teachers_count?: number; active?: boolean }[]>('/super/tenants').data;
+  const sum = (k: 'students_count' | 'teachers_count') => tenants?.reduce((n, t) => n + (t[k] ?? 0), 0);
   return (
-    <RoleProfileScreen g={['#0B5166', '#1F8AA8']} sub="Super admin · Noon Learn HQ" pill="Platform owner · All tenants"
-      stats={[['46', 'Madrasas'], ['12.4k', 'Students'], ['₹8.2L', 'This month']]} chipsTitle="My role & access"
-      chips={[{ text: 'All tenants', tint: colors.sky }, { text: 'Billing', tint: colors.butter }, { text: 'Content & courses', tint: colors.lav }, { text: 'Approvals', tint: colors.mint }]}
-      rows={[['Role', 'Owner (full access)'], ['Email', 'shameer@noonlearn.app'], ['Phone', '+91 98 •••• 210'], ['2-step login', 'On · authenticator app'], ['Last login', 'Today · Kochi'], ['Team members', '5 admins']]}
+    <RoleProfileScreen g={['#0B5166', '#1F8AA8']} sub="Super admin · Noon Learn" pill="Platform owner · All tenants"
+      stats={[[String(tenants?.length ?? '–'), 'Tenants'], [String(sum('students_count') ?? '–'), 'Students'], [String(sum('teachers_count') ?? '–'), 'Teachers']]} chipsTitle="My role & access"
+      chips={[{ text: 'All tenants', tint: colors.sky }, { text: 'Log in as', tint: colors.butter }, { text: 'Content & courses', tint: colors.lav }, { text: 'Approvals', tint: colors.mint }]}
+      rows={profileRows(user, [['Role', 'Owner (full access)']])}
       tiles={[
         { label: 'Team & roles', icon: 'people-outline', tint: colors.sky, note: 'Coming soon: add admins and choose what each can do.' },
         { label: 'Billing', icon: 'wallet-outline', tint: colors.butter, href: '/super/billing' },

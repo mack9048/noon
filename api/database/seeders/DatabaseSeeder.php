@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\User;
+use Illuminate\Support\Str;
 use Illuminate\Database\Seeder;
 
 /**
@@ -19,10 +20,17 @@ class DatabaseSeeder extends Seeder
     {
         $this->call(CatalogSeeder::class);
 
+        // Never fall back to a guessable password: without SUPER_ADMIN_PASSWORD, make a strong
+        // one and show it once in the console so the person running the seed can save it.
+        $password = env('SUPER_ADMIN_PASSWORD');
+        if (! $password) {
+            $password = 'Noon-'.Str::password(14, symbols: false);
+            $this->command?->warn('SUPER_ADMIN_PASSWORD was not set. Super admin password: '.$password.'  (save it now, it is not shown again)');
+        }
         User::create([
             'name' => 'Super Admin',
             'email' => strtolower(env('SUPER_ADMIN_EMAIL', 'super@noonlearn.com')),
-            'password' => env('SUPER_ADMIN_PASSWORD', 'password'),
+            'password' => $password,
             'role' => 'super',
         ]);
 

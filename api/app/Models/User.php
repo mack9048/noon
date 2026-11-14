@@ -83,9 +83,18 @@ class User extends Authenticatable
             'role' => $this->role,
             'tenant_id' => $this->tenant_id,
             'tenant_name' => $this->tenant?->name,
+            'tenant_code' => $this->tenant?->code,
             'board_id' => $this->board_id,
             'class_id' => $this->class_id,
             'avatar_initial' => mb_substr($this->name, 0, 1),
+            // Profile details shown on the profile/bio pages
+            'email' => $this->email,
+            'phone' => $this->phone,
+            'admission_no' => $this->admission_no,
+            'board_name' => $this->board?->name,
+            'class_label' => $this->schoolClass?->label,
+            'parent' => $this->role === 'student' && $this->parent ? ['name' => $this->parent->name, 'phone' => $this->parent->phone] : null,
+            'joined' => $this->created_at?->format('M Y'),
         ];
     }
 }

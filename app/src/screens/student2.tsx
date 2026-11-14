@@ -13,8 +13,9 @@ import { CourseLogo } from '@/components/CourseLogo';
 import { useApi } from '@/lib/useApi';
 import { useBase } from '@/lib/useBase';
 import { useAuth } from '@/lib/auth';
+import { profileLine, profileRows, splitName } from '@/lib/profile';
 import { setLearnSpace, useLearnSpaces } from '@/lib/learnSpace';
-import { BIO, CLASSROOM_INFO, FEES, PERFORMANCE, PROFILE } from '@/lib/demo';
+import { CLASSROOM_INFO, FEES, PERFORMANCE } from '@/lib/demo';
 import type { Course, LeaveSummary, LearnDetail, LearnSpace } from '@/lib/types';
 import { colors, fonts } from '@/theme/tokens';
 
@@ -278,7 +279,7 @@ export function ProfileHubScreen() {
   const base = useBase();
   const { user } = useAuth();
   const leave = useApi<LeaveSummary>('/leave-requests');
-  const fullName = user?.role === 'parent' || user?.name === PROFILE.first ? `${PROFILE.first} ${PROFILE.last}` : user?.name ?? 'Student';
+  const fullName = user?.name ?? 'Student';
   const due = FEES.due.reduce((n, f) => n + f.amount, 0);
   const go = (p: string) => () => router.push(`${base}${p}` as any);
   return (
@@ -318,23 +319,23 @@ export function BioScreen() {
       <View style={{ position: 'absolute', left: -40, right: -40, top: -12, height: 230, backgroundColor: colors.pink[0], borderBottomLeftRadius: 60, borderBottomRightRadius: 60 }} />
       <Row style={{ justifyContent: 'space-between', height: 56 }}>
         <IconButton name="chevron-back" label="Back" size={52} onPress={() => (router.canGoBack() ? router.back() : router.replace('/student/profile' as any))} />
-        <Pressable accessibilityRole="button" accessibilityLabel="Edit profile" onPress={() => demoNote('Demo: ask your madrasa office to change these details.')}
+        <Pressable accessibilityRole="button" accessibilityLabel="Edit profile" onPress={() => demoNote('To change these details, please ask your madrasa office.')}
           style={{ height: 46, paddingHorizontal: 18, borderRadius: 23, backgroundColor: '#FFF', flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <Ionicons name="pencil" size={15} color={colors.ink} /><T style={{ fontFamily: fonts.medium }}>Edit</T>
         </Pressable>
       </Row>
       <Row gap={14} style={{ marginTop: 10 }}>
         <View style={{ width: 84, height: 84, borderRadius: 42, backgroundColor: '#FFF', borderWidth: 4, borderColor: '#EAB9DF', alignItems: 'center', justifyContent: 'center' }}>
-          <T style={{ fontSize: 34, fontFamily: fonts.semibold, color: '#74266A' }}>{(user?.name ?? PROFILE.first)[0]}</T>
+          <T style={{ fontSize: 34, fontFamily: fonts.semibold, color: '#74266A' }}>{splitName(user?.name).first[0]}</T>
         </View>
-        <View>
-          <T style={{ fontSize: 24, color: '#3A1233' }}>{PROFILE.first}</T>
-          <T style={{ fontSize: 26, fontFamily: fonts.semibold, color: '#3A1233' }}>{PROFILE.last}</T>
-          <T style={{ fontSize: 13, color: '#74266A' }}>Madrasa 5 · Roll 1 · Student</T>
+        <View style={{ flex: 1 }}>
+          <T style={{ fontSize: 24, color: '#3A1233' }}>{splitName(user?.name).first}</T>
+          {splitName(user?.name).last ? <T style={{ fontSize: 26, fontFamily: fonts.semibold, color: '#3A1233' }}>{splitName(user?.name).last}</T> : null}
+          <T style={{ fontSize: 13, color: '#74266A' }}>{profileLine(user)}</T>
         </View>
       </Row>
       <T v="h2" style={{ marginTop: 26, marginBottom: 10 }}>Bio</T>
-      <DetailRows rows={BIO} />
+      <DetailRows rows={profileRows(user)} />
     </Screen>
   );
 }
@@ -347,7 +348,7 @@ export function PerformanceScreen() {
   return (
     <Screen>
       <T v="h1">Performance</T>
-      <T v="small">{PROFILE.first} {PROFILE.last} · Madrasa 5</T>
+      <T v="small">{profileLine(useAuth().user)}</T>
       <Row gap={8} style={{ marginTop: 12 }}>
         <MiniStat value={p.stats.attendance} label="Attendance" tint={colors.mint} />
         <MiniStat value={`${p.stats.stars} ★`} label="Stars" tint={colors.butter} />

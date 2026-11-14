@@ -21,6 +21,13 @@ class CourseController extends Controller
 {
     private const WITH = ['items', 'teacher', 'students'];
 
+    /** Public catalogue for the sign-up page: published courses open to everyone (no madrasa-only ones). */
+    public function catalog()
+    {
+        return Course::where('status', 'published')->where('visibility', 'all')->with(self::WITH)->latest()->get()
+            ->map(fn (Course $c) => $c->toApp(null));
+    }
+
     public function index(Request $request)
     {
         $user = $request->user();

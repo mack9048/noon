@@ -11,6 +11,14 @@ export interface User {
   board_id?: number | null;
   class_id?: number | null;
   avatar_initial?: string;
+  tenant_code?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  admission_no?: string | null;
+  board_name?: string | null;
+  class_label?: string | null;
+  parent?: { name: string; phone: string | null } | null;
+  joined?: string | null;
   /** Set while a super admin is signed in as this user ("Log in as"). */
   impersonated_by?: string;
 }

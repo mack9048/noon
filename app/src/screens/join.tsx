@@ -35,7 +35,7 @@ export function JoinScreen() {
 
   const boards = useApi<Board[]>('/boards');
   const classes = useApi<SchoolClass[]>(boardId ? `/boards/${boardId}/classes` : null);
-  const courses = useApi<Course[]>('/courses');
+  const courses = useApi<Course[]>('/catalog/courses');
 
   useEffect(() => { if (!boardId && boards.data?.length) setBoardId(boards.data[0].id); }, [boards.data, boardId]);
   useEffect(() => { setTab(wantMadrasa ? 'madrasa' : 'course'); }, [wantMadrasa]);

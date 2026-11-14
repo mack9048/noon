@@ -17,6 +17,8 @@ import { CredentialsCard, type Credential } from './admissionsPortal';
 import { requestApproval, uploadLogo } from '@/lib/approvals';
 import { api, ApiError } from '@/lib/api';
 import { useApi } from '@/lib/useApi';
+import { profileRows } from '@/lib/profile';
+import { useAuth } from '@/lib/auth';
 import { colors, fonts } from '@/theme/tokens';
 
 const TINTS = [colors.lav, colors.sky, colors.mint, colors.pink, colors.butter];
@@ -590,11 +592,16 @@ export function LessonEditScreen() {
 
 /* ---------- Admin profile & settings ---------- */
 export function AdminProfileScreen() {
+  const { user } = useAuth();
+  const students = useApi<unknown[]>('/admin/students').data;
+  const teachers = useApi<unknown[]>('/admin/teachers').data;
+  const leads = useApi<{ status: string }[]>('/admin/leads').data;
+  const open = leads?.filter((l) => !['admitted', 'lost'].includes(l.status)).length;
   return (
-    <RoleProfileScreen g={['#5B43E0', '#9B7BE8']} sub="Institute admin · Noon Madrasa, Sharjah" pill="Owner · Full access"
-      stats={[['412', 'Students'], ['18', 'Teachers'], ['94%', 'Fees collected']]} chipsTitle="My madrasa"
-      chips={[{ text: 'Sunni Vidyabhyasa Board (AP)', tint: colors.lav }, { text: 'Class 1 – 10, +1, +2', tint: colors.sky }, { text: 'Plan: Madrasa Pro', tint: colors.mint }]}
-      rows={[['Madrasa', 'Noon Madrasa, Sharjah'], ['Madrasa code', 'NM-SHJ-014'], ['Phone', '+971 50 •••• 44'], ['Email', 'admin@noonmadrasa.app'], ['Academic year', '2026 – 27'], ['Plan renews', '12 Jun 2027']]}
+    <RoleProfileScreen g={['#5B43E0', '#9B7BE8']} sub={`Institute admin · ${user?.tenant_name ?? ''}`} pill="Admin · Full access"
+      stats={[[String(students?.length ?? '–'), 'Students'], [String(teachers?.length ?? '–'), 'Teachers'], [String(open ?? '–'), 'Open enquiries']]} chipsTitle="My institution"
+      chips={[{ text: user?.tenant_name ?? 'My institution', tint: colors.lav }, ...(user?.tenant_code ? [{ text: `Code ${user.tenant_code}`, tint: colors.sky }] : []), { text: 'Admissions · Live classes', tint: colors.mint }]}
+      rows={profileRows(user)}
       tiles={[
         { label: 'Madrasa info', icon: 'business-outline', tint: colors.lav, href: '/admin/settings' },
         { label: 'Batches', icon: 'people-outline', tint: colors.sky, href: '/admin/batches' },
