@@ -1,1 +1,1 @@
-export { GameNewScreen as default } from '@/screens/super2';
+export { GameFormScreen as default } from '@/screens/htmlGames';

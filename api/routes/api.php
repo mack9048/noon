@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\CourseRequestController;
 use App\Http\Controllers\Api\CatalogController;
 use App\Http\Controllers\Api\ChatController;
 use App\Http\Controllers\Api\CourseController;
+use App\Http\Controllers\Api\GameController;
 use App\Http\Controllers\Api\ImpersonationController;
 use App\Http\Controllers\Api\LearnController;
 use App\Http\Controllers\Api\LeaveController;
@@ -47,6 +48,8 @@ Route::middleware('throttle:auth')->group(function () {
 });
 Route::get('/boards', [CatalogController::class, 'boards']);
 Route::get('/catalog/courses', [CourseController::class, 'catalog']);
+// An uploaded HTML game; only reachable through the short-lived signed link from /games/{id}/play.
+Route::get('/games/{id}/file', [GameController::class, 'file'])->whereNumber('id')->name('games.file')->middleware('signed:relative');
 // Public admission form (from the link the madrasa shares)
 Route::post('/apply/{code}', [AdmissionController::class, 'apply'])->middleware('throttle:join');
 Route::get('/portal/{code}', [AdmissionController::class, 'portal'])->middleware('throttle:60,1');
@@ -72,6 +75,9 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     // A student's subjects and courses, and each one's materials, syllabus, assessments, exams, results, report card
     Route::get('/learn', [LearnController::class, 'index']);
     Route::get('/learn/{type}/{id}', [LearnController::class, 'show'])->whereIn('type', ['subject', 'course'])->whereNumber('id');
+
+    Route::get('/games', [GameController::class, 'index']);
+    Route::get('/games/{id}/play', [GameController::class, 'play'])->whereNumber('id');
 
     Route::get('/study-tools', [StudyToolController::class, 'index']);
     Route::post('/study-tools/{tool}/open', [StudyToolController::class, 'open']);
@@ -149,6 +155,12 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::post('/courses/{course}/logo', [CourseRequestController::class, 'logo']);
         Route::get('/approvals', [CourseRequestController::class, 'index']);
         Route::patch('/approvals/{course}', [CourseRequestController::class, 'decide']);
+
+        Route::get('/games', [GameController::class, 'adminIndex']);
+        Route::post('/games', [GameController::class, 'store']);
+        Route::post('/games/reorder', [GameController::class, 'reorder']);
+        Route::post('/games/{id}', [GameController::class, 'update'])->whereNumber('id');
+        Route::delete('/games/{id}', [GameController::class, 'destroy'])->whereNumber('id');
 
         Route::get('/study-tools', [StudyToolController::class, 'superIndex']);
         Route::post('/study-tools', [StudyToolController::class, 'store']);

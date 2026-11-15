@@ -1,1 +1,1 @@
-export { GamesAdminScreen as default } from '@/screens/super2';
+export { GamesAdminScreen as default } from '@/screens/htmlGames';

@@ -211,6 +211,29 @@ const campaignStats = (c: MockCampaign) => {
   return { ...c, is_open: c.status === 'open', leads: ls.length, applications: ls.filter((l) => l.admission).length, admitted, seats_left: c.seats == null ? null : Math.max(0, c.seats - admitted) };
 };
 
+
+// ---- Uploaded HTML games (super admin) ----
+const SAMPLE_GAME = `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0;font-family:sans-serif;background:linear-gradient(#8ED8F8,#F6EDD6);height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px}h1{color:#1B3A8C}.row{display:flex;gap:12px}button{font-size:44px;width:90px;height:90px;border-radius:22px;border:0;background:#fff;box-shadow:0 6px 0 #9FCFE6;cursor:pointer}p{font-size:20px;color:#1B3A8C}</style></head><body><h1>Find the letter ب</h1><div class="row"><button>ت</button><button>ب</button><button>ث</button></div><p id="m">Tap the right letter</p><script>document.querySelectorAll('button').forEach(b=>b.onclick=()=>{document.getElementById('m').textContent=b.textContent==='ب'?'MashaAllah! ★★★':'Try again'})</script></body></html>`;
+type MockGame = { id: number; title: string; description: string | null; thumbnail_url: string | null; mode: 'solo' | 'group'; audience: 'all' | 'students' | 'guests'; tenant_ids: number[]; age_group: string | null; status: 'live' | 'draft'; position: number; plays: number; html_size: number; html_url: string; updated: string };
+let htmlGames: MockGame[] = [
+  { id: 1, title: 'Find the Letter', description: 'Tap the right Arabic letter.', thumbnail_url: null, mode: 'solo', audience: 'all', tenant_ids: [], age_group: '4–6', status: 'live', position: 1, plays: 128, html_size: SAMPLE_GAME.length, html_url: 'data:text/html;charset=utf-8,' + encodeURIComponent(SAMPLE_GAME), updated: '2 days ago' },
+  { id: 2, title: 'Class Quiz Race', description: 'Teams race to answer.', thumbnail_url: null, mode: 'group', audience: 'students', tenant_ids: [], age_group: '9–12', status: 'live', position: 2, plays: 54, html_size: SAMPLE_GAME.length, html_url: 'data:text/html;charset=utf-8,' + encodeURIComponent(SAMPLE_GAME), updated: 'last week' },
+];
+const gamePublic = ({ id, title, description, thumbnail_url, mode, age_group, plays }: MockGame) => ({ id, title, description, thumbnail_url, mode, age_group, plays });
+const gameAdmin = ({ html_url, ...g }: MockGame) => g;
+const formGame = (b: any, prev?: MockGame): MockGame => {
+  const get = (k: string) => (typeof FormData !== 'undefined' && b instanceof FormData ? b.get(k) : b?.[k]);
+  const title = String(get('title') ?? prev?.title ?? '').trim();
+  if (title.length < 2) throw new Error('Give the game a name.');
+  const html = get('html') as any; const thumb = get('thumbnail') as any;
+  const blobUrl = (f: any) => (f && typeof f === 'object' && 'size' in f && typeof URL !== 'undefined' ? URL.createObjectURL(f) : null);
+  if (!prev && !html) throw new Error('Choose the game\'s .html file.');
+  const ids = String(get('tenant_ids') ?? '').split(',').filter(Boolean).map(Number);
+  return { id: prev?.id ?? nextId++, title, description: String(get('description') ?? '') || null, mode: (get('mode') ?? prev?.mode ?? 'solo') as any, audience: (get('audience') ?? prev?.audience ?? 'all') as any,
+    tenant_ids: ids, age_group: String(get('age_group') ?? '') || null, status: (get('status') ?? prev?.status ?? 'draft') as any, position: prev?.position ?? htmlGames.length + 1, plays: prev?.plays ?? 0,
+    html_size: html?.size ?? prev?.html_size ?? 0, html_url: blobUrl(html) ?? prev?.html_url ?? '', thumbnail_url: get('remove_thumbnail') ? null : blobUrl(thumb) ?? prev?.thumbnail_url ?? null, updated: 'Just now' };
+};
+
 type Handler = (m: RegExpMatchArray, body: any) => unknown;
 const routes: [string, RegExp, Handler][] = [
   ['POST', /^\/auth\/login$/, (_, b) => {
@@ -451,6 +474,14 @@ const routes: [string, RegExp, Handler][] = [
       notes: b.message ? [{ text: b.message, by: null, at: nowStr() }] : [], campaign: c ? { id: c.id, title: c.title } : null, admission: null, when: 'Just now' }, ...leads];
     return { ok: true, institution: 'Noon Demo Madrasa' };
   }],
+  // ---- Uploaded HTML games ----
+  ['GET', /^\/games$/, () => htmlGames.filter((g) => g.status === 'live' && (me?.tenant_id ? g.audience !== 'guests' : g.audience !== 'students')).sort((a, b) => a.position - b.position).map(gamePublic)],
+  ['GET', /^\/games\/(\d+)\/play$/, (m) => { const g = htmlGames.find((x) => x.id === +m[1]); if (!g) throw new Error('This game is not available.'); g.plays++; return { game: gamePublic(g), url: g.html_url }; }],
+  ['GET', /^\/super\/games$/, () => [...htmlGames].sort((a, b) => a.position - b.position).map(gameAdmin)],
+  ['POST', /^\/super\/games$/, (_, b) => { const g = formGame(b); htmlGames = [...htmlGames, g]; return gameAdmin(g); }],
+  ['POST', /^\/super\/games\/reorder$/, (_, b) => { (b?.ids ?? []).forEach((id: number, i: number) => { const g = htmlGames.find((x) => x.id === id); if (g) g.position = i + 1; }); return [...htmlGames].sort((a, c) => a.position - c.position).map(gameAdmin); }],
+  ['POST', /^\/super\/games\/(\d+)$/, (m, b) => { const prev = htmlGames.find((x) => x.id === +m[1]); if (!prev) throw new Error('Game not found.'); const g = formGame(b, prev); htmlGames = htmlGames.map((x) => (x.id === g.id ? g : x)); return gameAdmin(g); }],
+  ['DELETE', /^\/super\/games\/(\d+)$/, (m) => { htmlGames = htmlGames.filter((x) => x.id !== +m[1]); return null; }],
 ];
 
 export async function mockRequest<T>(method: string, path: string, body?: unknown): Promise<T> {

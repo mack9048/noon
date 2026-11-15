@@ -12,6 +12,7 @@ import { useBase } from '@/lib/useBase';
 import { useAuth } from '@/lib/auth';
 import { isVip, useVip } from '@/lib/vip';
 import { colors, fonts } from '@/theme/tokens';
+import { UploadedGames } from './htmlGames';
 
 const back = (base: string) => () => (router.canGoBack() ? router.back() : router.replace(base as any));
 
@@ -110,6 +111,8 @@ export function PlayLandScreen() {
             <View style={{ backgroundColor: '#FFF', borderRadius: 16, height: 32, paddingHorizontal: 14, justifyContent: 'center' }}><T style={{ fontFamily: fonts.semibold, color: '#C2560E' }}>{vip ? 'Plans' : 'See plans'}</T></View>
           </LinearGradient>
         </Pressable>
+
+        <UploadedGames />
 
         <Row gap={8} style={{ marginTop: 14, flexWrap: 'wrap' }}>
           {([['all', 'All'], ['letters', 'أ Letters'], ['quran', 'Quran puzzles'], ['fun', 'Fun']] as const).map(([k, l]) => {
