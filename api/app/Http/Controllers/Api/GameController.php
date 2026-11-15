@@ -24,7 +24,7 @@ class GameController extends Controller
         return Game::query()->visibleTo($request->user())->get()->map(fn (Game $g) => $g->toApp());
     }
 
-    /** A link to the game file that works for 3 hours. Counts one play. */
+    /** A link to the game file that works for 3 hours. */
     public function play(Request $request, int $id)
     {
         $game = Game::findOrFail($id);
@@ -32,21 +32,20 @@ class GameController extends Controller
         if (! $user->hasRole('super') && ! $game->isVisibleTo($user)) {
             abort(404);
         }
-        if (! $user->hasRole('super')) {
-            $game->increment('plays');
-        }
-
         // Sign only the path, so the link still checks out behind the host's HTTPS proxy.
-        $path = URL::temporarySignedRoute('games.file', now()->addHours(3), ['id' => $game->id], absolute: false);
+        $path = URL::temporarySignedRoute('games.file', now()->addHours(3), ['id' => $game->id, 'p' => $user->hasRole('super') ? 0 : 1], absolute: false);
 
         return ['game' => $game->toApp(), 'url' => rtrim(config('app.url'), '/').$path];
     }
 
     /** The game itself (signed link only). */
-    public function file(int $id)
+    public function file(Request $request, int $id)
     {
         $game = Game::findOrFail($id);
         abort_unless(Storage::disk('local')->exists($game->html_path), 404);
+        if ($request->query('p') === '1') {
+            $game->increment('plays'); // counted when the game actually loads (a super admin's test play is not counted)
+        }
 
         return response(Storage::disk('local')->get($game->html_path), 200, [
             'Content-Type' => 'text/html; charset=utf-8',
