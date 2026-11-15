@@ -234,7 +234,7 @@ function WhatsAppLogin() {
   return (
     <>
       <IconField label="WhatsApp number" icon="logo-whatsapp" value={phone} onChangeText={(v) => { setPhone(v); if (sent) { setSent(false); setOtp(''); } }} keyboardType="phone-pad" autoComplete="tel"
-        placeholder="WhatsApp number with country code, e.g. +973…" returnKeyType="send" onSubmitEditing={() => valid && !sent && send()} />
+        placeholder="WhatsApp number, e.g. +91 95626 51864" returnKeyType="send" onSubmitEditing={() => valid && !sent && send()} />
       {sent ? (
         <IconField label="6-digit code" icon="keypad-outline" value={otp} onChangeText={(v) => setOtp(v.replace(/\D/g, '').slice(0, 6))} keyboardType="number-pad"
           autoComplete="one-time-code" placeholder="6-digit code from WhatsApp" returnKeyType="go" onSubmitEditing={() => otp.length === 6 && verify()} />
@@ -306,7 +306,7 @@ export function ForgotPasswordScreen() {
               autoComplete="email" placeholder="you@example.com" onSubmitEditing={() => valid && send()} />
           ) : (
             <IconField label="Registered mobile number" icon="call-outline" value={login} onChangeText={setLogin} keyboardType="phone-pad" autoComplete="tel"
-              placeholder="+91 / +971 …" onSubmitEditing={() => valid && send()} />
+              placeholder="+91 …" onSubmitEditing={() => valid && send()} />
           )}
           {err ? <Notice text={err} tone="error" /> : null}
           <Button title="Send code" icon="paper-plane-outline" onPress={send} loading={busy} disabled={!valid} />

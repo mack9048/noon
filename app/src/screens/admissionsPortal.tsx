@@ -198,7 +198,7 @@ export function NewStudentScreen() {
       </Panel>
       <Panel title="PARENT">
         <Input label="Parent name" value={f.parent_name} onChangeText={set('parent_name')} placeholder="Father / mother / guardian" />
-        <Input label="WhatsApp number" value={f.parent_phone} onChangeText={set('parent_phone')} placeholder="+971 50 123 4567" keyboardType="phone-pad" />
+        <Input label="WhatsApp number" value={f.parent_phone} onChangeText={set('parent_phone')} placeholder="+91 98765 43210" keyboardType="phone-pad" />
         <Input label="Parent email (optional)" value={f.parent_email} onChangeText={set('parent_email')} keyboardType="email-address" autoCapitalize="none" />
         <T v="small">If this phone already has a parent login here (a brother or sister studies here), the same parent account is used.</T>
       </Panel>
@@ -401,7 +401,7 @@ function AddLeadModal({ visible, campaigns, onClose, onSaved }: { visible: boole
       <Card style={{ gap: 12 }}>
         <Input label="Student name" value={f.student_name} onChangeText={set('student_name')} />
         <Input label="Parent name" value={f.parent_name} onChangeText={set('parent_name')} />
-        <Input label="Phone / WhatsApp" value={f.phone} onChangeText={set('phone')} placeholder="+971 50 123 4567" keyboardType="phone-pad" />
+        <Input label="Phone / WhatsApp" value={f.phone} onChangeText={set('phone')} placeholder="+91 98765 43210" keyboardType="phone-pad" />
         <Row gap={10}>
           <Select label="Class" value={f.cls} options={CLASSES} onChange={set('cls')} />
           <Select label="Source" value={f.source} options={SOURCES.map(([k, l]) => ({ key: k, label: l }))} onChange={set('source')} />
@@ -609,7 +609,7 @@ export function PublicAdmissionScreen() {
               <T v="small">Leave your details and the office will call or message you.</T>
               <Input label="Student name" value={f.student_name} onChangeText={set('student_name')} />
               <Input label="Your name" value={f.parent_name} onChangeText={set('parent_name')} />
-              <Input label="WhatsApp number" value={f.phone} onChangeText={set('phone')} placeholder="+971 50 123 4567" keyboardType="phone-pad" />
+              <Input label="WhatsApp number" value={f.phone} onChangeText={set('phone')} placeholder="+91 98765 43210" keyboardType="phone-pad" />
               <Row gap={10}><Input label="Email (optional)" value={f.email} onChangeText={set('email')} keyboardType="email-address" autoCapitalize="none" /><Select label="Class" value={f.cls} options={[{ key: '', label: '—' }, ...(c?.classes.length ? c.classes : CLASSES).map((x) => ({ key: x, label: x }))]} onChange={set('cls')} /></Row>
               <Input label="Message (optional)" value={f.message} onChangeText={set('message')} multiline />
               {err ? <T style={{ color: colors.red }}>{err}</T> : null}
@@ -673,7 +673,7 @@ export function AdminTeachersRealScreen() {
           <Card style={{ gap: 12 }}>
             <Input label="Full name" value={f.name} onChangeText={set('name')} placeholder="eg. Ustad Ahmed" />
             <Input label="Email (login)" value={f.email} onChangeText={set('email')} keyboardType="email-address" autoCapitalize="none" />
-            <Input label="Phone / WhatsApp" value={f.phone} onChangeText={set('phone')} keyboardType="phone-pad" placeholder="+971 50 123 4567" />
+            <Input label="Phone / WhatsApp" value={f.phone} onChangeText={set('phone')} keyboardType="phone-pad" placeholder="+91 98765 43210" />
             <Input label="Password (optional)" value={f.password} onChangeText={set('password')} autoCapitalize="none" placeholder="Leave empty to create one" />
             <T v="small">Give an email or a phone number; the teacher logs in with it.</T>
             {err ? <T style={{ color: colors.red }}>{err}</T> : null}
