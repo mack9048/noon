@@ -6,6 +6,7 @@ use App\Services\Sms\LogOtpSender;
 use App\Services\Sms\Msg91OtpSender;
 use App\Services\Sms\OtpSender;
 use App\Services\Sms\TwilioOtpSender;
+use App\Services\Sms\WhatsAppOtpSender;
 use App\Support\Phone;
 use App\Tenancy\TenantContext;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -21,6 +22,8 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app->bind(OtpSender::class, fn () => match (config('noon.otp.driver')) {
             'msg91' => new Msg91OtpSender((string) config('noon.msg91.auth_key'), (string) config('noon.msg91.otp_template_id')),
+            'whatsapp' => new WhatsAppOtpSender((string) config('noon.whatsapp.token'), (string) config('noon.whatsapp.phone_number_id'),
+                (string) config('noon.whatsapp.template'), (string) config('noon.whatsapp.language'), (bool) config('noon.whatsapp.copy_button')),
             'twilio' => new TwilioOtpSender((string) config('noon.twilio.sid'), (string) config('noon.twilio.token'), (string) config('noon.twilio.from')),
             default => new LogOtpSender,
         });

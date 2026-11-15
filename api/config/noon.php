@@ -10,11 +10,20 @@ return [
     'default_country_code' => env('DEFAULT_COUNTRY_CODE', '91'),
 
     'otp' => [
-        'driver' => env('OTP_DRIVER', 'log'),      // log | msg91 | twilio
+        'driver' => env('OTP_DRIVER', 'log'),      // log | whatsapp | msg91 | twilio
         'ttl_minutes' => (int) env('OTP_TTL_MINUTES', 5),
         'resend_after_seconds' => (int) env('OTP_RESEND_AFTER', 30),
         // Local demos only; ignored when APP_ENV=production.
         'fixed_code' => env('OTP_FIXED_CODE'),
+    ],
+
+    // WhatsApp Business Cloud API (Meta): codes for login and forgot password arrive on WhatsApp.
+    'whatsapp' => [
+        'token' => env('WHATSAPP_TOKEN'),
+        'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID'),
+        'template' => env('WHATSAPP_OTP_TEMPLATE', 'noon_login_code'),
+        'language' => env('WHATSAPP_TEMPLATE_LANG', 'en'),
+        'copy_button' => (bool) env('WHATSAPP_COPY_BUTTON', true),
     ],
 
     'msg91' => [

@@ -249,6 +249,8 @@ const routes: [string, RegExp, Handler][] = [
     return { token: 'demo-guest', user: me };
   }],
   ['GET', /^\/auth\/me$/, () => me],
+  ['POST', /^\/auth\/otp\/request$/, () => ({ message: 'If this number is registered, a code has been sent.', expires_in: 300, resend_after: 30 })],
+  ['POST', /^\/auth\/otp\/verify$/, (_, b) => { if (b?.otp !== '123456') throw new Error('The code is not correct.'); me = demoUser('parent', 'Muhammed'); return { token: 'demo-otp', user: me }; }],
   ['POST', /^\/auth\/password\/forgot$/, () => ({ message: 'If this number is registered, a code has been sent.', expires_in: 300, resend_after: 30 })],
   ['PUT', /^\/me\/password$/, (_, b) => { if (!b?.current_password) throw new Error('Your current password is not correct.'); return { message: 'Password changed.' }; }],
   ['PUT', /^\/(admin|super)\/users\/(\d+)\/password$/, () => ({ message: 'New password saved.' })],

@@ -36,4 +36,21 @@ class QaFixesTest extends TestCase
             ->assertJsonPath('class_label', '5')
             ->assertJsonPath('parent.name', 'Abdul');
     }
+
+    public function test_super_admin_login_can_be_set_by_command(): void
+    {
+        \App\Models\User::create(['name' => 'Super Admin', 'email' => 'old@x.test', 'password' => 'oldpass123', 'role' => 'super']);
+        $this->artisan('noon:super-admin', ['email' => 'NoonElearn@Gmail.com', 'password' => 'Noon@977x'])->assertSuccessful();
+        $this->assertSame(1, \App\Models\User::where('role', 'super')->count());
+        $this->postJson('/api/auth/login', ['login' => 'noonelearn@gmail.com', 'password' => 'Noon@977x'])->assertOk()->assertJsonPath('user.role', 'super');
+    }
+
+    public function test_whatsapp_sender_sends_the_code_with_the_template(): void
+    {
+        \Illuminate\Support\Facades\Http::fake(['graph.facebook.com/*' => \Illuminate\Support\Facades\Http::response(['messages' => [['id' => 'x']]])]);
+        (new \App\Services\Sms\WhatsAppOtpSender('t', '123', 'noon_login_code', 'en', true))->send('971501112222', '482913');
+        \Illuminate\Support\Facades\Http::assertSent(fn ($r) => str_contains($r->url(), '/123/messages') && $r['to'] === '971501112222'
+            && $r['template']['name'] === 'noon_login_code' && $r['template']['components'][0]['parameters'][0]['text'] === '482913'
+            && $r->hasHeader('Authorization', 'Bearer t'));
+    }
 }

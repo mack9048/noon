@@ -15,6 +15,8 @@ interface AuthState {
   loading: boolean;
   /** Throws ApiError with code 'tenant_required' (and body.tenants) when the login exists in several madrasas. */
   login: (login: string, password: string, tenantCode?: string) => Promise<User>;
+  /** Log in with the 6-digit code sent on WhatsApp to the account's number. */
+  loginWithOtp: (phone: string, otp: string) => Promise<User>;
   startGuest: (data: GuestSignup) => Promise<User>;
   /** Log out. While a super admin is signed in as someone, this returns to the super admin instead. */
   logout: () => Promise<void>;
@@ -60,6 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user, loading, refresh,
     login: async (login, password, tenantCode) =>
       save(await api.post('/auth/login', { login, password, tenant_code: tenantCode, device_name: 'noon-app' })),
+    loginWithOtp: async (phone, otp) => save(await api.post('/auth/otp/verify', { phone, otp, device_name: 'noon-app' })),
     startGuest: async (data) => save(await api.post('/auth/guest', { ...data, device_name: 'noon-app' })),
     logout: async () => {
       try { await api.post('/auth/logout'); } catch { /* token may already be invalid */ }

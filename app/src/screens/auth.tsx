@@ -3,7 +3,7 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View,
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Button, Card, Row, T, Header } from '@/components/ui';
+import { Button, Card, Row, Segmented, T, Header } from '@/components/ui';
 import { NooniWelcome } from '@/components/NooniWelcome';
 import { Logo } from '@/components/Logo';
 import { InstallAppButton } from '@/components/InstallApp';
@@ -146,6 +146,7 @@ function Divider({ text }: { text: string }) {
 export function LoginScreen() {
   const { login } = useAuth();
   const { done } = useLocalSearchParams<{ done?: string }>();
+  const [mode, setMode] = useState<'password' | 'whatsapp'>('password');
   const [id, setId] = useState('');
   const [pw, setPw] = useState('');
   const [busy, setBusy] = useState(false);
@@ -183,6 +184,8 @@ export function LoginScreen() {
   return (
     <AuthLayout title="Welcome back!" subtitle="Log in to your institution, classes and courses.">
       {done === 'reset' ? <Notice text="Your password was changed. Log in with your new password." tone="ok" /> : null}
+      <Segmented value={mode} onChange={setMode} options={[{ key: 'password', label: 'Password' }, { key: 'whatsapp', label: 'WhatsApp code' }]} />
+      {mode === 'whatsapp' ? <WhatsAppLogin /> : <>
       <IconField label="Phone, email or admission no." icon="person-outline" value={id} onChangeText={setId} autoCapitalize="none" autoComplete="username"
         placeholder="Phone number or email" returnKeyType="next" />
       <IconField label="Password" icon="lock-closed-outline" value={pw} onChangeText={setPw} secure autoComplete="current-password"
@@ -192,10 +195,61 @@ export function LoginScreen() {
       </Pressable>
       {err ? <Notice text={err} tone="error" /> : null}
       <Button title="Log in" icon="log-in-outline" onPress={() => submit()} loading={busy} disabled={!id || !pw} />
+      </>}
       <Divider text="New to Noon Learn?" />
       <Button title="Sign up" kind="ghost" icon="person-add-outline" onPress={() => router.push('/signup' as any)} />
       {DEMO_LOGINS ? <DemoLogins busy={busy} onPick={(l) => submitAs(l, DEMO_PASSWORD)} /> : null}
     </AuthLayout>
+  );
+}
+
+/* ---------- Log in with a code sent on WhatsApp (username = WhatsApp number) ---------- */
+function WhatsAppLogin() {
+  const { loginWithOtp } = useAuth();
+  const [phone, setPhone] = useState('');
+  const [otp, setOtp] = useState('');
+  const [sent, setSent] = useState(false);
+  const [wait, setWait] = useState(0);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
+  const valid = phone.replace(/\D/g, '').length >= 9;
+  React.useEffect(() => { if (wait <= 0) return; const t = setTimeout(() => setWait(wait - 1), 1000); return () => clearTimeout(t); }, [wait]);
+
+  const send = async () => {
+    setBusy(true); setErr(null);
+    try {
+      const r = await api.post<{ message: string; resend_after?: number }>('/auth/otp/request', { phone: phone.trim() });
+      setSent(true); setInfo('If this WhatsApp number has a Noon Learn account, a 6-digit code is on its way.'); setWait(r.resend_after ?? 30);
+    } catch (e: any) { setErr(e instanceof ApiError ? e.friendly : 'Could not send the code. Please try again.'); } finally { setBusy(false); }
+  };
+  const verify = async () => {
+    setBusy(true); setErr(null);
+    try {
+      const u = await loginWithOtp(phone.trim(), otp.trim());
+      router.replace(homeFor(u.role) as any);
+    } catch (e: any) { setErr(e instanceof ApiError ? e.friendly : 'The code is not correct.'); } finally { setBusy(false); }
+  };
+
+  return (
+    <>
+      <IconField label="WhatsApp number" icon="logo-whatsapp" value={phone} onChangeText={(v) => { setPhone(v); if (sent) { setSent(false); setOtp(''); } }} keyboardType="phone-pad" autoComplete="tel"
+        placeholder="WhatsApp number with country code, e.g. +973…" returnKeyType="send" onSubmitEditing={() => valid && !sent && send()} />
+      {sent ? (
+        <IconField label="6-digit code" icon="keypad-outline" value={otp} onChangeText={(v) => setOtp(v.replace(/\D/g, '').slice(0, 6))} keyboardType="number-pad"
+          autoComplete="one-time-code" placeholder="6-digit code from WhatsApp" returnKeyType="go" onSubmitEditing={() => otp.length === 6 && verify()} />
+      ) : null}
+      {info && sent ? <Notice text={info} tone="ok" /> : null}
+      {err ? <Notice text={err} tone="error" /> : null}
+      {sent ? (
+        <>
+          <Button title="Log in" icon="log-in-outline" onPress={verify} loading={busy} disabled={otp.length !== 6} />
+          <Pressable accessibilityRole="button" disabled={wait > 0 || busy} onPress={send} style={{ alignSelf: 'center', paddingVertical: 4 }}>
+            <T style={{ color: wait > 0 ? colors.muted : colors.violet, fontFamily: fonts.semibold }}>{wait > 0 ? `Send again in ${wait}s` : 'Send the code again'}</T>
+          </Pressable>
+        </>
+      ) : <Button title="Send code on WhatsApp" icon="logo-whatsapp" onPress={send} loading={busy} disabled={!valid} />}
+    </>
   );
 }
 
@@ -219,7 +273,7 @@ export function ForgotPasswordScreen() {
       await api.post('/auth/password/forgot', { login: value });
       setInfo(via === 'email'
         ? `If ${value} is registered, we have emailed you a 6-digit code. Check your inbox and spam folder.`
-        : `If ${value} is registered, we have sent a 6-digit code by SMS.`);
+        : `If ${value} is registered, we have sent a 6-digit code on WhatsApp.`);
       setStep('code');
     } catch (e: any) { setErr(e instanceof ApiError ? e.friendly : 'Could not send the code.'); } finally { setBusy(false); }
   };
@@ -239,7 +293,7 @@ export function ForgotPasswordScreen() {
       {step === 'ask' ? (
         <>
           <View accessibilityRole="tablist" style={{ flexDirection: 'row', backgroundColor: colors.bg, borderRadius: 18, padding: 4 }}>
-            {([['email', 'Email', 'mail-outline'], ['phone', 'Mobile', 'call-outline']] as const).map(([k, label, icon]) => (
+            {([['email', 'Email', 'mail-outline'], ['phone', 'WhatsApp', 'logo-whatsapp']] as const).map(([k, label, icon]) => (
               <Pressable key={k} accessibilityRole="tab" accessibilityState={{ selected: via === k }} onPress={() => { setVia(k); setLogin(''); setErr(null); }}
                 style={{ flex: 1, height: 42, borderRadius: 14, flexDirection: 'row', gap: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: via === k ? '#FFF' : 'transparent' }}>
                 <Ionicons name={icon} size={17} color={via === k ? colors.violet : colors.muted} />
