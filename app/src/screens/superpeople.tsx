@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Alert, Platform, Pressable, Switch, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Button, Card, Empty, Header, Loading, Row, Screen, T } from '@/components/ui';
+import { Button, Card, Empty, Header, Loading, Row, Screen, Segmented, T } from '@/components/ui';
 import { Avatar, Band, Chips, ListRow, pastel, Section, SmallButton, Tag } from '@/components/kit';
 import { api, ApiError } from '@/lib/api';
 import { useApi } from '@/lib/useApi';
@@ -19,6 +19,7 @@ export interface UserRow {
   id: number; name: string; role: 'admin' | 'teacher' | 'parent' | 'student' | 'guest';
   login: string | null; admission_no: string | null;
   tenant_id: number | null; tenant_name: string | null; tenant_code: string | null; blocked: boolean;
+  parent?: { name: string; phone: string | null } | null;
 }
 
 const ROLE_TONE = { admin: 'lav', teacher: 'mint', parent: 'butter', student: 'sky', guest: 'white' } as const;
@@ -65,7 +66,7 @@ function UserList({ rows, showTenant }: { rows: UserRow[]; showTenant: boolean }
       {rows.map((u, i) => (
         <ListRow key={u.id} left={<Avatar name={u.name} size={44} tint={TINTS[i % 4]} />}
           title={u.name}
-          sub={[ROLE_LABEL[u.role], u.login, showTenant ? u.tenant_name : null, u.blocked ? 'Blocked' : null].filter(Boolean).join(' · ')}
+          sub={[ROLE_LABEL[u.role], u.login, u.parent ? `Parent: ${u.parent.name}${u.parent.phone ? ` · ${u.parent.phone}` : ''}` : null, showTenant ? u.tenant_name : null, u.blocked ? 'Blocked' : null].filter(Boolean).join(' · ')}
           right={<Row gap={6}>
             <SmallButton title="🔑" onPress={() => setPick(u)} />
             <SmallButton title={busyId === u.id ? 'Opening…' : 'Log in as'} filled tint={colors.violet} disabled={busyId !== null || u.blocked} onPress={() => go(u)} />
@@ -75,28 +76,28 @@ function UserList({ rows, showTenant }: { rows: UserRow[]; showTenant: boolean }
   );
 }
 
-/* ---------- All users ---------- */
-type RoleFilter = 'all' | UserRow['role'];
+/* ---------- All users: staff and students separately (parents use their child's login) ---------- */
+type Group = 'staff' | 'students' | 'guests';
 
 export function SuperUsersScreen() {
   const { tenant } = useLocalSearchParams<{ tenant?: string }>();
   const [q, setQ] = useState('');
-  const [role, setRole] = useState<RoleFilter>('all');
-  const qs = new URLSearchParams();
+  const [group, setGroup] = useState<Group>('staff');
+  const qs = new URLSearchParams({ group });
   if (q.trim()) qs.set('q', q.trim());
-  if (role !== 'all') qs.set('role', role);
   if (tenant) qs.set('tenant_id', String(tenant));
-  const { data, loading, error } = useApi<UserRow[]>(`/super/users${qs.toString() ? `?${qs}` : ''}`);
+  const { data, loading, error } = useApi<UserRow[]>(`/super/users?${qs}`);
   const tenantName = tenant && data?.[0]?.tenant_name;
   return (
     <Screen>
       <Header title={tenantName ? `People · ${tenantName}` : 'Users'} subtitle="Log in as anyone to see the app the way they see it. Every login is recorded." />
-      <SearchBox value={q} onChange={setQ} placeholder="Search name, email, admission no. or phone" />
-      <Chips value={role} onChange={setRole} options={[
-        { key: 'all', label: 'All' }, { key: 'admin', label: 'Admins' }, { key: 'teacher', label: 'Teachers' },
-        { key: 'parent', label: 'Parents' }, { key: 'student', label: 'Students' }, { key: 'guest', label: 'Guests' },
+      <Segmented value={group} onChange={setGroup} activeColor={colors.violet} options={[
+        { key: 'staff', label: 'Staff' }, { key: 'students', label: 'Students' }, ...(tenant ? [] : [{ key: 'guests' as Group, label: 'Guests' }]),
       ]} />
-      {loading && !data ? <Loading /> : error ? <Empty text={error} /> : <UserList rows={data ?? []} showTenant={!tenant} />}
+      <View style={{ height: 10 }} />
+      <SearchBox value={q} onChange={setQ} placeholder={group === 'students' ? 'Search name, admission no. or parent phone' : 'Search name, email or phone'} />
+      <T v="small" style={{ marginBottom: 8 }}>{group === 'staff' ? 'Institution admins and teachers' : group === 'students' ? 'Parents use their child\'s login, so they are shown with the student.' : 'People exploring the free app'}</T>
+      {loading && !data ? <Loading /> : error ? <Empty text={error} /> : !data?.length ? <Empty text="No one found." /> : <UserList rows={data} showTenant={!tenant} />}
     </Screen>
   );
 }
@@ -163,7 +164,7 @@ export function SuperTenantScreen() {
       <Tag text={`Code ${t.code} · ${t.plan} plan`} tone="white" />
       <Card style={{ marginTop: 14, gap: 4 }}>
         <Row style={{ justifyContent: 'space-around' }}>
-          {([['Admins', count('admin')], ['Teachers', count('teacher')], ['Parents', count('parent')], ['Students', count('student')]] as const).map(([k, v]) => (
+          {([['Admins', count('admin')], ['Teachers', count('teacher')], ['Students', count('student')]] as const).map(([k, v]) => (
             <View key={k} style={{ alignItems: 'center', padding: 8 }}><T style={{ fontSize: 22, fontFamily: fonts.semibold }}>{v}</T><T v="small">{k}</T></View>
           ))}
         </Row>
@@ -172,8 +173,10 @@ export function SuperTenantScreen() {
           <Switch accessibilityLabel="Tenant active" value={t.active} onValueChange={setActive} />
         </Row>
       </Card>
-      <Section title="People" action="See all" onAction={() => router.push(`/super/users?tenant=${t.id}` as any)} />
-      {people ? <UserList rows={people.slice(0, 12)} showTenant={false} /> : <Loading />}
+      <Section title="Staff" action="See all" onAction={() => router.push(`/super/users?tenant=${t.id}` as any)} />
+      {people ? <UserList rows={people.filter((p) => p.role === 'admin' || p.role === 'teacher')} showTenant={false} /> : <Loading />}
+      <Section title="Students" action="See all" onAction={() => router.push(`/super/users?tenant=${t.id}` as any)} />
+      {people ? <UserList rows={people.filter((p) => p.role === 'student').slice(0, 12)} showTenant={false} /> : <Loading />}
     </Screen>
   );
 }

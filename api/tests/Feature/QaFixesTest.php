@@ -53,4 +53,24 @@ class QaFixesTest extends TestCase
             && $r['template']['name'] === 'noon_login_code' && $r['template']['components'][0]['parameters'][0]['text'] === '482913'
             && $r->hasHeader('Authorization', 'Bearer t'));
     }
+
+    public function test_people_lists_split_staff_and_students_and_hide_parents(): void
+    {
+        $t = $this->madrasa('NOON01');
+        $admin = $this->member($t, 'admin', ['name' => 'Office']);
+        $this->member($t, 'teacher', ['name' => 'Ustad']);
+        $parent = $this->member($t, 'parent', ['name' => 'Abdul', 'phone' => '919562651864']);
+        $this->member($t, 'student', ['name' => 'Rayan', 'parent_id' => $parent->id]);
+        $boss = \App\Models\User::create(['name' => 'Boss', 'email' => 'boss@x.test', 'password' => 'secret123', 'role' => 'super']);
+
+        $names = fn ($res) => collect($res->assertOk()->json())->pluck('name')->sort()->values()->all();
+        $this->assertSame(['Office', 'Ustad'], $names($this->as($boss)->getJson('/api/super/users?group=staff')));
+        $students = $this->as($boss)->getJson('/api/super/users?group=students')->assertOk()->json();
+        $this->assertSame('Rayan', $students[0]['name']);
+        $this->assertSame('Abdul', $students[0]['parent']['name']);
+        $this->assertNotContains('Abdul', $names($this->as($boss)->getJson('/api/super/users')));
+        $this->assertSame(['Office', 'Ustad'], $names($this->as($admin)->getJson('/api/admin/people?group=staff')));
+        $this->assertSame(['Rayan'], $names($this->as($admin)->getJson('/api/admin/people?group=students')));
+    }
 }
+

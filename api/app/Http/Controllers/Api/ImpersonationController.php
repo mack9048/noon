@@ -22,10 +22,15 @@ class ImpersonationController extends Controller
             'q' => ['nullable', 'string', 'max:80'],
             'tenant_id' => ['nullable', 'integer'],
             'role' => ['nullable', 'in:admin,teacher,student,parent,guest'],
+            'group' => ['nullable', 'in:staff,students,guests'],
         ]);
+        // Parents sign in with their child's login, so they are not listed on their own.
+        $roles = ['staff' => ['admin', 'teacher'], 'students' => ['student'], 'guests' => ['guest']][$data['group'] ?? ''] ?? null;
 
-        return User::query()->with('tenant')
+        return User::query()->with(['tenant', 'parent'])
             ->where('role', '!=', 'super')
+            ->when(! ($data['role'] ?? null), fn ($q) => $q->where('role', '!=', 'parent'))
+            ->when($roles, fn ($q, $r) => $q->whereIn('role', $r))
             ->when($data['tenant_id'] ?? null, fn ($q, $t) => $q->where('tenant_id', $t))
             ->when($data['role'] ?? null, fn ($q, $r) => $q->where('role', $r))
             ->when($data['q'] ?? null, fn ($q, $s) => $q->where(fn ($w) => $w
@@ -39,6 +44,7 @@ class ImpersonationController extends Controller
                 'admission_no' => $u->admission_no,
                 'tenant_id' => $u->tenant_id, 'tenant_name' => $u->tenant?->name, 'tenant_code' => $u->tenant?->code,
                 'blocked' => (bool) $u->blocked,
+                'parent' => $u->role === 'student' && $u->parent ? ['name' => $u->parent->name, 'phone' => $u->parent->phone] : null,
             ]);
     }
 

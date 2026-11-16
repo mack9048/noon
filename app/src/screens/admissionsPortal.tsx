@@ -100,7 +100,12 @@ export function AdminStudentsScreen() {
         </Row>
       </Row>
       <SearchBox value={q} onChange={setQ} placeholder="Search by name or admission no." />
-      {classes.length > 1 ? <ChoiceChips value={cls} onChange={setCls} options={[{ key: 'all', label: 'All' }, ...classes.sort().map((c) => ({ key: c, label: `Class ${c}` }))]} /> : null}
+      {classes.length > 1 ? (
+        <View style={{ maxWidth: 280, marginTop: 4, marginBottom: 6 }}>
+          <Select label="Class" value={cls} onChange={setCls} options={[{ key: 'all', label: 'All classes' },
+            ...classes.sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).map((c) => ({ key: c, label: `Class ${c}` }))]} />
+        </View>
+      ) : null}
       {loading && !data ? <Loading /> : error ? <Empty text={error} /> : !rows.length ? (
         <Card style={{ alignItems: 'center', gap: 10, padding: 24, marginTop: 10 }}>
           <T>No students yet.</T>

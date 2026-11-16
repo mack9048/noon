@@ -3,8 +3,8 @@ import React, { useState } from 'react';
 import { Modal, Pressable, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Button, Card, Empty, Header, Loading, Row, Screen, T } from '@/components/ui';
-import { Avatar, Chips, ListRow, pastel, SmallButton } from '@/components/kit';
+import { Button, Card, Empty, Header, Loading, Row, Screen, Segmented, T } from '@/components/ui';
+import { Avatar, ListRow, pastel, SmallButton } from '@/components/kit';
 import { api, ApiError } from '@/lib/api';
 import { useApi } from '@/lib/useApi';
 import { colors, fonts } from '@/theme/tokens';
@@ -105,32 +105,33 @@ export function SetPasswordModal({ person, scope, onClose }: { person: { id: num
 }
 
 /* ---------- Admin: everyone in my madrasa, with "Set password" ---------- */
-interface PersonRow { id: number; name: string; role: 'admin' | 'teacher' | 'parent' | 'student'; login: string | null; blocked: boolean }
+interface PersonRow { id: number; name: string; role: 'admin' | 'teacher' | 'parent' | 'student'; login: string | null; blocked: boolean; parent?: { name: string; phone: string | null } | null }
 const ROLE_LABEL = { admin: 'Admin', teacher: 'Teacher', parent: 'Parent', student: 'Student' } as const;
 
 export function AdminPeopleScreen() {
   const [q, setQ] = useState('');
-  const [role, setRole] = useState<'all' | PersonRow['role']>('all');
+  const [group, setGroup] = useState<'staff' | 'students'>('staff');
   const [pick, setPick] = useState<PersonRow | null>(null);
-  const qs = new URLSearchParams();
+  const qs = new URLSearchParams({ group });
   if (q.trim()) qs.set('q', q.trim());
-  if (role !== 'all') qs.set('role', role);
-  const { data, loading, error } = useApi<PersonRow[]>(`/admin/people${qs.toString() ? `?${qs}` : ''}`);
+  const { data, loading, error } = useApi<PersonRow[]>(`/admin/people?${qs}`);
   const tints = [pastel.lav, pastel.sky, pastel.mint, pastel.pink];
   return (
     <Screen>
       <Header title="People" subtitle="Everyone in your madrasa. Set a new password for anyone who forgot theirs." />
+      <Segmented value={group} onChange={setGroup} activeColor={colors.violet} options={[{ key: 'staff', label: 'Staff' }, { key: 'students', label: 'Students' }]} />
+      <View style={{ height: 10 }} />
       <Row style={{ backgroundColor: '#FFF', borderRadius: 24, borderWidth: 1.5, borderColor: colors.line, paddingHorizontal: 14, height: 48 }}>
         <Ionicons name="search" size={18} color={colors.muted} />
         <TextInput value={q} onChangeText={setQ} placeholder="Search name, email, admission no. or phone" placeholderTextColor={colors.faint} accessibilityLabel="Search people"
           style={{ flex: 1, fontFamily: fonts.regular, fontSize: 15, color: colors.ink, outlineStyle: 'none' } as any} />
       </Row>
-      <Chips value={role} onChange={setRole} options={[{ key: 'all', label: 'All' }, { key: 'teacher', label: 'Teachers' }, { key: 'student', label: 'Students' }, { key: 'parent', label: 'Parents' }, { key: 'admin', label: 'Admins' }]} />
+      <T v="small" style={{ marginVertical: 8 }}>{group === 'staff' ? 'Admins and teachers' : 'Parents use their child\'s login, so they are shown with the student.'}</T>
       {loading && !data ? <Loading /> : error ? <Empty text={error} /> : !data?.length ? <Empty text="No one found." /> : (
         <View style={{ gap: 8 }}>
           {data.map((p, i) => (
             <ListRow key={p.id} left={<Avatar name={p.name} size={44} tint={tints[i % 4]} />} title={p.name}
-              sub={[ROLE_LABEL[p.role], p.login, p.blocked ? 'Blocked' : null].filter(Boolean).join(' · ')}
+              sub={[ROLE_LABEL[p.role], p.login, p.parent ? `Parent: ${p.parent.name}${p.parent.phone ? ` · ${p.parent.phone}` : ''}` : null, p.blocked ? 'Blocked' : null].filter(Boolean).join(' · ')}
               right={<SmallButton title="🔑 Password" onPress={() => setPick(p)} />} />
           ))}
         </View>

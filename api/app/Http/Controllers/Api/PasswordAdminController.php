@@ -20,9 +20,14 @@ class PasswordAdminController extends Controller
         $data = $request->validate([
             'q' => ['nullable', 'string', 'max:80'],
             'role' => ['nullable', 'in:admin,teacher,student,parent'],
+            'group' => ['nullable', 'in:staff,students'],
         ]);
+        // Parents sign in with their child's login, so they are not listed on their own.
+        $roles = ['staff' => ['admin', 'teacher'], 'students' => ['student']][$data['group'] ?? ''] ?? null;
 
-        return User::query()->where('tenant_id', $request->user()->tenant_id)
+        return User::query()->with('parent')->where('tenant_id', $request->user()->tenant_id)
+            ->when(! ($data['role'] ?? null), fn ($q) => $q->where('role', '!=', 'parent'))
+            ->when($roles, fn ($q, $r) => $q->whereIn('role', $r))
             ->when($data['role'] ?? null, fn ($q, $r) => $q->where('role', $r))
             ->when($data['q'] ?? null, fn ($q, $s) => $q->where(fn ($w) => $w
                 ->where('name', 'like', "%{$s}%")->orWhere('email', 'like', "%{$s}%")
@@ -34,6 +39,7 @@ class PasswordAdminController extends Controller
                 'login' => $u->email ?? $u->admission_no ?? $u->phone,
                 'email' => $u->email, 'phone' => $u->phone, 'admission_no' => $u->admission_no,
                 'tenant_id' => $u->tenant_id, 'blocked' => (bool) $u->blocked,
+                'parent' => $u->role === 'student' && $u->parent ? ['name' => $u->parent->name, 'phone' => $u->parent->phone] : null,
             ]);
     }
 

@@ -190,7 +190,7 @@ const liveRow = (b: any): MockLive => {
     batch: STAFF_BATCHES.find((x) => x.id === b.batch_id) ?? null, host: me?.name ?? null };
 };
 let studentRows = mockPeople.filter((p) => p[1] === 'student').map(([name, , , adm], i) => ({
-  id: 9 + i, name, admission_no: adm, cls: i < 3 ? 'Class 5' : 'Class 3', class_id: (i < 3 ? 5 : 3) as number | null, board: 'AP', parent: ['Muhammed Ali', 'Nasrin P', 'Abdul Rahman K'][i % 3], parent_phone: `+97336${String(800100 + i)}`, blocked: false,
+  id: 9 + i, name, admission_no: adm, cls: i < 3 ? '5' : '3', class_id: (i < 3 ? 5 : 3) as number | null, board: 'AP', parent: ['Muhammed Ali', 'Nasrin P', 'Abdul Rahman K'][i % 3], parent_phone: `+97336${String(800100 + i)}`, blocked: false,
 }));
 let teacherRows = mockPeople.filter((p) => p[1] === 'teacher').map(([name, , login], i) => ({
   id: 3 + i, name, login, phone: null as string | null, email: login as string | null, blocked: false, batches: [STAFF_BATCHES[i % 2].name], subjects: [['Thajweed', 'Arabic'], ['Fiqh'], ['Akhlaq', 'Thareekh']][i] ?? [],
@@ -256,7 +256,8 @@ const routes: [string, RegExp, Handler][] = [
   ['PUT', /^\/(admin|super)\/users\/(\d+)\/password$/, () => ({ message: 'New password saved.' })],
   ['GET', /^\/admin\/people(\?(.*))?$/, (m) => {
     const p = new URLSearchParams(m[2] ?? ''); const q = (p.get('q') ?? '').toLowerCase();
-    return mockUsers.filter((u) => u.role !== 'guest' && (!p.get('role') || u.role === p.get('role')) && (!q || `${u.name} ${u.login}`.toLowerCase().includes(q)));
+    const grp = ({ staff: ['admin', 'teacher'], students: ['student'] } as Record<string, string[]>)[p.get('group') ?? ''];
+    return mockUsers.filter((u) => u.role !== 'guest' && (p.get('role') ? u.role === p.get('role') : u.role !== 'parent') && (!grp || grp.includes(u.role)) && (!q || `${u.name} ${u.login}`.toLowerCase().includes(q)));
   }],
   ['POST', /^\/auth\/password\/reset$/, (_, b) => { if (b?.otp !== '123456') throw new Error('The code is not correct.'); return { message: 'Your password has been changed.' }; }],
   ['POST', /^\/auth\/join-tenant$/, (_, b) => {
@@ -281,7 +282,8 @@ const routes: [string, RegExp, Handler][] = [
   ['GET', /^\/super\/users(\?(.*))?$/, (m) => {
     const p = new URLSearchParams(m[2] ?? '');
     const q = (p.get('q') ?? '').toLowerCase();
-    return mockUsers.filter((u) => (!p.get('role') || u.role === p.get('role')) && (!p.get('tenant_id') || String(u.tenant_id) === p.get('tenant_id'))
+    const grp = ({ staff: ['admin', 'teacher'], students: ['student'], guests: ['guest'] } as Record<string, string[]>)[p.get('group') ?? ''];
+    return mockUsers.filter((u) => (p.get('role') ? u.role === p.get('role') : u.role !== 'parent') && (!grp || grp.includes(u.role)) && (!p.get('tenant_id') || String(u.tenant_id) === p.get('tenant_id'))
       && (!q || `${u.name} ${u.login}`.toLowerCase().includes(q)));
   }],
   ['POST', /^\/super\/users\/(\d+)\/impersonate$/, (m) => {
