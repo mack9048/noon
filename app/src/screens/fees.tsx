@@ -9,6 +9,7 @@ import { Avatar, ListRow, pastel, Section, SmallButton, Tag } from '@/components
 import { ChoiceChips, DateInput, Input, Panel, Select } from '@/components/kit2';
 import { api, ApiError } from '@/lib/api';
 import { useApi } from '@/lib/useApi';
+import { useAuth } from '@/lib/auth';
 import { colors, fonts } from '@/theme/tokens';
 
 export type FeeRow = {
@@ -44,6 +45,66 @@ function downloadCsv(month: string, fees: FeeRow[]) {
   const a = (globalThis as any).document.createElement('a');
   a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv' }));
   a.download = `fees-${month}.csv`; a.click();
+}
+
+/* ---------- Printable receipt (Noon Learn header) ---------- */
+const ONES = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+const TENS = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+function words(n: number): string {
+  n = Math.floor(n);
+  if (n === 0) return 'Zero';
+  const two = (x: number) => (x < 20 ? ONES[x] : `${TENS[Math.floor(x / 10)]}${x % 10 ? ` ${ONES[x % 10]}` : ''}`);
+  const three = (x: number) => `${x >= 100 ? `${ONES[Math.floor(x / 100)]} Hundred${x % 100 ? ' ' : ''}` : ''}${x % 100 ? two(x % 100) : ''}`;
+  const parts: string[] = [];
+  const crore = Math.floor(n / 10000000), lakh = Math.floor((n % 10000000) / 100000), thou = Math.floor((n % 100000) / 1000), rest = n % 1000;
+  if (crore) parts.push(`${words(crore)} Crore`);
+  if (lakh) parts.push(`${two(lakh)} Lakh`);
+  if (thou) parts.push(`${two(thou)} Thousand`);
+  if (rest) parts.push(three(rest));
+  return parts.join(' ');
+}
+const esc = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
+
+export function downloadReceipt(f: FeeRow, institution?: string | null) {
+  if (Platform.OS !== 'web') return say('Receipts download on the web app.');
+  const paid = f.paid_amount ?? f.amount;
+  const logo = `${(globalThis as any).location.origin}/icons/noon-logo.png`;
+  const row = (k: string, v: unknown) => (v ? `<tr><th>${esc(k)}</th><td>${esc(v)}</td></tr>` : '');
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Receipt ${esc(f.receipt_no)}</title>
+<style>
+  *{box-sizing:border-box} body{margin:0;background:#EEF3F5;font-family:'Segoe UI',Roboto,Arial,sans-serif;color:#0F2A47}
+  .r{max-width:720px;margin:24px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 10px 30px rgba(15,42,71,.12)}
+  .h{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:22px 28px;border-bottom:4px solid #0E5E78;background:linear-gradient(120deg,#F3F8FF,#FFF7EE)}
+  .h img{height:54px} .h .t{text-align:right} .h b{display:block;font-size:22px;letter-spacing:.08em;color:#0E5E78} .h small{color:#5D6B80}
+  .inst{padding:14px 28px 0;font-size:18px;font-weight:700}
+  .meta{display:flex;justify-content:space-between;padding:6px 28px 14px;color:#5D6B80;font-size:14px}
+  table{width:calc(100% - 56px);margin:0 28px;border-collapse:collapse;font-size:15px}
+  th{text-align:left;width:38%;color:#5D6B80;font-weight:500;padding:9px 0;border-bottom:1px solid #E3E9F2} td{padding:9px 0;border-bottom:1px solid #E3E9F2;font-weight:600}
+  .amt{margin:18px 28px;padding:16px 20px;border-radius:12px;background:#E8F7F2;display:flex;justify-content:space-between;align-items:center}
+  .amt b{font-size:28px;color:#0E7A50} .amt span{font-size:13px;color:#2C6B55;max-width:60%}
+  .f{display:flex;justify-content:space-between;align-items:flex-end;padding:26px 28px 24px;color:#5D6B80;font-size:12px}
+  .sig{text-align:center} .sig div{width:180px;border-top:1px solid #9AA8B8;margin-bottom:4px}
+  .btn{display:block;margin:0 auto 24px;padding:12px 26px;border:0;border-radius:24px;background:#0E5E78;color:#fff;font-size:15px;cursor:pointer}
+  @media print{body{background:#fff}.r{box-shadow:none;margin:0;max-width:none;border-radius:0}.btn{display:none}}
+</style></head><body>
+<div class="r">
+  <div class="h"><img src="${logo}" alt="Noon Learn"><div class="t"><b>FEE RECEIPT</b><small>noonlearn.com</small></div></div>
+  ${institution ? `<div class="inst">${esc(institution)}</div>` : ''}
+  <div class="meta"><span>Receipt no. <b>${esc(f.receipt_no)}</b></span><span>Date: <b>${esc(f.paid_at ? dateLabel(f.paid_at) : dateLabel(new Date().toISOString().slice(0, 10)))}</b></span></div>
+  <table>
+    ${row('Student', f.student?.name)}${row('Admission no.', f.student?.admission_no)}${row('Class', f.student?.cls ? `Class ${f.student.cls}` : '')}
+    ${row('Parent', f.student?.parent)}${row('Fee', f.title)}${row('For month', monthLabel(f.month))}${row('Fee amount', rupee(f.amount))}
+    ${row('Paid by', METHOD[f.method ?? ''] ?? f.method)}${row('Note', f.note)}
+  </table>
+  <div class="amt"><span>Rupees ${esc(words(paid))} only</span><b>${esc(rupee(paid))}</b></div>
+  <div class="f"><span>This is a computer-generated receipt from Noon Learn.<br>Jazakallah khair.</span><span class="sig"><div></div>Office signature</span></div>
+</div>
+<button class="btn" onclick="window.print()">Download / Print</button>
+<script>window.onload=function(){setTimeout(function(){window.print()},400)}</script>
+</body></html>`;
+  const w = (globalThis as any).open('', '_blank');
+  if (!w) return say('Please allow pop-ups to download the receipt.');
+  w.document.open(); w.document.write(html); w.document.close();
 }
 
 /* ---------- Admin: fees of a month ---------- */
@@ -113,6 +174,7 @@ export function AdminFeesScreen() {
 }
 
 function PaySheet({ fee, onClose, onSaved }: { fee: FeeRow | null; onClose: () => void; onSaved: () => void }) {
+  const institution = useAuth().user?.tenant_name;
   const [method, setMethod] = useState<'cash' | 'upi' | 'bank' | 'card'>('cash');
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
@@ -137,6 +199,7 @@ function PaySheet({ fee, onClose, onSaved }: { fee: FeeRow | null; onClose: () =
                 <T v="h3" style={{ color: colors.mint[1] }}>Paid {rupee(fee.paid_amount ?? fee.amount)}</T>
                 <T style={{ color: colors.mint[1] }}>Receipt {fee.receipt_no} · {METHOD[fee.method ?? ''] ?? ''} · {fee.paid_at ? dateLabel(fee.paid_at) : ''}</T>
               </Card>
+              <Button title="Download receipt" icon="download-outline" onPress={() => downloadReceipt(fee, institution)} />
               <Button title="Undo payment" kind="ghost" icon="arrow-undo-outline" loading={busy} onPress={() => act(() => api.patch(`/admin/fees/${fee.id}`, { status: 'due' }))} />
             </>
           ) : fee.status === 'waived' ? (
@@ -220,6 +283,7 @@ export function AddFeesScreen({ month: initial }: { month?: string }) {
 
 /* ---------- Student / parent ---------- */
 export function MyFeesScreen() {
+  const institution = useAuth().user?.tenant_name;
   const { data, loading, error } = useApi<{ due_total: number; fees: FeeRow[] }>('/fees');
   const [view, setView] = useState<'due' | 'paid'>('due');
   const fees = data?.fees ?? [];
@@ -248,7 +312,9 @@ export function MyFeesScreen() {
           {paid.length ? paid.map((f) => (
             <ListRow key={f.id} left={<Avatar name="✓" size={44} tint={pastel.mint} />} title={f.title}
               sub={`${many ? `${f.student?.name} · ` : ''}Receipt ${f.receipt_no} · paid ${f.paid_at ? dateLabel(f.paid_at) : ''} · ${METHOD[f.method ?? ''] ?? ''}`}
-              right={<T style={{ fontFamily: fonts.semibold }}>{rupee(f.paid_amount ?? f.amount)}</T>} />
+              right={<Row gap={8}><T style={{ fontFamily: fonts.semibold }}>{rupee(f.paid_amount ?? f.amount)}</T>
+                <Pressable accessibilityRole="button" accessibilityLabel={`Download receipt ${f.receipt_no}`} onPress={() => downloadReceipt(f, institution)} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#EAF2FF', alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name="download-outline" size={18} color={colors.teal} /></Pressable></Row>} />
           )) : <Empty text="No payments yet." />}
         </View>
       )}
