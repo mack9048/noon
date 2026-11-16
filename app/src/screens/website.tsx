@@ -7,7 +7,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import { Button, Card, Loading, ErrorBox, Row, Screen, T } from '@/components/ui';
-import { BottomActions, Input, MiniStat } from '@/components/kit2';
+import { Input, MiniStat } from '@/components/kit2';
 import { api, ApiError } from '@/lib/api';
 import { useApi } from '@/lib/useApi';
 import { colors, fonts } from '@/theme/tokens';
@@ -138,6 +138,8 @@ export function WebsitePageScreen() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [open, setOpen] = useState<Record<number, boolean>>({ 0: true });
+  const [unpub, setUnpub] = useState(false);
+  useEffect(() => { if (saved) setUnpub(!!saved.changed); }, [saved]);
 
   useEffect(() => {
     if (saved && !dirty) setDraft({ fields: { ...(saved.draft?.fields ?? {}) }, lists: { ...(saved.draft?.lists ?? {}) } });
@@ -166,27 +168,50 @@ export function WebsitePageScreen() {
   const save = async () => {
     setBusy(true); setMsg(null);
     try {
-      const r = await api.put<{ draft: Partial<Draft> }>(`/super/site/${page}`, draft);
-      setDraft({ fields: { ...(r.draft?.fields ?? {}) }, lists: { ...(r.draft?.lists ?? {}) } }); setDirty(false);
-      setMsg({ ok: true, text: 'Saved as draft. Publish it from the Website page when you are ready.' });
-    } catch (e) { setMsg({ ok: false, text: e instanceof ApiError ? e.friendly : 'Could not save.' }); } finally { setBusy(false); }
+      const r = await api.put<{ draft: Partial<Draft>; changed: boolean }>(`/super/site/${page}`, draft);
+      setDraft({ fields: { ...(r.draft?.fields ?? {}) }, lists: { ...(r.draft?.lists ?? {}) } }); setDirty(false); setUnpub(!!r.changed);
+      setMsg({ ok: true, text: 'Saved as a draft — not on the website yet. Press Publish now to make it live.' });
+      return true;
+    } catch (e) { setMsg({ ok: false, text: e instanceof ApiError ? e.friendly : 'Could not save.' }); return false; } finally { setBusy(false); }
   };
   const discard = async () => {
     if (!ask('Throw away the changes on this page that are not published yet?')) return;
     setBusy(true);
-    try { await api.post(`/super/site/${page}/discard`); setDirty(false); reload(); setMsg({ ok: true, text: 'Changes thrown away.' }); }
+    try { await api.post(`/super/site/${page}/discard`); setDirty(false); setUnpub(false); reload(); setMsg({ ok: true, text: 'Changes thrown away.' }); }
     catch (e) { setMsg({ ok: false, text: e instanceof ApiError ? e.friendly : 'Could not do that.' }); } finally { setBusy(false); }
   };
 
+  const publishNow = async () => {
+    if (!ask('Publish to the live website now? (This also publishes changes saved on other pages.)')) return;
+    if (dirty && !(await save())) return;
+    setBusy(true);
+    try {
+      const r = await api.post<{ deploy: string }>('/super/site/publish');
+      setUnpub(false);
+      setMsg(r.deploy === 'started' ? { ok: true, text: 'Published! The website is rebuilding — reload it in about 1–2 minutes.' }
+        : r.deploy === 'not_configured' ? { ok: true, text: 'Published, but the website rebuild is not set up (SITE_DEPLOY_HOOK).' }
+          : { ok: false, text: 'Saved as published, but the website rebuild did not start. Try Publish again in a minute.' });
+    } catch (e) { setMsg({ ok: false, text: e instanceof ApiError ? e.friendly : 'Could not publish.' }); } finally { setBusy(false); }
+  };
+  const actions = (
+    <View style={{ gap: 8, marginTop: 12 }}>
+      {dirty ? (
+        <Row gap={10}>
+          <Button kind="ghost" title="Save draft" icon="save-outline" onPress={save} loading={busy} style={{ flex: 1 }} />
+          <Button title="Save & publish" icon="rocket-outline" onPress={publishNow} loading={busy} style={{ flex: 1 }} />
+        </Row>
+      ) : unpub ? (
+        <Row gap={10}>
+          <Button kind="ghost" title="Discard changes" onPress={discard} loading={busy} style={{ flex: 1 }} />
+          <Button title="Publish now" icon="rocket-outline" onPress={publishNow} loading={busy} style={{ flex: 1 }} />
+        </Row>
+      ) : <T v="small" style={{ color: colors.green }}>✓ Everything on this page is live. Edit below, then Save & publish.</T>}
+    </View>
+  );
   const sectionEdited = (s: Section) => s.blocks.some((b) => (b.type === 'field' ? draft.fields[b.key] != null : draft.lists[b.key] != null));
 
   return (
-    <Screen bottomSpace={180} overlay={(
-      <BottomActions>
-        {saved?.changed && !dirty ? <Button kind="ghost" title="Discard" onPress={discard} style={{ flex: 1 }} /> : null}
-        <Button title={dirty ? 'Save draft' : 'Saved'} icon="save-outline" onPress={save} loading={busy} disabled={!dirty} style={{ flex: 2 }} />
-      </BottomActions>
-    )}>
+    <Screen>
       <Row style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <View style={{ flex: 1 }}>
           <T v="label">WEBSITE{sp.shared ? ' · ON EVERY PAGE' : ''}</T>
@@ -201,6 +226,7 @@ export function WebsitePageScreen() {
       </T>
       {msg ? <T style={{ marginTop: 8, color: msg.ok ? colors.green : colors.red }}>{msg.text}</T> : null}
       {dirty ? <T style={{ marginTop: 6, color: colors.butter[1], fontFamily: fonts.medium }}>Unsaved changes</T> : null}
+      {actions}
 
       <View style={{ gap: 10, marginTop: 12 }}>
         {sp.sections.map((s, si) => {
@@ -226,6 +252,8 @@ export function WebsitePageScreen() {
           );
         })}
       </View>
+      {msg ? <T style={{ marginTop: 12, color: msg.ok ? colors.green : colors.red }}>{msg.text}</T> : null}
+      {actions}
     </Screen>
   );
 }
@@ -274,7 +302,7 @@ function FieldEditor({ f, value, edited, onChange, site, label }: { f: Field; va
   return (
     <View style={{ gap: 6 }}>
       {title}
-      <Input accessibilityLabel={label ?? f.label} value={value} onChangeText={onChange} multiline={f.kind === 'long'} placeholder={f.kind === 'link' ? 'https://… or /page' : '(hidden)'}
+      <Input accessibilityLabel={label ?? f.label} value={value} onChangeText={onChange} multiline={f.kind === 'long' || value.includes('\n')} placeholder={f.kind === 'link' ? 'https://… or /page' : '(hidden)'}
         keyboardType={f.kind === 'number' ? 'number-pad' : f.kind === 'link' ? 'url' : 'default'} autoCapitalize={f.kind === 'link' ? 'none' : 'sentences'} />
     </View>
   );
