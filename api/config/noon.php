@@ -26,6 +26,13 @@ return [
         'copy_button' => (bool) env('WHATSAPP_COPY_BUTTON', true),
     ],
 
+    // The public website (www.noonlearn.com). Publishing website edits calls the Vercel deploy hook
+    // (Vercel → project → Settings → Git → Deploy Hooks) so the site rebuilds with the new content.
+    'site' => [
+        'url' => env('SITE_URL', 'https://www.noonlearn.com'),
+        'deploy_hook' => env('SITE_DEPLOY_HOOK'),
+    ],
+
     'msg91' => [
         'auth_key' => env('MSG91_AUTH_KEY'),
         'otp_template_id' => env('MSG91_OTP_TEMPLATE_ID'),

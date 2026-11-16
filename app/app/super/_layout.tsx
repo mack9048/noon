@@ -4,7 +4,7 @@ import { RoleGate } from '@/components/RoleGate';
 import { MoreMenu, SUPER_MORE } from '@/screens/more';
 
 const items: NavItem[] = [
-  { href: '/super', label: 'Overview', icon: 'grid-outline', match: ['/super/profile', '/super/settings', '/super/games'] },
+  { href: '/super', label: 'Overview', icon: 'grid-outline', match: ['/super/profile', '/super/settings', '/super/games', '/super/website'] },
   { href: '/super/tenants', label: 'Tenants', icon: 'business-outline', match: ['/super/users'] },
   { href: '/super/content', label: 'Content', icon: 'albums-outline', match: ['/super/tools', '/super/courses', '/super/approvals'] },
   { href: '/super/billing', label: 'Billing', icon: 'card-outline' },

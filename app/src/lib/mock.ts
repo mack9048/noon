@@ -247,6 +247,11 @@ const feeApp = (f: MockFee) => {
 };
 
 
+// ---- Website editor ----
+let mockSite: Record<string, { draft: any; published: any }> = {};
+let mockSitePublish: any = null;
+const siteChanged = (p: { draft: any; published: any }) => JSON.stringify(p.draft ?? {}) !== JSON.stringify(p.published ?? {});
+
 // ---- Institution settings & attendance ----
 let mockInstitution = { id: 1, name: 'Noon Demo Madrasa', code: 'DEMO01', plan: 'pro', active: true, phone: '+91 95626 51864', address: 'Kozhikode, Kerala', academic_year: '2026–27', default_fee: 800 as number | null };
 let mockAttendance: { student_id: number; date: string; status: string; batch_id: number }[] = [];
@@ -529,6 +534,13 @@ const routes: [string, RegExp, Handler][] = [
   ['PATCH', /^\/admin\/fees\/(\d+)$/, (m, b) => { mockFees = mockFees.map((f) => (f.id === +m[1] ? { ...f, ...b, ...(b.status === 'due' ? { paid_amount: null, paid_at: null, method: null } : {}) } : f)); return feeApp(mockFees.find((f) => f.id === +m[1])!); }],
   ['DELETE', /^\/admin\/fees\/(\d+)$/, (m) => { mockFees = mockFees.filter((f) => f.id !== +m[1]); return null; }],
   ['GET', /^\/fees$/, () => { const mine = mockFees.filter((f) => f.student_id === 9).map(feeApp); return { due_total: mine.filter((f) => f.status === 'due').reduce((n, f) => n + f.amount, 0), fees: mine }; }],
+  ['GET', /^\/super\/site$/, () => ({ pages: Object.entries(mockSite).map(([page, p]) => ({ page, changed: siteChanged(p), edits: Object.keys(p.draft?.fields ?? {}).length + Object.keys(p.draft?.lists ?? {}).length, updated_at: null, published_at: null })),
+    unpublished: Object.values(mockSite).filter(siteChanged).length, last_publish: mockSitePublish, deploy_hook: false, site_url: 'https://www.noonlearn.com' })],
+  ['POST', /^\/super\/site\/publish$/, () => { let n = 0; Object.values(mockSite).forEach((p) => { if (siteChanged(p)) { p.published = p.draft; n++; } }); mockSitePublish = { at: new Date().toISOString(), by: 'Super Admin', pages: n, deploy: 'not_configured' }; return mockSitePublish; }],
+  ['POST', /^\/super\/site\/upload$/, () => ({ url: '/assets/nooni-boy.webp' })],
+  ['GET', /^\/super\/site\/([a-z-]+)$/, (m) => { const p = mockSite[m[1]]; return { page: m[1], draft: p?.draft ?? {}, published: p?.published ?? {}, changed: p ? siteChanged(p) : false }; }],
+  ['PUT', /^\/super\/site\/([a-z-]+)$/, (m, b) => { mockSite[m[1]] = { draft: { fields: b.fields ?? {}, lists: b.lists ?? {} }, published: mockSite[m[1]]?.published ?? null }; const p = mockSite[m[1]]; return { page: m[1], draft: p.draft, published: p.published ?? {}, changed: siteChanged(p) }; }],
+  ['POST', /^\/super\/site\/([a-z-]+)\/discard$/, (m) => { const p = mockSite[m[1]]; if (p) { if (p.published) p.draft = p.published; else delete mockSite[m[1]]; } const q = mockSite[m[1]]; return { page: m[1], draft: q?.draft ?? {}, published: q?.published ?? {}, changed: false }; }],
   ['GET', /^\/admin\/institution$/, () => ({ ...mockInstitution, counts: { students: studentRows.length, teachers: teacherRows.length, admins: 1 } })],
   ['PUT', /^\/admin\/institution$/, (_, b) => { mockInstitution = { ...mockInstitution, ...b }; return { ...mockInstitution, counts: { students: studentRows.length, teachers: teacherRows.length, admins: 1 } }; }],
   ['GET', /^\/staff\/attendance\?batch_id=(\d+)(&date=([\d-]+))?$/, (m) => {

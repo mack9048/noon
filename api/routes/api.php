@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\CourseRequestController;
 use App\Http\Controllers\Api\CatalogController;
 use App\Http\Controllers\Api\ChatController;
 use App\Http\Controllers\Api\CourseController;
+use App\Http\Controllers\Api\SiteController;
 use App\Http\Controllers\Api\FeeController;
 use App\Http\Controllers\Api\GameController;
 use App\Http\Controllers\Api\InstitutionController;
@@ -51,6 +52,7 @@ Route::middleware('throttle:auth')->group(function () {
 });
 Route::get('/boards', [CatalogController::class, 'boards']);
 Route::get('/catalog/courses', [CourseController::class, 'catalog']);
+Route::get('/site/content', [SiteController::class, 'content']);
 // An uploaded HTML game; only reachable through the short-lived signed link from /games/{id}/play.
 Route::get('/games/{id}/file', [GameController::class, 'file'])->whereNumber('id')->name('games.file')->middleware('signed:relative');
 // Public admission form (from the link the madrasa shares)
@@ -162,6 +164,12 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::post('/users/{user}/impersonate', [ImpersonationController::class, 'start']);
         Route::put('/users/{user}/password', [PasswordAdminController::class, 'superSet']);
 
+        Route::get('/site', [SiteController::class, 'index']);
+        Route::post('/site/publish', [SiteController::class, 'publish']);
+        Route::post('/site/upload', [SiteController::class, 'upload']);
+        Route::get('/site/{page}', [SiteController::class, 'show']);
+        Route::put('/site/{page}', [SiteController::class, 'update']);
+        Route::post('/site/{page}/discard', [SiteController::class, 'discard']);
         Route::get('/courses', [CourseController::class, 'superIndex']);
         Route::post('/courses', [CourseController::class, 'superStore']);
         Route::put('/courses/{course}', [CourseController::class, 'superUpdate']);
