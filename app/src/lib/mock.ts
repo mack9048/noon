@@ -234,6 +234,18 @@ const formGame = (b: any, prev?: MockGame): MockGame => {
     html_size: html?.size ?? prev?.html_size ?? 0, html_url: blobUrl(html) ?? prev?.html_url ?? '', thumbnail_url: get('remove_thumbnail') ? null : blobUrl(thumb) ?? prev?.thumbnail_url ?? null, updated: 'Just now' };
 };
 
+
+// ---- Fees ----
+type MockFee = { id: number; student_id: number; title: string; month: string; amount: number; due_date: string; status: 'due' | 'paid' | 'waived'; paid_amount: number | null; paid_at: string | null; method: string | null; receipt_no: string | null; note: string | null };
+const ym = new Date().toISOString().slice(0, 7);
+let mockFees: MockFee[] = [9, 10, 11, 12, 13, 14].map((sid, i) => ({ id: 700 + i, student_id: sid, title: 'Monthly fee', month: ym, amount: 800, due_date: `${ym}-${i < 3 ? '05' : '28'}`,
+  status: i < 2 ? 'paid' : 'due', paid_amount: i < 2 ? 800 : null, paid_at: i < 2 ? `${ym}-03` : null, method: i < 2 ? 'upi' : null, receipt_no: i < 2 ? `DEMO01-R00${700 + i}` : null, note: null }));
+const feeApp = (f: MockFee) => {
+  const st = studentRows.find((x) => x.id === f.student_id);
+  const late = f.status === 'due' ? Math.max(0, Math.floor((Date.now() - new Date(`${f.due_date}T00:00:00`).getTime()) / 86400000)) : 0;
+  return { ...f, overdue_days: late, student: st ? { id: st.id, name: st.name, admission_no: st.admission_no, cls: st.cls, parent: st.parent, parent_phone: st.parent_phone } : null };
+};
+
 type Handler = (m: RegExpMatchArray, body: any) => unknown;
 const routes: [string, RegExp, Handler][] = [
   ['POST', /^\/auth\/login$/, (_, b) => {
@@ -493,6 +505,25 @@ const routes: [string, RegExp, Handler][] = [
   ['POST', /^\/super\/games\/reorder$/, (_, b) => { (b?.ids ?? []).forEach((id: number, i: number) => { const g = htmlGames.find((x) => x.id === id); if (g) g.position = i + 1; }); return [...htmlGames].sort((a, c) => a.position - c.position).map(gameAdmin); }],
   ['POST', /^\/super\/games\/(\d+)$/, (m, b) => { const prev = htmlGames.find((x) => x.id === +m[1]); if (!prev) throw new Error('Game not found.'); const g = formGame(b, prev); htmlGames = htmlGames.map((x) => (x.id === g.id ? g : x)); return gameAdmin(g); }],
   ['DELETE', /^\/super\/games\/(\d+)$/, (m) => { htmlGames = htmlGames.filter((x) => x.id !== +m[1]); return null; }],
+  // ---- Fees ----
+  ['GET', /^\/admin\/fees(\?month=([\d-]+))?$/, (m) => {
+    const month = m[2] ?? new Date().toISOString().slice(0, 7);
+    const fees = mockFees.filter((f) => f.month === month).map(feeApp);
+    const live = fees.filter((f) => f.status !== 'waived');
+    return { month, fees, summary: { expected: live.reduce((n, f) => n + f.amount, 0), collected: fees.filter((f) => f.status === 'paid').reduce((n, f) => n + (f.paid_amount ?? f.amount), 0),
+      paid: fees.filter((f) => f.status === 'paid').length, due: fees.filter((f) => f.status === 'due' && !f.overdue_days).length, overdue: fees.filter((f) => f.status === 'due' && f.overdue_days > 0).length } };
+  }],
+  ['POST', /^\/admin\/fees$/, (_, b) => {
+    const ids = studentRows.filter((x) => b.scope === 'all' || (b.scope === 'class' && x.class_id === b.class_id) || (b.scope === 'student' && x.id === b.student_id) || b.scope === 'batch').map((x) => x.id);
+    const have = new Set(mockFees.filter((f) => f.month === b.month && f.title === b.title).map((f) => f.student_id));
+    const fresh = ids.filter((id) => !have.has(id));
+    fresh.forEach((sid) => mockFees.push({ id: nextId++, student_id: sid, title: b.title, month: b.month, amount: Number(b.amount), due_date: b.due_date, status: 'due', paid_amount: null, paid_at: null, method: null, receipt_no: null, note: null }));
+    return { created: fresh.length, skipped: ids.length - fresh.length };
+  }],
+  ['POST', /^\/admin\/fees\/(\d+)\/pay$/, (m, b) => { mockFees = mockFees.map((f) => (f.id === +m[1] ? { ...f, status: 'paid', paid_amount: b.amount ?? f.amount, method: b.method, paid_at: b.paid_on ?? new Date().toISOString().slice(0, 10), receipt_no: f.receipt_no ?? `DEMO01-R${String(f.id).padStart(5, '0')}`, note: b.note ?? f.note } : f)); return feeApp(mockFees.find((f) => f.id === +m[1])!); }],
+  ['PATCH', /^\/admin\/fees\/(\d+)$/, (m, b) => { mockFees = mockFees.map((f) => (f.id === +m[1] ? { ...f, ...b, ...(b.status === 'due' ? { paid_amount: null, paid_at: null, method: null } : {}) } : f)); return feeApp(mockFees.find((f) => f.id === +m[1])!); }],
+  ['DELETE', /^\/admin\/fees\/(\d+)$/, (m) => { mockFees = mockFees.filter((f) => f.id !== +m[1]); return null; }],
+  ['GET', /^\/fees$/, () => { const mine = mockFees.filter((f) => f.student_id === 9).map(feeApp); return { due_total: mine.filter((f) => f.status === 'due').reduce((n, f) => n + f.amount, 0), fees: mine }; }],
 ];
 
 export async function mockRequest<T>(method: string, path: string, body?: unknown): Promise<T> {

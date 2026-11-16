@@ -15,7 +15,7 @@ import { useBase } from '@/lib/useBase';
 import { useAuth } from '@/lib/auth';
 import { profileLine, profileRows, splitName } from '@/lib/profile';
 import { setLearnSpace, useLearnSpaces } from '@/lib/learnSpace';
-import { CLASSROOM_INFO, FEES, PERFORMANCE } from '@/lib/demo';
+import { CLASSROOM_INFO, PERFORMANCE } from '@/lib/demo';
 import type { Course, LeaveSummary, LearnDetail, LearnSpace } from '@/lib/types';
 import { colors, fonts } from '@/theme/tokens';
 
@@ -280,7 +280,9 @@ export function ProfileHubScreen() {
   const { user } = useAuth();
   const leave = useApi<LeaveSummary>('/leave-requests');
   const fullName = user?.name ?? 'Student';
-  const due = FEES.due.reduce((n, f) => n + f.amount, 0);
+  const myFees = useApi<{ due_total: number; fees: { status: string }[] }>('/fees').data;
+  const due = myFees?.due_total ?? 0;
+  const dueCount = myFees?.fees.filter((f) => f.status === 'due').length ?? 0;
   const go = (p: string) => () => router.push(`${base}${p}` as any);
   return (
     <Screen bar={false}>
@@ -297,7 +299,7 @@ export function ProfileHubScreen() {
           <AppTile label="Bio" icon="id-card" g={G.pink} tint="#FDF1F8" onPress={go('/bio')} />
           <AppTile label="Performance" icon="trending-up" g={G.blue} tint="#EDF4FF" onPress={go('/performance')} />
           <AppTile label="Attendance" icon="calendar" g={G.green} tint="#ECF9F2" onPress={go('/attendance')} />
-          <AppTile label="Fees" icon="cash" g={G.orange} tint="#FFF6E2" badge={FEES.due.length || undefined} onPress={go('/fees')} />
+          <AppTile label="Fees" icon="cash" g={G.orange} tint="#FFF6E2" badge={dueCount || undefined} onPress={go('/fees')} />
           <AppTile label="Settings" icon="settings" g={G.gray} tint="#F1F4F5" onPress={go('/settings')} />
           <AppTile label="Help" icon="chatbubble-ellipses" g={G.purple} tint="#F5EEFE" onPress={go('/help')} />
         </TileRows>

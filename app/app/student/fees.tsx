@@ -1,3 +1,1 @@
-import { FeesScreen } from '@/screens/student';
-
-export default FeesScreen;
+export { MyFeesScreen as default } from '@/screens/fees';

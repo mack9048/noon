@@ -11,7 +11,7 @@ import { profileLine, profileRows, splitName } from '@/lib/profile';
 import { useLearnSpaces } from '@/lib/learnSpace';
 import { LearnTiles, SpacePicker } from './learnspace';
 import { useBase } from '@/lib/useBase';
-import { ATTENDANCE, AUDIO_BOOKS, CLASSROOM, FEES, HELP_FAQ, PROFILE, SALAH_SCORES } from '@/lib/demo';
+import { ATTENDANCE, AUDIO_BOOKS, CLASSROOM, HELP_FAQ, PROFILE, SALAH_SCORES } from '@/lib/demo';
 import { colors, fonts } from '@/theme/tokens';
 
 const rupee = (n: number) => '₹' + n.toLocaleString('en-IN');
@@ -201,48 +201,6 @@ export function ProfileScreen() {
           </Row>
         ))}
       </Card>
-    </Screen>
-  );
-}
-
-/* ---------- Fees ---------- */
-export function FeesScreen() {
-  const [view, setView] = useState<'due' | 'paid' | 'rcpt'>('due');
-  const [paidNow, setPaidNow] = useState<string[]>([]);
-  const due = FEES.due.filter((d) => !paidNow.includes(d.id));
-  const total = due.reduce((s, d) => s + d.amount, 0);
-  const pay = (ids: string[]) => { demoNote('Demo: payment opens Razorpay (UPI, card, net banking) once fees are connected.'); setPaidNow((p) => [...p, ...ids]); };
-  return (
-    <Screen>
-      <Header title="Fees" />
-      <Segmented value={view} onChange={setView} options={[
-        { key: 'due', label: `Due fees ${due.length ? `· ${due.length}` : ''}` }, { key: 'paid', label: 'Paid' }, { key: 'rcpt', label: 'Receipts' },
-      ]} />
-      {view === 'due' ? (
-        <>
-          <Card tint={colors.butter[0]} style={{ marginTop: 14, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-            <View><T v="small" style={{ color: colors.butter[1] }}>Total due</T><T style={{ fontSize: 34, fontFamily: fonts.semibold, color: colors.ink }}>{rupee(total)}</T></View>
-            {due.length ? <SmallButton title="Pay all" filled tint={colors.ink} onPress={() => pay(due.map((d) => d.id))} /> : null}
-          </Card>
-          <Section title="To pay" />
-          {due.length ? due.map((d) => (
-            <ListRow key={d.id} style={{ marginBottom: 8 }} left={<Glyph text="⏱" size={44} tint={pastel.butter} />} title={d.title} sub={`${rupee(d.amount)} · ${d.due}`}
-              right={<SmallButton title="Pay" filled tint={colors.ink} onPress={() => pay([d.id])} />} />
-          )) : <Card tint={colors.mint[0]}><T v="h3" style={{ color: colors.mint[1] }}>No fees due</T><T style={{ color: colors.mint[1] }}>Jazakallah khair! Receipts are ready.</T></Card>}
-        </>
-      ) : (
-        <View style={{ marginTop: 14, gap: 8 }}>
-          {FEES.paid.map((p) => view === 'paid' ? (
-            <ListRow key={p.receipt} left={<Glyph text="✓" size={44} tint={pastel.mint} />} title={p.title} sub={`Paid ${p.date} · ${p.method}`} right={<T style={{ fontFamily: fonts.semibold }}>{rupee(p.amount)}</T>} />
-          ) : (
-            <ListRow key={p.receipt} left={<Glyph text="₹" size={44} tint={pastel.sky} />} title={p.receipt} sub={`${p.title} · ${rupee(p.amount)}`}
-              right={<Row gap={4}>
-                <Pressable accessibilityLabel={`Share receipt ${p.receipt}`} onPress={() => demoNote()} style={{ padding: 8 }}><Ionicons name="share-outline" size={20} color={colors.teal} /></Pressable>
-                <Pressable accessibilityLabel={`Download receipt ${p.receipt}`} onPress={() => demoNote('Demo: receipts are created as PDF by the backend (step 3).')} style={{ padding: 8 }}><Ionicons name="download-outline" size={20} color={colors.teal} /></Pressable>
-              </Row>} />
-          ))}
-        </View>
-      )}
     </Screen>
   );
 }

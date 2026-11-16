@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\CourseRequestController;
 use App\Http\Controllers\Api\CatalogController;
 use App\Http\Controllers\Api\ChatController;
 use App\Http\Controllers\Api\CourseController;
+use App\Http\Controllers\Api\FeeController;
 use App\Http\Controllers\Api\GameController;
 use App\Http\Controllers\Api\ImpersonationController;
 use App\Http\Controllers\Api\LearnController;
@@ -84,6 +85,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
     // Madrasa members only. `tenant` limits every query to the user's own madrasa.
     Route::middleware(['role:student,parent,teacher,admin', 'tenant'])->group(function () {
+        Route::get('/fees', [FeeController::class, 'mine']);
         Route::get('/leave-requests', [LeaveController::class, 'index']);
         Route::post('/leave-requests', [LeaveController::class, 'store']);
 
@@ -128,6 +130,11 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/campaigns/{id}', [CampaignController::class, 'show'])->whereNumber('id');
         Route::put('/campaigns/{id}', [CampaignController::class, 'update'])->whereNumber('id');
         Route::delete('/campaigns/{id}', [CampaignController::class, 'destroy'])->whereNumber('id');
+        Route::get('/fees', [FeeController::class, 'index']);
+        Route::post('/fees', [FeeController::class, 'store']);
+        Route::post('/fees/{id}/pay', [FeeController::class, 'pay'])->whereNumber('id');
+        Route::patch('/fees/{id}', [FeeController::class, 'update'])->whereNumber('id');
+        Route::delete('/fees/{id}', [FeeController::class, 'destroy'])->whereNumber('id');
         Route::get('/leads', [LeadController::class, 'index']);
         Route::post('/leads', [LeadController::class, 'store']);
         Route::patch('/leads/{id}', [LeadController::class, 'update'])->whereNumber('id');

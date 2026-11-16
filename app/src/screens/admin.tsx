@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Button, Card, Grid, Header, Row, Screen, Segmented, T } from '@/components/ui';
 import { useApplications } from '@/lib/admissions';
 import { useApi } from '@/lib/useApi';
+import { monthLabel, rupee, thisMonth, useMonthFees } from './fees';
 import { useAuth } from '@/lib/auth';
 import { Avatar, Chips, demoNote, ListRow, pastel, Progress, Section, SmallButton, Stat, Tabs, Tag } from '@/components/kit';
 import { colors, fonts } from '@/theme/tokens';
@@ -21,7 +22,6 @@ const RoundAdd = ({ label, onPress }: { label: string; onPress: () => void }) =>
 );
 
 /* ---------- Dashboard ---------- */
-const WEEK = [['Tue', 86], ['Wed', 89], ['Thu', 84], ['Fri', 80], ['Sat', 90], ['Sun', 87], ['Mon', 91]] as const;
 
 export function AdminDashboardScreen() {
   const apps = useApplications();
@@ -29,6 +29,9 @@ export function AdminDashboardScreen() {
   const students = useApi<unknown[]>('/admin/students').data;
   const teachers = useApi<unknown[]>('/admin/teachers').data;
   const initials = (user?.name ?? 'A').split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase();
+  const fees = useMonthFees();
+  const feePct = fees?.summary.expected ? Math.round((fees.summary.collected / fees.summary.expected) * 100) : 0;
+  const newApps = apps.filter((a) => a.status === 'new').length;
   return (
     <Screen>
       <Row style={{ justifyContent: 'space-between' }}>
@@ -48,25 +51,25 @@ export function AdminDashboardScreen() {
           <Pressable accessibilityRole="button" onPress={() => router.push('/admin/admissions' as any)}><Stat label="Admissions" value={`${apps.filter((a) => a.status === 'new').length} new`} tint={pastel.mint} /></Pressable>
         </Grid>
       </View>
-      <Section title="Attendance" action="Full report →" onAction={() => router.push('/admin/attendance' as any)} />
-      <View accessibilityLabel="Attendance last 7 days, today 91 percent, average 87 percent" style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 6, height: 120 }}>
-        {WEEK.map(([d, v], i) => (
-          <View key={d} style={{ flex: 1, alignItems: 'center', gap: 4 }}>
-            {i === 6 ? <T style={{ fontSize: 11, fontFamily: fonts.semibold, color: colors.teal }}>{v}%</T> : null}
-            <View style={{ width: '100%', height: (v - 60) * 2.6, borderRadius: 12, backgroundColor: i === 6 ? colors.teal : '#CBD8DC' }} />
-            <T style={{ fontSize: 11, color: i === 6 ? colors.teal : colors.muted }}>{d}</T>
-          </View>
-        ))}
-      </View>
-      <T v="small" style={{ marginTop: 4 }}>Average 87% this week</T>
       <Card tint={colors.sky[0]} onPress={() => router.push('/admin/fees' as any)} style={{ marginTop: 14, gap: 8 }}>
-        <Row style={{ justifyContent: 'space-between' }}><T style={{ fontFamily: fonts.medium }}>November fees</T><T v="small">77% collected</T></Row>
-        <T style={{ fontSize: 26, fontFamily: fonts.semibold }}>₹1,84,800 <T v="small">of ₹2,40,000</T></T>
-        <Progress value={77} color={colors.teal} track="#FFF" height={10} />
+        <Row style={{ justifyContent: 'space-between' }}><T style={{ fontFamily: fonts.medium }}>{monthLabel(thisMonth())} fees</T>{fees?.summary.expected ? <T v="small">{feePct}% collected</T> : null}</Row>
+        {fees?.summary.expected ? (
+          <>
+            <T style={{ fontSize: 26, fontFamily: fonts.semibold }}>{rupee(fees.summary.collected)} <T v="small">of {rupee(fees.summary.expected)}</T></T>
+            <Progress value={feePct} color={colors.teal} track="#FFF" height={10} />
+          </>
+        ) : <T v="small">No fees added for this month yet. Tap to add.</T>}
       </Card>
       <Section title="Needs attention" />
-      <ListRow left={<Avatar name="!" tint={pastel.pink} />} title="2 classes without a teacher" sub="Fiqh · Madrasa 2 and 7, from Wed"
-        right={<SmallButton title="Assign" filled tint={colors.ink} onPress={() => router.push('/admin/teachers' as any)} />} />
+      <View style={{ gap: 8 }}>
+        {(fees?.summary.overdue ?? 0) > 0 ? <ListRow left={<Avatar name="₹" tint={pastel.pink} />} title={`${fees!.summary.overdue} fee${fees!.summary.overdue > 1 ? 's' : ''} overdue`} sub="Remind parents on WhatsApp from Fees"
+          right={<SmallButton title="Open" filled tint={colors.ink} onPress={() => router.push('/admin/fees' as any)} />} /> : null}
+        {newApps > 0 ? <ListRow left={<Avatar name="+" tint={pastel.mint} />} title={`${newApps} new application${newApps > 1 ? 's' : ''}`} sub="Review and admit"
+          right={<SmallButton title="Open" filled tint={colors.ink} onPress={() => router.push('/admin/admissions' as any)} />} /> : null}
+        {students && students.length === 0 ? <ListRow left={<Avatar name="!" tint={pastel.butter} />} title="No students yet" sub="Add students one by one or in bulk"
+          right={<SmallButton title="Add" filled tint={colors.ink} onPress={() => router.push('/admin/students/new' as any)} />} /> : null}
+        {!(fees?.summary.overdue) && !newApps && students?.length !== 0 ? <T v="small">All good, alhamdulillah. Nothing needs your attention.</T> : null}
+      </View>
     </Screen>
   );
 }
@@ -96,44 +99,6 @@ export function AdminStudentsScreen() {
             right={<Tag text={FEE_TAG[fee][0]} tone={FEE_TAG[fee][1]} />} onPress={() => demoNote(`Demo: ${n}'s full record opens here (step 2).`)} />
         ))}
         {!rows.length ? <T v="small" style={{ textAlign: 'center', padding: 20 }}>No students match.</T> : null}
-      </View>
-    </Screen>
-  );
-}
-
-/* ---------- Fees ---------- */
-const MONTHS = [
-  ['September 2026', '₹2,36,400', 296, 12, 4], ['October 2026', '₹2,31,000', 288, 18, 6], ['November 2026', '₹1,84,800', 240, 58, 14],
-] as const;
-const DUES = [['Rayan Ashraf', 'Madrasa 3', '₹1,600', '32d', 'pink'], ['Sana Kareem', 'Madrasa 1', '₹800', '18d', 'pink'], ['Muhammed Shafi', 'Madrasa 5', '₹800', '6d', 'butter'], ['Hiba Nasar', 'Madrasa 7', '₹800', '2d', 'butter']] as const;
-
-export function AdminFeesScreen() {
-  const [m, setM] = useState(2);
-  const [sent, setSent] = useState<string[]>([]);
-  const [label, collected, paid, due, over] = MONTHS[m];
-  return (
-    <Screen>
-      <Header title="Fees" back={false} right={<Pressable accessibilityLabel="Download report" onPress={() => demoNote('Demo: the fee report downloads as Excel/PDF (step 3).')} style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: '#FFF', alignItems: 'center', justifyContent: 'center' }}><Ionicons name="download-outline" size={22} color={colors.ink} /></Pressable>} />
-      <Row gap={8}>
-        <Pressable accessibilityLabel="Previous month" disabled={m === 0} onPress={() => setM(m - 1)} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#FFF', alignItems: 'center', justifyContent: 'center', opacity: m === 0 ? 0.4 : 1 }}><Ionicons name="chevron-back" size={20} color={colors.ink} /></Pressable>
-        <View style={{ flex: 1, height: 44, borderRadius: 22, backgroundColor: colors.pink[0], alignItems: 'center', justifyContent: 'center' }}><T style={{ fontFamily: fonts.medium }}>{label}</T></View>
-        <Pressable accessibilityLabel="Next month" disabled={m === 2} onPress={() => setM(m + 1)} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#FFF', alignItems: 'center', justifyContent: 'center', opacity: m === 2 ? 0.4 : 1 }}><Ionicons name="chevron-forward" size={20} color={colors.ink} /></Pressable>
-      </Row>
-      <Card style={{ marginTop: 12, gap: 10 }}>
-        <T v="small">Collected</T>
-        <T style={{ fontSize: 28, fontFamily: fonts.semibold }}>{collected} <T v="small">of ₹2,40,000</T></T>
-        <Row style={{ justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 10 }}>
-          {[['Paid', paid, colors.green], ['Due', due, '#D9A92A'], ['Overdue', over, '#D6336C']].map(([k, v, c]) => (
-            <View key={k as string}><Row gap={6}><View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: c as string }} /><T v="small">{k}</T></Row><T v="h3">{v}</T></View>
-          ))}
-        </Row>
-      </Card>
-      <Section title="Pending dues" action="Remind all" onAction={() => setSent(DUES.map((d) => d[0]))} />
-      <View style={{ gap: 8 }}>
-        {DUES.map(([n, c, amt, days, tone]) => (
-          <ListRow key={n} left={<View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: pastel[tone][0], alignItems: 'center', justifyContent: 'center' }}><T style={{ fontSize: 12, fontFamily: fonts.semibold, color: pastel[tone][1] }}>{days}</T></View>}
-            title={n} sub={`${c} · ${amt}`} right={sent.includes(n) ? <Tag text="Sent" tone="mint" /> : <SmallButton title="Remind" filled tint={colors.ink} onPress={() => setSent([...sent, n])} />} />
-        ))}
       </View>
     </Screen>
   );
