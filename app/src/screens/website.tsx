@@ -6,7 +6,7 @@ import { Image, Linking, Platform, Pressable, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
-import { Button, Card, Loading, ErrorBox, Row, Screen, T } from '@/components/ui';
+import { Button, Card, Grid, Loading, ErrorBox, Row, Screen, T } from '@/components/ui';
 import { Input, MiniStat } from '@/components/kit2';
 import { api, ApiError } from '@/lib/api';
 import { useApi } from '@/lib/useApi';
@@ -98,25 +98,31 @@ export function WebsiteScreen() {
 
       <T v="label" style={{ marginTop: 18, marginBottom: 8, marginLeft: 4 }}>PAGES</T>
       {error ? <ErrorBox message={error} /> : !schema ? <Loading /> : (
-        <View style={{ gap: 8 }}>
+        <Grid cols={{ phone: 2, tablet: 3, desktop: 4 }} gap={10}>
           {schema.pages.map((p) => {
             const s = state[p.id];
             const count = p.sections.reduce((n, sec) => n + sec.blocks.length, 0);
+            const tone = p.shared ? colors.lav : colors.sky;
             return (
-              <Card key={p.id} onPress={() => router.push(`/super/website/${p.id}` as any)} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                <View style={{ width: 42, height: 42, borderRadius: 14, backgroundColor: p.shared ? colors.lav[0] : colors.sky[0], alignItems: 'center', justifyContent: 'center' }}>
-                  <Ionicons name={p.shared ? 'layers-outline' : 'document-text-outline'} size={20} color={p.shared ? colors.lav[1] : colors.sky[1]} />
-                </View>
+              <Card key={p.id} onPress={() => router.push(`/super/website/${p.id}` as any)} style={{ gap: 10, minHeight: 148 }}>
+                <Row style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: tone[0], alignItems: 'center', justifyContent: 'center' }}>
+                    <Ionicons name={p.shared ? 'layers-outline' : 'document-text-outline'} size={21} color={tone[1]} />
+                  </View>
+                  {s?.changed ? <Tagish text="Not published" tone={colors.butter} /> : s?.edits ? <Tagish text="Live" tone={colors.mint} /> : null}
+                </Row>
                 <View style={{ flex: 1 }}>
-                  <T style={{ fontFamily: fonts.semibold }}>{p.label}</T>
-                  <T v="small">{p.shared ? 'On every page' : p.url} · {count} things to edit{s?.edits ? ` · ${s.edits} edited` : ''}</T>
+                  <T style={{ fontFamily: fonts.semibold, fontSize: 16 }} numberOfLines={1}>{p.label}</T>
+                  <T v="small" numberOfLines={1}>{p.shared ? 'On every page' : p.url}</T>
                 </View>
-                {s?.changed ? <Tagish text="Not published" tone={colors.butter} /> : s?.edits ? <Tagish text="Live" tone={colors.mint} /> : null}
-                <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+                <Row style={{ justifyContent: 'space-between' }}>
+                  <T v="small">{count} items{s?.edits ? ` · ${s.edits} edited` : ''}</T>
+                  <Ionicons name="arrow-forward" size={16} color={colors.muted} />
+                </Row>
               </Card>
             );
           })}
-        </View>
+        </Grid>
       )}
     </Screen>
   );
