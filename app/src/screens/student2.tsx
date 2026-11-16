@@ -16,6 +16,7 @@ import { useAuth } from '@/lib/auth';
 import { profileLine, profileRows, splitName } from '@/lib/profile';
 import { setLearnSpace, useLearnSpaces } from '@/lib/learnSpace';
 import { CLASSROOM_INFO, PERFORMANCE } from '@/lib/demo';
+import { useMyAttendancePercent } from './attendance';
 import type { Course, LeaveSummary, LearnDetail, LearnSpace } from '@/lib/types';
 import { colors, fonts } from '@/theme/tokens';
 
@@ -280,6 +281,7 @@ export function ProfileHubScreen() {
   const { user } = useAuth();
   const leave = useApi<LeaveSummary>('/leave-requests');
   const fullName = user?.name ?? 'Student';
+  const attPct = useMyAttendancePercent();
   const myFees = useApi<{ due_total: number; fees: { status: string }[] }>('/fees').data;
   const due = myFees?.due_total ?? 0;
   const dueCount = myFees?.fees.filter((f) => f.status === 'due').length ?? 0;
@@ -293,7 +295,7 @@ export function ProfileHubScreen() {
             <T style={{ color: '#FFF', fontFamily: fonts.medium, fontSize: 13 }}>Switch</T><Ionicons name="chevron-down" size={14} color="#FFF" />
           </Pressable>
         ) : undefined}
-        stats={[[PERFORMANCE.stats.attendance, 'Attendance'], [PERFORMANCE.stats.avg, 'Avg score'], [`₹${due.toLocaleString('en-IN')}`, 'Fees due']]} />
+        stats={[[attPct, 'Attendance'], [PERFORMANCE.stats.avg, 'Avg score'], [`₹${due.toLocaleString('en-IN')}`, 'Fees due']]} />
       <OverlapCard>
         <TileRows cols={3} gap={10}>
           <AppTile label="Bio" icon="id-card" g={G.pink} tint="#FDF1F8" onPress={go('/bio')} />

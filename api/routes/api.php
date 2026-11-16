@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AdmissionController;
+use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BatchController;
 use App\Http\Controllers\Api\CampaignController;
@@ -13,6 +14,7 @@ use App\Http\Controllers\Api\ChatController;
 use App\Http\Controllers\Api\CourseController;
 use App\Http\Controllers\Api\FeeController;
 use App\Http\Controllers\Api\GameController;
+use App\Http\Controllers\Api\InstitutionController;
 use App\Http\Controllers\Api\ImpersonationController;
 use App\Http\Controllers\Api\LearnController;
 use App\Http\Controllers\Api\LeaveController;
@@ -86,6 +88,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     // Madrasa members only. `tenant` limits every query to the user's own madrasa.
     Route::middleware(['role:student,parent,teacher,admin', 'tenant'])->group(function () {
         Route::get('/fees', [FeeController::class, 'mine']);
+        Route::get('/attendance', [AttendanceController::class, 'mine']);
         Route::get('/leave-requests', [LeaveController::class, 'index']);
         Route::post('/leave-requests', [LeaveController::class, 'store']);
 
@@ -104,6 +107,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::post('/teacher/courses/{course}/items', [CourseController::class, 'teacherAddItem']);
         Route::post('/staff/assessments', [LearnController::class, 'store']);
         Route::get('/staff/batches', [LiveSessionController::class, 'batches']);
+        Route::get('/staff/attendance', [AttendanceController::class, 'sheet']);
+        Route::post('/staff/attendance', [AttendanceController::class, 'save']);
         Route::post('/staff/live-sessions', [LiveSessionController::class, 'store']);
         Route::put('/staff/live-sessions/{id}', [LiveSessionController::class, 'update'])->whereNumber('id');
         Route::delete('/staff/live-sessions/{id}', [LiveSessionController::class, 'destroy'])->whereNumber('id');
@@ -130,6 +135,9 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/campaigns/{id}', [CampaignController::class, 'show'])->whereNumber('id');
         Route::put('/campaigns/{id}', [CampaignController::class, 'update'])->whereNumber('id');
         Route::delete('/campaigns/{id}', [CampaignController::class, 'destroy'])->whereNumber('id');
+        Route::get('/institution', [InstitutionController::class, 'show']);
+        Route::put('/institution', [InstitutionController::class, 'update']);
+        Route::get('/attendance', [AttendanceController::class, 'report']);
         Route::get('/fees', [FeeController::class, 'index']);
         Route::post('/fees', [FeeController::class, 'store']);
         Route::post('/fees/{id}/pay', [FeeController::class, 'pay'])->whereNumber('id');

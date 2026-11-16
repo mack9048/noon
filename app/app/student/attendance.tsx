@@ -1,3 +1,1 @@
-import { AttendanceScreen } from '@/screens/student';
-
-export default AttendanceScreen;
+export { MyAttendanceScreen as default } from '@/screens/attendance';

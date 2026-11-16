@@ -72,5 +72,16 @@ class QaFixesTest extends TestCase
         $this->assertSame(['Office', 'Ustad'], $names($this->as($admin)->getJson('/api/admin/people?group=staff')));
         $this->assertSame(['Rayan'], $names($this->as($admin)->getJson('/api/admin/people?group=students')));
     }
+
+    public function test_admin_reads_and_updates_institution_settings(): void
+    {
+        $t = $this->madrasa('NOON01');
+        $admin = $this->member($t, 'admin');
+        $this->member($t, 'student');
+        $this->as($admin)->getJson('/api/admin/institution')->assertOk()->assertJsonPath('code', 'NOON01')->assertJsonPath('counts.students', 1);
+        $this->as($admin)->putJson('/api/admin/institution', ['name' => 'Noon Madrasa Kozhikode', 'phone' => '+91 95626 51864', 'academic_year' => '2026–27', 'default_fee' => 600])
+            ->assertOk()->assertJsonPath('name', 'Noon Madrasa Kozhikode')->assertJsonPath('default_fee', 600);
+        $this->as($this->member($t, 'teacher'))->putJson('/api/admin/institution', ['name' => 'X'])->assertForbidden();
+    }
 }
 

@@ -1,1 +1,1 @@
-export { AdminSettingsScreen as default } from '@/screens/admin2';
+export { AdminSettingsScreen as default } from '@/screens/settings';

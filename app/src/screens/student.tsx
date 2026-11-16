@@ -7,11 +7,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { Button, Card, Grid, Header, Row, Screen, Segmented, T } from '@/components/ui';
 import { Avatar, Band, Chips, demoNote, Glyph, ListRow, pastel, Progress, Section, SmallButton, Stat, Tabs, Tag, Tile } from '@/components/kit';
 import { useAuth } from '@/lib/auth';
+import { useMyAttendancePercent } from './attendance';
 import { profileLine, profileRows, splitName } from '@/lib/profile';
 import { useLearnSpaces } from '@/lib/learnSpace';
 import { LearnTiles, SpacePicker } from './learnspace';
 import { useBase } from '@/lib/useBase';
-import { ATTENDANCE, AUDIO_BOOKS, CLASSROOM, HELP_FAQ, PROFILE, SALAH_SCORES } from '@/lib/demo';
+import { AUDIO_BOOKS, CLASSROOM, HELP_FAQ, PROFILE, SALAH_SCORES } from '@/lib/demo';
 import { colors, fonts } from '@/theme/tokens';
 
 const rupee = (n: number) => '₹' + n.toLocaleString('en-IN');
@@ -188,7 +189,7 @@ export function ProfileScreen() {
       </Row>
       <View style={{ marginTop: 22 }}>
         <Grid cols={{ phone: 3, tablet: 3, desktop: 3 }} gap={8}>
-          <Stat label="Attendance" value={PROFILE.stats.attendance} tint={pastel.mint} />
+          <Stat label="Attendance" value={useMyAttendancePercent()} tint={pastel.mint} />
           <Stat label="Stars" value={PROFILE.stats.stars} tint={pastel.butter} />
           <Stat label="Avg score" value={PROFILE.stats.avg} tint={pastel.sky} />
         </Grid>
@@ -201,41 +202,6 @@ export function ProfileScreen() {
           </Row>
         ))}
       </Card>
-    </Screen>
-  );
-}
-
-/* ---------- Attendance ---------- */
-export function AttendanceScreen() {
-  const base = useBase();
-  const [period, setPeriod] = useState<'week' | 'month' | 'year'>('week');
-  const c = ATTENDANCE[period];
-  return (
-    <Screen>
-      <Header title="Attendance" subtitle={`Today · ${ATTENDANCE.today}`} right={<Pressable accessibilityLabel="Open calendar" onPress={() => demoNote('Demo: the monthly calendar comes in step 2.')} style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: '#FFF', alignItems: 'center', justifyContent: 'center' }}><Ionicons name="calendar-outline" size={22} color={colors.ink} /></Pressable>} />
-      <Card tint={colors.mint[0]} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-        <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#2E8B47', alignItems: 'center', justifyContent: 'center' }}><Ionicons name="checkmark" size={24} color="#FFF" /></View>
-        <View style={{ flex: 1 }}><T style={{ color: colors.mint[1] }}>You joined today’s class on time.</T><T style={{ fontFamily: fonts.semibold, color: colors.mint[1] }}>MashaAllah, keep it up!</T></View>
-      </Card>
-      <Card style={{ marginTop: 12, gap: 12 }}>
-        <T v="h3">My presence</T>
-        <Segmented value={period} onChange={setPeriod} activeColor={colors.yellow} options={[{ key: 'week', label: 'This week' }, { key: 'month', label: 'This month' }, { key: 'year', label: 'This year' }]} />
-        <Grid cols={{ phone: 4, tablet: 4, desktop: 4 }} gap={6}>
-          <Stat label="Present" value={c.present} tint={pastel.mint} />
-          <Stat label="Absent" value={c.absent} tint={pastel.pink} />
-          <Stat label="Halfday" value={c.half} tint={pastel.butter} />
-          <Stat label="Leave" value={c.leave} tint={pastel.lav} />
-        </Grid>
-      </Card>
-      <View style={{ marginTop: 12 }}>
-        <Grid cols={{ phone: 2, tablet: 2, desktop: 2 }} gap={10}>
-          <Stat label="On time" value={c.ontime} tint={pastel.white} />
-          <Stat label="Joined late" value={c.late} tint={pastel.white} />
-        </Grid>
-      </View>
-      <View style={{ alignItems: 'flex-end', marginTop: 16 }}>
-        <Button title="Request leave" kind="yellow" icon="paper-plane-outline" onPress={() => router.push(`${base}/leave` as any)} />
-      </View>
     </Screen>
   );
 }

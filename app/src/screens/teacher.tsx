@@ -101,44 +101,6 @@ export function TeacherClassesScreen() {
   );
 }
 
-/* ---------- Mark attendance ---------- */
-type Mark = 'P' | 'A' | 'L';
-export function TeacherAttendanceScreen() {
-  const [marks, setMarks] = useState<Mark[]>(['P', 'P', 'A', 'L', 'P', 'P']);
-  const [sent, setSent] = useState(false);
-  const count = (m: Mark) => marks.filter((x) => x === m).length;
-  const opt: [Mark, string, string][] = [['P', 'Present', '#2E6B3A'], ['A', 'Absent', '#A8233A'], ['L', 'Late', '#8A5A0F']];
-  return (
-    <Screen>
-      <Header title="Mark attendance" subtitle="Arabic · Madrasa 5 · Mon, 2 Nov" right={<SmallButton title="All present" onPress={() => { setMarks(marks.map(() => 'P')); setSent(false); }} />} />
-      <Grid cols={{ phone: 3, tablet: 3, desktop: 3 }} gap={8}>
-        <Stat label="Present" value={26 - 4 + count('P')} tint={pastel.mint} />
-        <Stat label="Absent" value={count('A')} tint={pastel.pink} />
-        <Stat label="Late" value={count('L')} tint={pastel.butter} />
-      </Grid>
-      <View style={{ gap: 8, marginTop: 4 }}>
-        {STUDENTS.map((n, i) => (
-          <ListRow key={n} title={n} sub={`Roll ${i + 1}`} right={
-            <View accessibilityRole="radiogroup" accessibilityLabel={n} style={{ flexDirection: 'row', backgroundColor: colors.bg, borderRadius: 22, padding: 3, gap: 2 }}>
-              {opt.map(([m, name, c]) => (
-                <Pressable key={m} accessibilityRole="radio" accessibilityLabel={name} accessibilityState={{ checked: marks[i] === m }}
-                  onPress={() => { setMarks(marks.map((x, k) => (k === i ? m : x))); setSent(false); }}
-                  style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: marks[i] === m ? c : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
-                  <T style={{ color: marks[i] === m ? '#FFF' : colors.muted, fontFamily: fonts.semibold }}>{m}</T>
-                </Pressable>
-              ))}
-            </View>
-          } />
-        ))}
-      </View>
-      <View style={{ marginTop: 16 }}>
-        <Button title={sent ? 'Attendance submitted ✓' : 'Submit attendance'} icon={sent ? undefined : 'paper-plane-outline'} kind={sent ? 'ghost' : 'primary'}
-          onPress={() => { setSent(true); demoNote('Demo: attendance is saved and parents of absent students are told (backend step 2).'); }} />
-      </View>
-    </Screen>
-  );
-}
-
 /* ---------- Review work ---------- */
 export function TeacherReviewScreen() {
   const [n, setN] = useState(1);

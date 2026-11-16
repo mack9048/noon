@@ -611,35 +611,5 @@ export function AdminProfileScreen() {
   );
 }
 
-export function AdminSettingsScreen() {
-  return (
-    <RoleSettingsScreen roleLine="Institute admin · Noon Madrasa" profileHref="/admin/profile" footer="Noon Learn for madrasas · v1.0" groups={[
-      { title: 'Madrasa', rows: [
-        { icon: 'business-outline', tint: T_.lav, label: 'Madrasa name & logo', value: 'Noon Madrasa' },
-        { icon: 'book-outline', tint: T_.sky, label: 'Board & classes', value: 'SVB (AP)' },
-        { icon: 'calendar-outline', tint: T_.butter, label: 'Academic year', value: '2026 – 27' },
-        { icon: 'time-outline', tint: T_.mint, label: 'Class timings', value: 'Evenings' },
-      ] },
-      { title: 'Admissions & fees', rows: [
-        { icon: 'chatbubble-outline', tint: T_.mint, label: 'Accept online admissions', sub: 'WhatsApp form link is active', toggle: true },
-        { icon: 'wallet-outline', tint: T_.butter, label: 'Monthly fee', sub: 'Default for new students', value: '₹600' },
-        { icon: 'notifications-outline', tint: T_.pink, label: 'Fee reminders to parents', sub: '3 days before due date', toggle: true },
-        { icon: 'card-outline', tint: T_.sky, label: 'Payment methods', value: 'UPI, card' },
-      ] },
-      { title: 'Staff & access', rows: [
-        { icon: 'shield-outline', tint: T_.lav, label: 'Admins', value: '2 people' },
-        { icon: 'create-outline', tint: T_.sky, label: 'Teachers can create courses', sub: 'Still needs super admin approval', toggle: false },
-        { icon: 'chatbubbles-outline', tint: T_.mint, label: 'Auto-message absent students', sub: 'Parents get a WhatsApp note', toggle: true },
-      ] },
-      { title: 'Account', rows: [
-        { icon: 'card-outline', tint: T_.butter, label: 'Subscription', value: 'Madrasa Pro' },
-        { icon: 'globe-outline', tint: T_.sky, label: 'Language', value: 'English' },
-        { icon: 'contrast-outline', tint: T_.lav, label: 'Dark mode', toggle: false },
-        { icon: 'key-outline', tint: T_.pink, label: 'Change password' },
-      ] },
-    ]} />
-  );
-}
-
 export const AdminCourseNewScreen = () => <CourseEditorScreen mode="admin" />;
 export const SuperCourseNewScreen = () => <CourseEditorScreen mode="super" />;

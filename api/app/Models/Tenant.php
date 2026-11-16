@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Tenant extends Model
 {
-    protected $fillable = ['name', 'code', 'plan', 'leave_quota', 'active'];
+    protected $fillable = ['name', 'phone', 'address', 'academic_year', 'default_fee', 'code', 'plan', 'leave_quota', 'active'];
 
     protected $casts = ['active' => 'boolean'];
 

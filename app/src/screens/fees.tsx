@@ -65,7 +65,7 @@ function words(n: number): string {
 }
 const esc = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
 
-export function downloadReceipt(f: FeeRow, institution?: string | null) {
+export function downloadReceipt(f: FeeRow, institution?: string | null, contact?: { phone?: string | null; address?: string | null }) {
   if (Platform.OS !== 'web') return say('Receipts download on the web app.');
   const paid = f.paid_amount ?? f.amount;
   const logo = `${(globalThis as any).location.origin}/icons/noon-logo.png`;
@@ -89,7 +89,7 @@ export function downloadReceipt(f: FeeRow, institution?: string | null) {
 </style></head><body>
 <div class="r">
   <div class="h"><img src="${logo}" alt="Noon Learn"><div class="t"><b>FEE RECEIPT</b><small>noonlearn.com</small></div></div>
-  ${institution ? `<div class="inst">${esc(institution)}</div>` : ''}
+  ${institution ? `<div class="inst">${esc(institution)}${contact?.address || contact?.phone ? `<div style="font-size:13px;font-weight:400;color:#5D6B80">${esc([contact?.address, contact?.phone].filter(Boolean).join(' · '))}</div>` : ''}</div>` : ''}
   <div class="meta"><span>Receipt no. <b>${esc(f.receipt_no)}</b></span><span>Date: <b>${esc(f.paid_at ? dateLabel(f.paid_at) : dateLabel(new Date().toISOString().slice(0, 10)))}</b></span></div>
   <table>
     ${row('Student', f.student?.name)}${row('Admission no.', f.student?.admission_no)}${row('Class', f.student?.cls ? `Class ${f.student.cls}` : '')}
@@ -174,7 +174,7 @@ export function AdminFeesScreen() {
 }
 
 function PaySheet({ fee, onClose, onSaved }: { fee: FeeRow | null; onClose: () => void; onSaved: () => void }) {
-  const institution = useAuth().user?.tenant_name;
+  const me = useAuth().user; const institution = me?.tenant_name; const contact = { phone: me?.tenant_phone, address: me?.tenant_address };
   const [method, setMethod] = useState<'cash' | 'upi' | 'bank' | 'card'>('cash');
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
@@ -199,7 +199,7 @@ function PaySheet({ fee, onClose, onSaved }: { fee: FeeRow | null; onClose: () =
                 <T v="h3" style={{ color: colors.mint[1] }}>Paid {rupee(fee.paid_amount ?? fee.amount)}</T>
                 <T style={{ color: colors.mint[1] }}>Receipt {fee.receipt_no} · {METHOD[fee.method ?? ''] ?? ''} · {fee.paid_at ? dateLabel(fee.paid_at) : ''}</T>
               </Card>
-              <Button title="Download receipt" icon="download-outline" onPress={() => downloadReceipt(fee, institution)} />
+              <Button title="Download receipt" icon="download-outline" onPress={() => downloadReceipt(fee, institution, contact)} />
               <Button title="Undo payment" kind="ghost" icon="arrow-undo-outline" loading={busy} onPress={() => act(() => api.patch(`/admin/fees/${fee.id}`, { status: 'due' }))} />
             </>
           ) : fee.status === 'waived' ? (
@@ -240,6 +240,8 @@ export function AddFeesScreen({ month: initial }: { month?: string }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const students = useApi<{ class_id: number | null; cls: string | null }[]>('/admin/students').data ?? [];
+  const defFee = useApi<{ default_fee: number | null }>('/admin/institution').data?.default_fee;
+  React.useEffect(() => { if (defFee && !amount) setAmount(String(defFee)); }, [defFee]); // eslint-disable-line react-hooks/exhaustive-deps
   const batches = useApi<{ id: number; name: string }[]>('/admin/batches').data ?? [];
   const classes = Array.from(new Map(students.filter((s) => s.class_id).map((s) => [String(s.class_id), `Class ${s.cls}`])).entries())
     .sort((a, b) => a[1].localeCompare(b[1], undefined, { numeric: true })).map(([key, label]) => ({ key, label }));
@@ -283,7 +285,7 @@ export function AddFeesScreen({ month: initial }: { month?: string }) {
 
 /* ---------- Student / parent ---------- */
 export function MyFeesScreen() {
-  const institution = useAuth().user?.tenant_name;
+  const me = useAuth().user; const institution = me?.tenant_name; const contact = { phone: me?.tenant_phone, address: me?.tenant_address };
   const { data, loading, error } = useApi<{ due_total: number; fees: FeeRow[] }>('/fees');
   const [view, setView] = useState<'due' | 'paid'>('due');
   const fees = data?.fees ?? [];
@@ -313,7 +315,7 @@ export function MyFeesScreen() {
             <ListRow key={f.id} left={<Avatar name="✓" size={44} tint={pastel.mint} />} title={f.title}
               sub={`${many ? `${f.student?.name} · ` : ''}Receipt ${f.receipt_no} · paid ${f.paid_at ? dateLabel(f.paid_at) : ''} · ${METHOD[f.method ?? ''] ?? ''}`}
               right={<Row gap={8}><T style={{ fontFamily: fonts.semibold }}>{rupee(f.paid_amount ?? f.amount)}</T>
-                <Pressable accessibilityRole="button" accessibilityLabel={`Download receipt ${f.receipt_no}`} onPress={() => downloadReceipt(f, institution)} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#EAF2FF', alignItems: 'center', justifyContent: 'center' }}>
+                <Pressable accessibilityRole="button" accessibilityLabel={`Download receipt ${f.receipt_no}`} onPress={() => downloadReceipt(f, institution, contact)} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#EAF2FF', alignItems: 'center', justifyContent: 'center' }}>
                   <Ionicons name="download-outline" size={18} color={colors.teal} /></Pressable></Row>} />
           )) : <Empty text="No payments yet." />}
         </View>

@@ -84,6 +84,8 @@ class User extends Authenticatable
             'tenant_id' => $this->tenant_id,
             'tenant_name' => $this->tenant?->name,
             'tenant_code' => $this->tenant?->code,
+            'tenant_phone' => $this->tenant?->phone,
+            'tenant_address' => $this->tenant?->address,
             'board_id' => $this->board_id,
             'class_id' => $this->class_id,
             'avatar_initial' => mb_substr($this->name, 0, 1),

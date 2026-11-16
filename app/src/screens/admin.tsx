@@ -134,40 +134,6 @@ export function AdminTeachersScreen() {
   );
 }
 
-/* ---------- Attendance report ---------- */
-const PERIODS = { today: ['Mon, 2 Nov · 312 students', 91, 284, 21, 7], week: ['27 Oct – 2 Nov · 5 class days', 87, 271, 33, 8], month: ['October 2026 · 19 class days', 89, 278, 27, 7] } as const;
-const BY_CLASS = [['Madrasa 5', 'Ustad Ahmed', 96], ['Madrasa 3', 'Ayisha Miss', 93], ['Madrasa 1', 'Safwan Usthad', 88], ['Madrasa 7', 'Noushad K', 84], ['Madrasa 2', 'No teacher this week', 79]] as const;
-const ABSENT = [['Rayan Ashraf', 'Madrasa 3', 'Absent 3 days in a row'], ['Hiba Nasar', 'Madrasa 7', 'Absent 2 days'], ['Sana Kareem', 'Madrasa 1', 'Absent today'], ['Muhammed Shafi', 'Madrasa 5', 'Joined late 3 times']] as const;
-
-export function AdminAttendanceScreen() {
-  const [p, setP] = useState<keyof typeof PERIODS>('today');
-  const [view, setView] = useState<'class' | 'absent'>('class');
-  const [told, setTold] = useState<string[]>([]);
-  const [note, pct, present, absent, late] = PERIODS[p];
-  return (
-    <Screen>
-      <Header title="Attendance report" right={<Pressable accessibilityLabel="Download report" onPress={() => demoNote('Demo: downloads the attendance report (step 2).')} style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' }}><Ionicons name="download-outline" size={22} color="#FFF" /></Pressable>} />
-      <Segmented value={p} onChange={setP} activeColor={colors.pink[1]} options={[{ key: 'today', label: 'Today' }, { key: 'week', label: 'This week' }, { key: 'month', label: 'This month' }]} />
-      <Card style={{ marginTop: 12, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-        <View accessibilityLabel={`${pct} percent attendance`} style={{ width: 72, height: 72, borderRadius: 36, borderWidth: 8, borderColor: '#2E8B47', alignItems: 'center', justifyContent: 'center' }}><T style={{ fontFamily: fonts.semibold }}>{pct}%</T></View>
-        <View style={{ flex: 1, gap: 4 }}>
-          <Row style={{ justifyContent: 'space-between' }}>{[['Present', present, colors.green], ['Absent', absent, '#D6336C'], ['Late', late, '#D9A92A']].map(([k, v, c]) => <View key={k as string}><T v="small" style={{ color: c as string }}>{k}</T><T v="h3">{v}</T></View>)}</Row>
-          <T v="small">{note}</T>
-        </View>
-      </Card>
-      <Tabs value={view} onChange={setView} options={[{ key: 'class', label: 'By class' }, { key: 'absent', label: `Absent students · ${absent}` }]} />
-      <View style={{ gap: 8 }}>
-        {view === 'class' ? BY_CLASS.map(([c, t, v]) => (
-          <ListRow key={c} title={c} sub={t} right={<View style={{ width: 120, gap: 4 }}><Progress value={v} color={v >= 85 ? colors.green : '#D9A92A'} /><T style={{ textAlign: 'right', fontSize: 13, fontFamily: fonts.semibold }}>{v}%</T></View>} />
-        )) : ABSENT.map(([n, c, s]) => (
-          <ListRow key={n} left={<Avatar name={n} size={40} tint={pastel.pink} />} title={n} sub={`${c} · ${s}`}
-            right={told.includes(n) ? <Tag text="Sent" tone="mint" /> : <SmallButton title="Notify parent" onPress={() => setTold([...told, n])} />} />
-        ))}
-      </View>
-    </Screen>
-  );
-}
-
 /* ---------- Bulk add ---------- */
 const BULK = {
   students: ['students_madrasa5.xlsx', ['Name', 'Class', 'Roll no', 'Date of birth', 'Parent name', 'Parent phone'], [['12', 'Class “Madrasa 9” does not exist'], ['30', 'Parent phone is missing']], 'Send login details to parents by SMS', 'students', 48],

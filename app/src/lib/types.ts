@@ -12,6 +12,8 @@ export interface User {
   class_id?: number | null;
   avatar_initial?: string;
   tenant_code?: string | null;
+  tenant_phone?: string | null;
+  tenant_address?: string | null;
   email?: string | null;
   phone?: string | null;
   admission_no?: string | null;

@@ -246,6 +246,11 @@ const feeApp = (f: MockFee) => {
   return { ...f, overdue_days: late, student: st ? { id: st.id, name: st.name, admission_no: st.admission_no, cls: st.cls, parent: st.parent, parent_phone: st.parent_phone } : null };
 };
 
+
+// ---- Institution settings & attendance ----
+let mockInstitution = { id: 1, name: 'Noon Demo Madrasa', code: 'DEMO01', plan: 'pro', active: true, phone: '+91 95626 51864', address: 'Kozhikode, Kerala', academic_year: '2026–27', default_fee: 800 as number | null };
+let mockAttendance: { student_id: number; date: string; status: string; batch_id: number }[] = [];
+
 type Handler = (m: RegExpMatchArray, body: any) => unknown;
 const routes: [string, RegExp, Handler][] = [
   ['POST', /^\/auth\/login$/, (_, b) => {
@@ -524,6 +529,28 @@ const routes: [string, RegExp, Handler][] = [
   ['PATCH', /^\/admin\/fees\/(\d+)$/, (m, b) => { mockFees = mockFees.map((f) => (f.id === +m[1] ? { ...f, ...b, ...(b.status === 'due' ? { paid_amount: null, paid_at: null, method: null } : {}) } : f)); return feeApp(mockFees.find((f) => f.id === +m[1])!); }],
   ['DELETE', /^\/admin\/fees\/(\d+)$/, (m) => { mockFees = mockFees.filter((f) => f.id !== +m[1]); return null; }],
   ['GET', /^\/fees$/, () => { const mine = mockFees.filter((f) => f.student_id === 9).map(feeApp); return { due_total: mine.filter((f) => f.status === 'due').reduce((n, f) => n + f.amount, 0), fees: mine }; }],
+  ['GET', /^\/admin\/institution$/, () => ({ ...mockInstitution, counts: { students: studentRows.length, teachers: teacherRows.length, admins: 1 } })],
+  ['PUT', /^\/admin\/institution$/, (_, b) => { mockInstitution = { ...mockInstitution, ...b }; return { ...mockInstitution, counts: { students: studentRows.length, teachers: teacherRows.length, admins: 1 } }; }],
+  ['GET', /^\/staff\/attendance\?batch_id=(\d+)(&date=([\d-]+))?$/, (m) => {
+    const date = m[3] ?? new Date().toISOString().slice(0, 10);
+    const marks = mockAttendance.filter((a) => a.date === date);
+    return { batch: STAFF_BATCHES.find((b) => b.id === +m[1]) ?? { id: +m[1], name: 'Batch' }, date, marked: marks.some((a) => a.batch_id === +m[1]),
+      students: studentRows.slice(0, 4).map((s0) => ({ id: s0.id, name: s0.name, admission_no: s0.admission_no, status: marks.find((a) => a.student_id === s0.id)?.status ?? null })) };
+  }],
+  ['POST', /^\/staff\/attendance$/, (_, b) => { (b.marks ?? []).forEach((mk: any) => { mockAttendance = [...mockAttendance.filter((a) => !(a.student_id === mk.student_id && a.date === b.date)), { student_id: mk.student_id, date: b.date, status: mk.status, batch_id: b.batch_id }]; }); return { saved: (b.marks ?? []).length }; }],
+  ['GET', /^\/admin\/attendance(\?period=(\w+))?$/, (m) => {
+    const period = m[2] ?? 'today'; const t = new Date().toISOString().slice(0, 10);
+    const rows = period === 'today' ? mockAttendance.filter((a) => a.date === t) : mockAttendance;
+    const c = (st: string) => rows.filter((r) => r.status === st).length;
+    const pct = rows.length ? Math.round(((c('present') + c('late')) * 100) / Math.max(1, rows.length - c('leave'))) : null;
+    const absentIds = Array.from(new Set(rows.filter((r) => r.status === 'absent').map((r) => r.student_id)));
+    return { period, from: t, to: t, days: new Set(rows.map((r) => r.date)).size, students: studentRows.length,
+      summary: { present: c('present'), absent: c('absent'), late: c('late'), leave: c('leave'), marks: rows.length, percent: pct },
+      batches: STAFF_BATCHES.map((b) => { const r = rows.filter((x) => x.batch_id === b.id); return { id: b.id, name: b.name, teacher: 'Ustad Ahmed', students: 4, marks: r.length, percent: r.length ? Math.round((r.filter((x) => x.status !== 'absent').length * 100) / r.length) : null, marked_today: r.some((x) => x.date === t) }; }),
+      absent: absentIds.map((id) => { const s0 = studentRows.find((x) => x.id === id)!; return { id, name: s0.name, cls: s0.cls, days: rows.filter((r) => r.student_id === id && r.status === 'absent').length, parent: s0.parent, parent_phone: s0.parent_phone }; }) };
+  }],
+  ['GET', /^\/attendance$/, () => { const mine = mockAttendance.filter((a) => a.student_id === 9); const c = (st: string) => mine.filter((r) => r.status === st).length;
+    return [{ student: { id: 9, name: 'Ayisha' }, month: { present: c('present'), absent: c('absent'), late: c('late'), leave: c('leave'), percent: mine.length ? Math.round(((c('present') + c('late')) * 100) / Math.max(1, mine.length - c('leave'))) : null }, days: mine.map((a) => ({ date: a.date, status: a.status })) }]; }],
 ];
 
 export async function mockRequest<T>(method: string, path: string, body?: unknown): Promise<T> {
