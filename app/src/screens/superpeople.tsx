@@ -233,13 +233,25 @@ export function SuperTenantFormScreen() {
     catch (e) { setErr(e instanceof ApiError ? e.friendly : 'Could not delete.'); setBusy(false); }
   };
 
-  const field = (label: string, k: keyof typeof f, props: Partial<React.ComponentProps<typeof TextInput>> = {}) => (
-    <View style={{ gap: 6 }}>
-      <T v="small" style={{ fontFamily: fonts.medium }}>{label}</T>
-      <TextInput value={f[k]} onChangeText={set(k)} accessibilityLabel={label} placeholderTextColor={colors.faint} {...props}
-        style={{ height: 48, borderRadius: 16, borderWidth: 1.5, borderColor: colors.line, backgroundColor: '#FFF', paddingHorizontal: 14, fontFamily: fonts.regular, fontSize: 15, color: colors.ink, outlineStyle: 'none' } as any} />
-    </View>
-  );
+  const [showPw, setShowPw] = useState(false);
+  const field = (label: string, k: keyof typeof f, props: Partial<React.ComponentProps<typeof TextInput>> = {}) => {
+    const secret = !!props.secureTextEntry;
+    return (
+      <View style={{ gap: 6 }}>
+        <T v="small" style={{ fontFamily: fonts.medium }}>{label}</T>
+        <View>
+          <TextInput value={f[k]} onChangeText={set(k)} accessibilityLabel={label} placeholderTextColor={colors.faint} {...props} secureTextEntry={secret && !showPw}
+            style={{ height: 48, borderRadius: 16, borderWidth: 1.5, borderColor: colors.line, backgroundColor: '#FFF', paddingHorizontal: 14, paddingRight: secret ? 50 : 14, fontFamily: fonts.regular, fontSize: 15, color: colors.ink, outlineStyle: 'none' } as any} />
+          {secret ? (
+            <Pressable accessibilityRole="button" accessibilityLabel={showPw ? 'Hide password' : 'Show password'} onPress={() => setShowPw(!showPw)}
+              style={{ position: 'absolute', right: 4, top: 0, bottom: 0, width: 44, alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name={showPw ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.muted} />
+            </Pressable>
+          ) : null}
+        </View>
+      </View>
+    );
+  };
 
   return (
     <Screen>

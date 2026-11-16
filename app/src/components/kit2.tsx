@@ -168,14 +168,24 @@ export function SettingRow({ icon, tint = colors.sky, label, sub, value, toggle,
   return <Pressable accessibilityRole="button" onPress={onPress}>{body}</Pressable>;
 }
 
-/** Labelled text input. */
+/** Labelled text input. Password fields (secureTextEntry) get an eye button to show what was typed. */
 export function Input({ label, ...props }: React.ComponentProps<typeof TextInput> & { label?: string }) {
+  const [show, setShow] = useState(false);
+  const secret = !!props.secureTextEntry;
   return (
     <View style={{ gap: 6, flex: 1 }}>
       {label ? <T v="small" style={{ fontFamily: fonts.medium }}>{label}</T> : null}
-      <TextInput placeholderTextColor={colors.faint} accessibilityLabel={label} {...props}
-        style={[{ minHeight: 50, borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.line, backgroundColor: '#FFF', paddingHorizontal: 14, fontFamily: fonts.regular, fontSize: 15, color: colors.ink },
-          props.multiline && { minHeight: 90, paddingTop: 12, textAlignVertical: 'top' }, props.style]} />
+      <View>
+        <TextInput placeholderTextColor={colors.faint} accessibilityLabel={label} {...props} secureTextEntry={secret && !show}
+          style={[{ minHeight: 50, borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.line, backgroundColor: '#FFF', paddingHorizontal: 14, fontFamily: fonts.regular, fontSize: 15, color: colors.ink },
+            secret && { paddingRight: 50 }, props.multiline && { minHeight: 90, paddingTop: 12, textAlignVertical: 'top' }, props.style]} />
+        {secret ? (
+          <Pressable accessibilityRole="button" accessibilityLabel={show ? 'Hide password' : 'Show password'} onPress={() => setShow(!show)}
+            style={{ position: 'absolute', right: 4, top: 0, bottom: 0, width: 44, alignItems: 'center', justifyContent: 'center' }}>
+            <Ionicons name={show ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.muted} />
+          </Pressable>
+        ) : null}
+      </View>
     </View>
   );
 }

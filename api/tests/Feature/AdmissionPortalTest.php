@@ -98,4 +98,26 @@ class AdmissionPortalTest extends TestCase
         $this->app['auth']->forgetGuards();
         $this->postJson('/api/auth/login', ['login' => 'ali@x.test', 'password' => $pw])->assertOk()->assertJsonPath('user.role', 'teacher');
     }
+
+    public function test_admin_edits_a_student_and_their_parent(): void
+    {
+        $this->board();
+        $t = $this->madrasa('NOON01');
+        $admin = $this->member($t, 'admin');
+        $id = $this->as($admin)->postJson('/api/admin/students', ['name' => 'Rayan', 'board' => 'AP', 'cls' => '5', 'parent_name' => 'Abdul'])->assertCreated()->json('student.id');
+        $other = $this->madrasa('OTHER2');
+        $this->member($other, 'teacher', ['phone' => '919000000001']);
+
+        $this->as($admin)->putJson("/api/admin/students/{$id}", ['name' => 'Rayan K', 'admission_no' => 'NOON01-0099', 'parent_name' => 'Abdul Rahman', 'parent_phone' => '+91 95626 51864'])
+            ->assertOk()->assertJsonPath('name', 'Rayan K')->assertJsonPath('admission_no', 'NOON01-0099')
+            ->assertJsonPath('parent', 'Abdul Rahman')->assertJsonPath('parent_phone', '919562651864');
+        // a number used by another account is refused
+        $this->as($admin)->putJson("/api/admin/students/{$id}", ['parent_phone' => '+91 90000 00001'])->assertStatus(422);
+        // another institution's admin cannot edit
+        $this->as($this->member($other, 'admin'))->putJson("/api/admin/students/{$id}", ['name' => 'X'])->assertNotFound();
+        // the student logs in with the new admission no.
+        \App\Models\User::find($id)->forceFill(['password' => 'student123'])->save();
+        $this->postJson('/api/auth/login', ['login' => 'NOON01-0099', 'password' => 'student123'])->assertOk();
+    }
 }
+

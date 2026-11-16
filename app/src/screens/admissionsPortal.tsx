@@ -2,7 +2,7 @@
 // students register + single admission, admissions hub (applications, leads, campaigns),
 // campaign pages, and the public admission page parents open from a shared link.
 import React, { useState } from 'react';
-import { Linking, Modal, Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { Linking, Modal, Platform, Pressable, ScrollView, Switch, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -18,7 +18,7 @@ import { colors, fonts } from '@/theme/tokens';
 /* ---------- shared bits ---------- */
 export type Credential = { who: 'student' | 'parent'; name: string; login: string; password: string | null };
 type StudentRow = { id: number; name: string; admission_no: string | null; cls: string | null; class_id: number | null; board: string | null; parent: string | null; parent_phone: string | null; blocked: boolean };
-type StudentDetail = StudentRow & { email: string | null; batches: { id: number; name: string }[]; courses: { id: number; title: string; progress: number }[]; joined: string };
+type StudentDetail = StudentRow & { email: string | null; batch_ids?: number[]; batches: { id: number; name: string }[]; courses: { id: number; title: string; progress: number }[]; joined: string };
 export type Campaign = { id: number; code: string; title: string; year: string | null; classes: string[]; seats: number | null; opens_on: string | null; closes_on: string | null; description: string | null; fee_note: string | null; status: 'open' | 'closed'; is_open: boolean; leads: number; applications: number; admitted: number; seats_left: number | null };
 type LeadStatus = 'new' | 'contacted' | 'interested' | 'visit' | 'applied' | 'admitted' | 'lost';
 type Lead = { id: number; student: string; parent: string | null; phone: string; email: string | null; cls: string | null; source: string; status: LeadStatus; follow_up_on: string | null; overdue: boolean; notes: { text: string; by: string | null; at: string }[]; campaign: { id: number; title: string } | null; admission: string | null; when: string };
@@ -131,7 +131,7 @@ export function AdminStudentDetailScreen() {
   if (!s) return <Screen><Header title="Student" /><Empty text={error ?? 'Student not found.'} /></Screen>;
   return (
     <Screen>
-      <Header title="" />
+      <Header title="" right={<Pill label="Edit" icon="create-outline" filled onPress={() => router.push(`/admin/students/${s.id}/edit` as any)} />} />
       <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
         <Avatar name={s.name} size={62} tint={pastel.lav} />
         <View style={{ flex: 1 }}>
@@ -159,6 +159,75 @@ export function AdminStudentDetailScreen() {
       <Panel title="COURSES" style={{ marginBottom: 30 }}>
         {s.courses.length ? s.courses.map((c) => <Row key={c.id} style={{ justifyContent: 'space-between' }}><T>{c.title}</T><T v="small">{c.progress}%</T></Row>) : <T v="small">No courses yet.</T>}
       </Panel>
+    </Screen>
+  );
+}
+
+/* ---------- Edit a student (admin) ---------- */
+export function AdminStudentEditScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const { data: s } = useApi<StudentDetail>(`/admin/students/${id}`);
+  const batches = useApi<{ id: number; name: string }[]>('/admin/batches').data ?? [];
+  const [f, setF] = useState<{ name: string; admission_no: string; email: string; board: string; cls: string; parent_name: string; parent_phone: string; blocked: boolean; batch_ids: number[] } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  if (s && !f) {
+    setF({ name: s.name, admission_no: s.admission_no ?? '', email: s.email ?? '', board: s.board ?? 'AP', cls: s.cls ?? '1', parent_name: s.parent ?? '',
+      parent_phone: s.parent_phone ? `+${s.parent_phone}` : '', blocked: !!s.blocked, batch_ids: s.batch_ids ?? s.batches.map((b) => b.id) });
+  }
+  if (!f) return <Loading />;
+  const set = (k: 'name' | 'admission_no' | 'email' | 'board' | 'cls' | 'parent_name' | 'parent_phone') => (v: string) => setF({ ...f, [k]: v });
+  const toggleBatch = (bid: number) => setF({ ...f, batch_ids: f.batch_ids.includes(bid) ? f.batch_ids.filter((x) => x !== bid) : [...f.batch_ids, bid] });
+  const save = async () => {
+    setErr(null);
+    if (f.name.trim().length < 2) return setErr('Enter the student name.');
+    if (!f.admission_no.trim()) return setErr('Enter the admission no. (it is the student\'s login).');
+    if (f.parent_phone && f.parent_phone.replace(/\D/g, '').length < 9) return setErr('Enter a full WhatsApp number with country code.');
+    setBusy(true);
+    try {
+      await api.put(`/admin/students/${id}`, { name: f.name.trim(), admission_no: f.admission_no.trim(), email: f.email.trim() || null, board: f.board, cls: f.cls,
+        parent_name: f.parent_name.trim() || null, parent_phone: f.parent_phone.trim() || null, blocked: f.blocked, batch_ids: f.batch_ids });
+      router.replace(`/admin/students/${id}` as any);
+    } catch (e) { setErr(errText(e, 'Could not save the changes.')); } finally { setBusy(false); }
+  };
+  return (
+    <Screen>
+      <Header title="Edit student" subtitle={s?.name} />
+      <Panel title="STUDENT">
+        <Input label="Full name" value={f.name} onChangeText={set('name')} />
+        <Row gap={10}><Select label="Board" value={f.board} options={BOARDS} onChange={set('board')} /><Select label="Class" value={f.cls} options={CLASSES} onChange={set('cls')} /></Row>
+        <Input label="Admission no. (login)" value={f.admission_no} onChangeText={set('admission_no')} autoCapitalize="characters" />
+        <Input label="Email (optional)" value={f.email} onChangeText={set('email')} keyboardType="email-address" autoCapitalize="none" placeholder="for password reset by email" />
+      </Panel>
+      <Panel title="PARENT">
+        <Input label="Parent name" value={f.parent_name} onChangeText={set('parent_name')} placeholder="Father / mother / guardian" />
+        <Input label="WhatsApp number" value={f.parent_phone} onChangeText={set('parent_phone')} keyboardType="phone-pad" placeholder="+91 98765 43210" />
+        <T v="small">Parents use the student's login. This number is used to contact them and for WhatsApp codes.</T>
+      </Panel>
+      <Panel title="BATCHES">
+        {batches.length ? (
+          <Row gap={8} style={{ flexWrap: 'wrap' }}>
+            {batches.map((b) => {
+              const on = f.batch_ids.includes(b.id);
+              return (
+                <Pressable key={b.id} accessibilityRole="checkbox" accessibilityState={{ checked: on }} onPress={() => toggleBatch(b.id)}
+                  style={{ height: 40, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1.5, borderColor: on ? colors.violet : colors.line, backgroundColor: on ? '#F1EDFF' : '#FFF', flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Ionicons name={on ? 'checkbox' : 'square-outline'} size={16} color={on ? colors.violet : colors.muted} /><T style={{ fontSize: 13, fontFamily: fonts.medium }}>{b.name}</T>
+                </Pressable>
+              );
+            })}
+          </Row>
+        ) : <T v="small">No batches yet. Create one in Batches.</T>}
+      </Panel>
+      <Panel title="LOGIN" style={{ marginBottom: 12 }}>
+        <Row style={{ justifyContent: 'space-between' }}>
+          <View style={{ flex: 1 }}><T style={{ fontFamily: fonts.medium }}>Block login</T><T v="small">The student (and parent) cannot sign in while blocked.</T></View>
+          <Switch accessibilityLabel="Block login" value={f.blocked} onValueChange={(v) => setF({ ...f, blocked: v })} />
+        </Row>
+        <T v="small">To set a new password, use More → People & passwords.</T>
+      </Panel>
+      {err ? <T style={{ color: colors.red, marginBottom: 10 }}>{err}</T> : null}
+      <Button title="Save changes" icon="checkmark-circle-outline" onPress={save} loading={busy} />
     </Screen>
   );
 }

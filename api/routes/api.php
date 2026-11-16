@@ -119,6 +119,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::post('/admissions/{ref}/admit', [AdmissionController::class, 'admit']);
         Route::get('/students', [StudentController::class, 'index']);
         Route::get('/students/{id}', [StudentController::class, 'show'])->whereNumber('id');
+        Route::put('/students/{id}', [StudentController::class, 'update'])->whereNumber('id');
         Route::post('/students', [StudentController::class, 'store']);
         Route::get('/teachers', [StudentController::class, 'teachers']);
         Route::post('/teachers', [StudentController::class, 'storeTeacher']);

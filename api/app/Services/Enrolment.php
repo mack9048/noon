@@ -82,7 +82,7 @@ class Enrolment
     }
 
     /** Board code (AP / EK / GEN) and class label (5, +1) → ids. */
-    private function place(?string $board, ?string $cls): array
+    public function place(?string $board, ?string $cls): array
     {
         if (! $board) {
             return [null, null];

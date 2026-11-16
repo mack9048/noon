@@ -400,6 +400,13 @@ const routes: [string, RegExp, Handler][] = [
     const s = studentRows.find((x) => x.id === +m[1]); if (!s) throw new Error('This student was not found.');
     return { ...s, email: null, batches: [{ id: 1, name: 'Madrasa 5 · Evening' }], courses: [{ id: 1, title: 'Arabic for Beginners', progress: 40 }], joined: 'Jun 2026' };
   }],
+  ['PUT', /^\/admin\/students\/(\d+)$/, (m, b) => {
+    const s0 = studentRows.find((x) => x.id === +m[1]); if (!s0) throw new Error('This student was not found.');
+    const upd = { ...s0, name: b.name ?? s0.name, admission_no: b.admission_no ?? s0.admission_no, cls: b.cls ?? s0.cls, board: b.board ?? s0.board,
+      parent: b.parent_name ?? s0.parent, parent_phone: b.parent_phone ? String(b.parent_phone).replace(/\D/g, '') : s0.parent_phone, blocked: b.blocked ?? s0.blocked };
+    studentRows = studentRows.map((x) => (x.id === s0.id ? upd : x));
+    return { ...upd, email: b.email ?? null, batch_ids: b.batch_ids ?? [1], batches: [{ id: 1, name: 'Madrasa 5 · Evening' }], courses: [], joined: 'Jun 2026' };
+  }],
   ['POST', /^\/admin\/students$/, (_, b) => {
     const rows = Array.isArray(b?.students) ? b.students : [b];
     const credentials: { who: 'student' | 'parent'; name: string; login: string; password: string | null }[] = [];
