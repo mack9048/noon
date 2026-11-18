@@ -257,7 +257,7 @@ export function LiveMeetScreen() {
         </Row>
         <LinearGradient colors={['#1D4A57', '#2B2366']} style={{ flex: 1, borderRadius: 30, alignItems: 'center', justifyContent: 'center' }}>
           <View style={{ width: 116, height: 116, borderRadius: 58, backgroundColor: colors.lav[0], alignItems: 'center', justifyContent: 'center' }}><T style={{ fontFamily: fonts.semibold, fontSize: 38, color: '#2A1A5E' }}>UA</T></View>
-          <T v="small" style={{ color: '#CFE2E8', marginTop: 12 }}>Connect a video SDK (Jitsi / LiveKit / Agora) here — see README</T>
+          <T v="small" style={{ color: '#CFE2E8', marginTop: 12 }}>The class video shows here when your teacher starts.</T>
         </LinearGradient>
         <Row style={{ justifyContent: 'center', gap: 12 }}>
           <IconButton name={mic ? 'mic' : 'mic-off'} label="Microphone" tint={mic ? '#FFF' : '#24505C'} color={mic ? colors.ink : '#FFF'} size={56} onPress={() => setMic(!mic)} />

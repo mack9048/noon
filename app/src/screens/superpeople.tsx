@@ -199,6 +199,7 @@ export function SuperTenantFormScreen() {
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [showPw, setShowPw] = useState(false);
   if (editing && t && !loaded) {
     setF({ ...f, name: t.name, plan: (t.plan as Plan) ?? 'basic', leave_quota: String(t.leave_quota ?? 15) });
     setLoaded(true);
@@ -233,7 +234,6 @@ export function SuperTenantFormScreen() {
     catch (e) { setErr(e instanceof ApiError ? e.friendly : 'Could not delete.'); setBusy(false); }
   };
 
-  const [showPw, setShowPw] = useState(false);
   const field = (label: string, k: keyof typeof f, props: Partial<React.ComponentProps<typeof TextInput>> = {}) => {
     const secret = !!props.secureTextEntry;
     return (
