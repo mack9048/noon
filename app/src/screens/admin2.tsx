@@ -400,6 +400,10 @@ export function CourseEditorScreen({ mode }: { mode: 'admin' | 'super' }) {
   const [cat, setCat] = useState('Arabic');
   const [visible, setVisible] = useState(mode === 'admin' ? 'My madrasa only' : 'All madrasas');
   const [level, setLevel] = useState('Beginner');
+  // Super admin: which madrasas (tenants) get the course.
+  const tenants = useApi<{ id: number; name: string }[]>(mode === 'super' ? '/super/tenants' : null).data ?? [];
+  const [tenantIds, setTenantIds] = useState<number[]>([]);
+  const toggleTenant = (tid: number) => setTenantIds((l) => (l.includes(tid) ? l.filter((x) => x !== tid) : [...l, tid]));
   const [colour, setColour] = useState(COURSE_COLOURS[0]);
   const [logo, setLogo] = useState<string | null>(null);
   const [logoFile, setLogoFile] = useState<{ uri: string; name?: string; mimeType?: string; file?: File } | null>(null);
@@ -430,6 +434,7 @@ export function CourseEditorScreen({ mode }: { mode: 'admin' | 'super' }) {
 
   const submit = async () => {
     if (!title.trim()) return demoNote('Give the course a name.');
+    if (mode === 'super' && visible === 'Selected madrasas' && !tenantIds.length) return demoNote('Pick at least one madrasa for this course.');
     const priceN = pricing === 'free' ? null : Number(price) || null;
     const offerN = pricing === 'free' ? null : Number(offer) || null;
     setBusy(true);
@@ -442,7 +447,8 @@ export function CourseEditorScreen({ mode }: { mode: 'admin' | 'super' }) {
         router.replace('/admin/courses' as any);
         return;
       }
-      const c = await api.post<{ id: number }>('/super/courses', { title: title.trim(), description: desc.trim() || null, category: cat, level, cover: colour, status: 'published', is_free: pricing === 'free', price: priceN, offer_price: offerN, logo_url: logo });
+      const c = await api.post<{ id: number }>('/super/courses', { title: title.trim(), description: desc.trim() || null, category: cat, level, cover: colour, status: 'published', is_free: pricing === 'free', price: priceN, offer_price: offerN, logo_url: logo,
+        audience: visible === 'Selected madrasas' ? 'selected' : visible === 'Guests only' ? 'guests' : 'all', tenant_ids: visible === 'Selected madrasas' ? tenantIds : [] });
       if (logoFile) await uploadLogo(`/super/courses/${c.id}/logo`, logoFile);
       for (const l of lessons) await api.post(`/super/courses/${c.id}/items`, { kind: l.live ? 'live' : 'video', title: l.title, meta: `${l.items.length} items` });
       demoNote('Course published.');
@@ -476,7 +482,25 @@ export function CourseEditorScreen({ mode }: { mode: 'admin' | 'super' }) {
       <Panel title="Course details">
         <Input label="Course name" value={title} onChangeText={setTitle} />
         <Input label="Short description" value={desc} onChangeText={setDesc} multiline />
-        <Row gap={10}><Select label="Category" value={cat} options={['Arabic', 'Quran', 'Fiqh', 'Seerah', 'Hifz', 'Duas & Adkar']} onChange={setCat} /><Select label="Visible to" value={visible} options={mode === 'admin' ? ['My madrasa only', 'All Noon Learn'] : ['All madrasas', 'Pro madrasas', 'Guests only']} onChange={setVisible} /></Row>
+        <Row gap={10}><Select label="Category" value={cat} options={['Arabic', 'Quran', 'Fiqh', 'Seerah', 'Hifz', 'Duas & Adkar']} onChange={setCat} /><Select label="Visible to" value={visible} options={mode === 'admin' ? ['My madrasa only', 'All Noon Learn'] : ['All madrasas', 'Selected madrasas', 'Guests only']} onChange={setVisible} /></Row>
+        {mode === 'super' ? (visible === 'Selected madrasas' ? (
+          <View style={{ gap: 8 }}>
+            <T v="small" style={{ fontFamily: fonts.medium }}>Madrasas · {tenantIds.length ? `${tenantIds.length} picked` : 'pick one or more'}</T>
+            <Row gap={8} style={{ flexWrap: 'wrap' }}>
+              {tenants.map((t) => {
+                const on = tenantIds.includes(t.id);
+                return (
+                  <Pressable key={t.id} accessibilityRole="checkbox" accessibilityState={{ checked: on }} accessibilityLabel={t.name} onPress={() => toggleTenant(t.id)}
+                    style={{ height: 38, paddingHorizontal: 14, borderRadius: 19, borderWidth: 1.5, borderColor: on ? colors.violet : colors.line, backgroundColor: on ? '#F1EDFF' : '#FFF', flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Ionicons name={on ? 'checkbox' : 'square-outline'} size={16} color={on ? colors.violet : colors.muted} /><T style={{ fontSize: 13, fontFamily: fonts.medium }}>{t.name}</T>
+                  </Pressable>
+                );
+              })}
+              {!tenants.length ? <T v="small">No madrasas yet.</T> : null}
+            </Row>
+            <T v="small">Only students of these madrasas see the course. It is switched on for them straight away.</T>
+          </View>
+        ) : <T v="small">{visible === 'Guests only' ? 'Only guests exploring the free app. Madrasa students do not see it.' : 'Switched on for every madrasa, and guests can see it too.'}</T>) : null}
         <T v="small" style={{ fontFamily: fonts.medium }}>Level</T>
         <ChoiceChips value={level} onChange={setLevel} options={['Beginner', 'Middle', 'Advanced'].map((k) => ({ key: k, label: k }))} />
       </Panel>

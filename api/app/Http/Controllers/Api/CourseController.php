@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\CourseItem;
+use App\Models\Tenant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -127,6 +128,9 @@ class CourseController extends Controller
             'class_ids.*' => ['integer'],
         ]);
         abort_unless($tenant && $course->status === 'published', 422);
+        // A course kept for chosen madrasas can only be switched on by those madrasas (or its owner).
+        abort_unless($course->visibility === 'all' || $course->tenant_id === $tenant->id
+            || $course->tenants()->where('tenants.id', $tenant->id)->exists(), 404);
         $tenant->courses()->syncWithoutDetaching([$course->id => [
             'enabled' => $data['enabled'],
             'teacher_id' => $data['teacher_id'] ?? null,
@@ -145,14 +149,53 @@ class CourseController extends Controller
 
     public function superStore(Request $request)
     {
-        return Course::create($this->validated($request))->load(self::WITH)->toApp();
+        $course = Course::create($this->validated($request));
+        $this->assignTenants($request, $course);
+
+        return $course->load(self::WITH)->toApp() + $this->audienceOf($course);
     }
 
     public function superUpdate(Request $request, Course $course)
     {
         $course->update($this->validated($request, partial: true));
+        $this->assignTenants($request, $course);
 
-        return $course->load(self::WITH)->toApp();
+        return $course->load(self::WITH)->toApp() + $this->audienceOf($course);
+    }
+
+    /**
+     * Which madrasas a course is for:
+     *  - all: every madrasa gets it switched on, guests see it too
+     *  - selected: only the chosen madrasas (guests do not see it)
+     *  - guests: only guests exploring the free app
+     */
+    private function assignTenants(Request $request, Course $course): void
+    {
+        if (! $request->has('audience')) {
+            return;
+        }
+        $data = $request->validate([
+            'audience' => ['required', 'in:all,selected,guests'],
+            'tenant_ids' => ['required_if:audience,selected', 'array', 'max:500'],
+            'tenant_ids.*' => ['integer', 'exists:tenants,id'],
+        ]);
+        $ids = match ($data['audience']) {
+            'all' => Tenant::pluck('id')->all(),
+            'selected' => array_values(array_unique($data['tenant_ids'])),
+            'guests' => [],
+        };
+        $course->update(['visibility' => $data['audience'] === 'selected' ? 'madrasa' : 'all']);
+        // Keep each madrasa's own teacher/class choices; add the new ones switched on.
+        $keep = $course->tenants()->whereIn('tenants.id', $ids)->pluck('tenants.id')->all();
+        $course->tenants()->detach(array_diff($course->tenants()->pluck('tenants.id')->all(), $ids));
+        $course->tenants()->attach(array_fill_keys(array_diff($ids, $keep), ['enabled' => true]));
+    }
+
+    private function audienceOf(Course $course): array
+    {
+        $ids = $course->tenants()->pluck('tenants.id')->all();
+
+        return ['tenant_ids' => $ids, 'audience' => $course->visibility === 'madrasa' ? 'selected' : ($ids ? 'all' : 'guests')];
     }
 
     public function superDestroy(Course $course)
