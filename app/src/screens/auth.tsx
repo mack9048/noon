@@ -1,3 +1,4 @@
+import { takeNextPath } from '@/lib/shop';
 import React, { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,6 +13,9 @@ import { api, ApiError, USE_MOCK } from '@/lib/api';
 import { useLayout } from '@/lib/useLayout';
 import { colors, fonts, radius } from '@/theme/tokens';
 
+
+/** Home for the role, or the shop page a website visitor wanted before logging in. */
+const afterLogin = (role: Parameters<typeof homeFor>[0]) => { const next = takeNextPath(); return next && role !== 'super' ? `${homeFor(role)}${next}` : homeFor(role); };
 export function WelcomeScreen() {
   const { startGuest } = useAuth();
   const [busy, setBusy] = useState(false);
@@ -160,7 +164,7 @@ export function LoginScreen() {
     setBusy(true); setErr(null);
     try {
       const u = await login(loginId, password, tenantCode);
-      router.replace(homeFor(u.role) as any);
+      router.replace(afterLogin(u.role) as any);
     } catch (e: any) {
       if (e instanceof ApiError && e.code === 'tenant_required') {
         setChoices(e.body?.tenants ?? []);
@@ -227,7 +231,7 @@ function WhatsAppLogin() {
     setBusy(true); setErr(null);
     try {
       const u = await loginWithOtp(phone.trim(), otp.trim());
-      router.replace(homeFor(u.role) as any);
+      router.replace(afterLogin(u.role) as any);
     } catch (e: any) { setErr(e instanceof ApiError ? e.friendly : 'The code is not correct.'); } finally { setBusy(false); }
   };
 

@@ -13,6 +13,8 @@ use App\Http\Controllers\Api\CatalogController;
 use App\Http\Controllers\Api\ChatController;
 use App\Http\Controllers\Api\CourseBuilderController;
 use App\Http\Controllers\Api\NooniController;
+use App\Http\Controllers\Api\ShopAdminController;
+use App\Http\Controllers\Api\ShopController;
 use App\Http\Controllers\Api\CourseController;
 use App\Http\Controllers\Api\SiteController;
 use App\Http\Controllers\Api\FeeController;
@@ -54,6 +56,9 @@ Route::middleware('throttle:auth')->group(function () {
 });
 Route::get('/boards', [CatalogController::class, 'boards']);
 Route::get('/catalog/courses', [CourseController::class, 'catalog']);
+// Shop: products are public (website); a bought file only through its short-lived signed link.
+Route::get('/shop/products', [ShopController::class, 'products']);
+Route::get('/shop/files/{id}', [ShopController::class, 'file'])->whereNumber('id')->name('shop.file')->middleware('signed:relative');
 Route::get('/site/content', [SiteController::class, 'content']);
 // An uploaded HTML game; only reachable through the short-lived signed link from /games/{id}/play.
 Route::get('/games/{id}/file', [GameController::class, 'file'])->whereNumber('id')->name('games.file')->middleware('signed:relative');
@@ -85,6 +90,20 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::get('/course-categories', [CourseBuilderController::class, 'categories']);
     // Nooni voice assistant (every role). Limited per minute here and per day in the controller.
     Route::post('/nooni', [NooniController::class, 'ask'])->middleware('throttle:12,1');
+
+    // Shop (every role): cart, checkout by UPI or Cash on Delivery, orders, bought files.
+    Route::get('/shop/products/{id}', [ShopController::class, 'product'])->whereNumber('id');
+    Route::get('/shop/cart', [ShopController::class, 'cart']);
+    Route::post('/shop/cart', [ShopController::class, 'addToCart']);
+    Route::put('/shop/cart/{product}', [ShopController::class, 'updateCart'])->whereNumber('product');
+    Route::delete('/shop/cart/{product}', [ShopController::class, 'removeFromCart'])->whereNumber('product');
+    Route::post('/shop/orders', [ShopController::class, 'placeOrder'])->middleware('throttle:10,1');
+    Route::get('/shop/orders', [ShopController::class, 'orders']);
+    Route::get('/shop/orders/{ref}', [ShopController::class, 'order']);
+    Route::post('/shop/orders/{ref}/upi', [ShopController::class, 'submitUpi'])->middleware('throttle:10,1');
+    Route::post('/shop/orders/{ref}/cancel', [ShopController::class, 'cancel']);
+    Route::get('/shop/library', [ShopController::class, 'library']);
+    Route::get('/shop/products/{id}/download', [ShopController::class, 'download'])->whereNumber('id');
 
     // A student's subjects and courses, and each one's materials, syllabus, assessments, exams, results, report card
     Route::get('/learn', [LearnController::class, 'index']);
@@ -208,6 +227,17 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/approvals', [CourseRequestController::class, 'index']);
         Route::patch('/approvals/{course}', [CourseRequestController::class, 'decide']);
 
+        Route::get('/shop/summary', [ShopAdminController::class, 'summary']);
+        Route::get('/shop/products', [ShopAdminController::class, 'products']);
+        Route::post('/shop/products', [ShopAdminController::class, 'storeProduct']);
+        Route::post('/shop/products/{id}', [ShopAdminController::class, 'updateProduct'])->whereNumber('id');
+        Route::delete('/shop/products/{id}', [ShopAdminController::class, 'destroyProduct'])->whereNumber('id');
+        Route::post('/shop/products/{id}/restore', [ShopAdminController::class, 'restoreProduct'])->whereNumber('id');
+        Route::delete('/shop/products/{id}/forever', [ShopAdminController::class, 'forceDeleteProduct'])->whereNumber('id');
+        Route::get('/shop/orders', [ShopAdminController::class, 'orders']);
+        Route::put('/shop/orders/{id}', [ShopAdminController::class, 'updateOrder'])->whereNumber('id');
+        Route::get('/shop/settings', [ShopAdminController::class, 'settings']);
+        Route::post('/shop/settings', [ShopAdminController::class, 'updateSettings']);
         Route::get('/games', [GameController::class, 'adminIndex']);
         Route::post('/games', [GameController::class, 'store']);
         Route::post('/games/reorder', [GameController::class, 'reorder']);

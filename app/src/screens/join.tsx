@@ -1,3 +1,4 @@
+import { takeNextPath } from '@/lib/shop';
 import React, { useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { router } from 'expo-router';
@@ -15,6 +16,9 @@ import { colors, fonts } from '@/theme/tokens';
  *  1. name / age / parent phone + choose Madrasa Support and/or Noon Courses
  *  2. pick board + class and/or courses → creates a guest account
  */
+
+/** Home for the role, or the shop page a website visitor wanted before logging in. */
+const afterLogin = (role: Parameters<typeof homeFor>[0]) => { const next = takeNextPath(); return next && role !== 'super' ? `${homeFor(role)}${next}` : homeFor(role); };
 export function JoinScreen() {
   const { startGuest } = useAuth();
   const [step, setStep] = useState<1 | 2>(1);
@@ -50,7 +54,7 @@ export function JoinScreen() {
         course_ids: wantCourses ? picked : [],
       });
       // A verified number may belong to an institution account: open that app.
-      router.replace(homeFor(u.role) as any);
+      router.replace(afterLogin(u.role) as any);
     } catch (e: any) {
       if (e instanceof ApiError && e.code === 'otp_required') {
         setNeedOtp(true);

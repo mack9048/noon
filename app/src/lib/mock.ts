@@ -377,6 +377,13 @@ const routes: [string, RegExp, Handler][] = [
   ['GET', /^\/courses\/(\d+)$/, (m) => courses.find((c) => c.id === +m[1])],
   ['POST', /^\/courses\/(\d+)\/enroll$/, (m) => { const c = courses.find((x) => x.id === +m[1]); if (c) c.enrolled = true; return c; }],
   ['GET', /^\/courses\/continue(\?course=\d+)?$/, () => null],
+  // Shop (sample-data mode: an empty shop).
+  ['GET', /^\/shop\/products(\?.*)?$/, () => []],
+  ['GET', /^\/shop\/cart$/, () => ({ items: [], count: 0, subtotal: 0, shipping: 0, total: 0, has_physical: false, max_qty: 20, bulk: null, settings: { upi_id: '', upi_name: 'Noon Learn', upi_qr_url: null, shipping_fee: 50, free_shipping_above: 999, cod_enabled: true, cod_max: 5000, support_phone: '' } })],
+  ['GET', /^\/shop\/(orders|library)$/, () => []],
+  ['GET', /^\/super\/shop\/summary$/, () => ({ sales_today: 0, sales_month: 0, orders_month: 0, to_verify: 0, awaiting_payment: 0, to_ship: 0, low_stock: [], products_live: 0, top: [] })],
+  ['GET', /^\/super\/shop\/(products|orders)(\?.*)?$/, () => []],
+  ['GET', /^\/super\/shop\/settings$/, () => ({ upi_id: '', upi_name: 'Noon Learn', upi_qr_url: null, shipping_fee: 50, free_shipping_above: 999, cod_enabled: true, cod_max: 5000, support_phone: '' })],
   ['POST', /^\/nooni$/, () => ({ reply: 'Assalamu alaikum! This is sample-data mode, so I can only say hello. Log in to the real app to ask me anything.', open: null })],
   ['GET', /^\/course-categories$/, () => ['Arabic', 'Quran', 'Fiqh', 'Seerah', 'Hifz', 'Duas & Adkar'].map((name, i) => ({ id: i + 1, name }))],
   ['GET', /^\/super\/courses\/(\d+)$/, (m) => {

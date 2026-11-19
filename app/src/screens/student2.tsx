@@ -325,6 +325,7 @@ export function ExploreScreen() {
         <IconTile gradient={['#FF7EC4', '#C2307E']} icon="image-outline" label="Slides" onPress={go('/tools/slide')} />
         <IconTile gradient={['#FFD25A', '#F08A24']} icon="stats-chart" label="Charts" onPress={go('/tools/chart')} />
         <IconTile gradient={['#7D9BFF', '#4255E0']} icon="document-text-outline" label="Forms" onPress={go('/tools/form')} />
+        <IconTile gradient={['#FFB547', '#E07B0E']} icon="storefront-outline" label="Shop" onPress={go('/shop')} />
       </TileRows>
       <BarCard g={['#FF9A3D', '#F06A24']} icon="library-outline" title="Virtual Library" sub="E-books, textbooks & reference" onPress={go('/support')} />
     </Screen>

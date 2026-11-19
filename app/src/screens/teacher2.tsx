@@ -437,6 +437,7 @@ export function TeacherSettingsScreen() {
         { icon: 'moon-outline', tint: T_.sky, label: 'Quiet hours', value: '9 PM – 7 AM' },
       ] },
       { title: 'Account', rows: [
+        { icon: 'storefront-outline', tint: T_.butter, label: 'Shop', sub: 'Books, charts and cards · my orders', href: '/teacher/shop' },
         { icon: 'globe-outline', tint: T_.butter, label: 'Language', value: 'English' },
         { icon: 'contrast-outline', tint: T_.lav, label: 'Dark mode', toggle: false },
         { icon: 'key-outline', tint: T_.pink, label: 'Change password' },
