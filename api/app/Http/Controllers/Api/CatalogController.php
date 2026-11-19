@@ -7,7 +7,7 @@ use App\Models\Board;
 use App\Models\SchoolClass;
 use App\Models\Subject;
 
-/** Institution Support: board → class → subject → lessons (public read-only catalogue). */
+/** Madrasa Support: board → class → subject → lessons (public read-only catalogue). */
 class CatalogController extends Controller
 {
     public function boards()

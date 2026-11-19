@@ -35,4 +35,12 @@ return [
         ],
     ],
 
+    // Nooni, the AI voice assistant. The key stays in the server .env only.
+    'anthropic' => [
+        'key' => env('ANTHROPIC_API_KEY'),
+        'model' => env('NOONI_MODEL', 'claude-opus-5-5'),
+        // Questions per person per day.
+        'daily_limit' => (int) env('NOONI_DAILY_LIMIT', 60),
+    ],
+
 ];

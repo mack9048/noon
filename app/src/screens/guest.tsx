@@ -46,25 +46,15 @@ export function GuestHomeScreen() {
       </Card>
 
       <View style={{ marginTop: 12 }}>
-        <Grid cols={{ phone: 1, tablet: 2, desktop: 2 }} gap={12}>
-          <Pressable accessibilityRole="button" onPress={() => router.push('/guest/demo-classes' as any)}>
-            <LinearGradient colors={gradients.support as unknown as [string, string]} style={{ borderRadius: 30, padding: 18, minHeight: 150, overflow: 'hidden' }}>
-              <T style={{ position: 'absolute', right: 16, bottom: 4, fontFamily: fonts.arabic, fontSize: 56, color: 'rgba(255,255,255,0.85)' }}>مدرسة</T>
-              <T style={{ color: '#CFF3F4', fontFamily: fonts.semibold, fontSize: 12 }}>INSTITUTION CLASSES · DEMO</T>
-              <T style={{ color: '#FFF', fontFamily: fonts.fun, fontSize: 24 }}>Class 1 to +2</T>
-              <T style={{ color: '#D9F2F5' }}>AP · EK · General boards</T>
-              <View style={{ marginTop: 12, alignSelf: 'flex-start', backgroundColor: '#FFF', borderRadius: 18, height: 36, paddingHorizontal: 14, justifyContent: 'center' }}><T style={{ color: colors.teal, fontFamily: fonts.semibold }}>▶ Try free lessons</T></View>
-            </LinearGradient>
-          </Pressable>
-          <Pressable accessibilityRole="button" onPress={() => router.push('/guest/demo-course' as any)}>
-            <LinearGradient colors={gradients.courses as unknown as [string, string]} style={{ borderRadius: 30, padding: 18, minHeight: 150, overflow: 'hidden' }}>
-              <T style={{ color: '#FFE6F6', fontFamily: fonts.semibold, fontSize: 12 }}>NOON COURSES · DEMO</T>
-              <T style={{ color: '#FFF', fontFamily: fonts.fun, fontSize: 24 }}>5 courses to try</T>
-              <T style={{ color: '#EDE7FF' }}>Arabic, Thajweed, Fiqh, Seerah, Hifz</T>
-              <View style={{ marginTop: 12, alignSelf: 'flex-start', backgroundColor: '#FFF', borderRadius: 18, height: 36, paddingHorizontal: 14, justifyContent: 'center' }}><T style={{ color: colors.lav[1], fontFamily: fonts.semibold }}>▶ Watch a demo</T></View>
-            </LinearGradient>
-          </Pressable>
-        </Grid>
+        <Pressable accessibilityRole="button" accessibilityLabel="Our Courses" onPress={() => router.push('/guest/courses' as any)}>
+          <LinearGradient colors={gradients.courses as unknown as [string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 30, padding: 18, minHeight: 150, overflow: 'hidden' }}>
+            <T style={{ position: 'absolute', right: 16, bottom: 4, fontFamily: fonts.arabic, fontSize: 56, color: 'rgba(255,255,255,0.85)' }}>تعلّم</T>
+            <T style={{ color: '#FFE6F6', fontFamily: fonts.semibold, fontSize: 12 }}>FREE DEMO LESSONS</T>
+            <T style={{ color: '#FFF', fontFamily: fonts.fun, fontSize: 24 }}>Our Courses</T>
+            <T style={{ color: '#EDE7FF' }}>Madrasa Support (Class 1 to +2) · Arabic, Thajweed, Fiqh, Seerah, Hifz</T>
+            <View style={{ marginTop: 12, alignSelf: 'flex-start', backgroundColor: '#FFF', borderRadius: 18, height: 36, paddingHorizontal: 14, justifyContent: 'center' }}><T style={{ color: colors.lav[1], fontFamily: fonts.semibold }}>▶ Try free lessons</T></View>
+          </LinearGradient>
+        </Pressable>
       </View>
 
       <Section title="Play & learn · free" />
@@ -136,7 +126,7 @@ function BandChips<K extends string>({ options, value, onChange, dark }: { optio
   );
 }
 
-/* ---------- Institution classes demo ---------- */
+/* ---------- Madrasa classes demo ---------- */
 const DEMO_SUBJECTS: Record<string, string[]> = {
   Fiqh: ['Thaharah — purity', 'Types of water', 'Najas and cleaning', 'Wudu — steps', 'What breaks wudu', 'Ghusl', 'Tayammum', 'Times of Salah'],
   Quran: ['Surah Al-Fatiha', 'Surah An-Nas', 'Surah Al-Falaq', 'Surah Al-Ikhlas', 'Surah Al-Masad', 'Surah An-Nasr', 'Surah Al-Kafirun', 'Surah Al-Kawthar'],
@@ -168,7 +158,7 @@ export function GuestClassesDemoScreen() {
   return (
     <Screen bar={false}>
       <GuestBand g={['#0B5166', '#1F8AA8']} kicker="Free demo · 2 lessons per subject">
-        <T style={{ color: '#FFF', fontFamily: fonts.fun, fontSize: 28, marginTop: -4 }}>Institution classes</T>
+        <T style={{ color: '#FFF', fontFamily: fonts.fun, fontSize: 28, marginTop: -4 }}>Madrasa classes</T>
         <BandChips value={board} onChange={setBoard} options={[{ key: 'AP', label: 'AP board' }, { key: 'EK', label: 'EK board' }, { key: 'GEN', label: 'General' }]} />
         <Row gap={6} style={{ flexWrap: 'wrap' }}>
           {['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '+1', '+2'].map((c) => (

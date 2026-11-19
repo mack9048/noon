@@ -1,5 +1,6 @@
 // Student screens from the design canvas: My Classroom, AI tutor, Salah report, profile,
 // fees, attendance, audio books, settings and help.
+import { NooniChat } from '@/components/Nooni';
 import React, { useState } from 'react';
 import { Pressable, Switch, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
@@ -12,6 +13,7 @@ import { profileLine, profileRows, splitName } from '@/lib/profile';
 import { useLearnSpaces } from '@/lib/learnSpace';
 import { LearnTiles, SpacePicker } from './learnspace';
 import { useBase } from '@/lib/useBase';
+import { useLayout } from '@/lib/useLayout';
 import { AUDIO_BOOKS, CLASSROOM, HELP_FAQ, PROFILE, SALAH_SCORES } from '@/lib/demo';
 import { colors, fonts } from '@/theme/tokens';
 
@@ -69,40 +71,13 @@ const TUTOR_ANSWERS: Record<string, Msg> = {
   'Quiz me on Surah Al-Mulk': { me: false, text: 'Question 1: How many ayahs are in Surah Al-Mulk? Tap to answer: 20, 30 or 40?' },
 };
 
+/** "Ask AI" page: Nooni, the voice assistant, full screen. */
 export function AiTutorScreen() {
-  const { user } = useAuth();
-  const [msgs, setMsgs] = useState<Msg[]>([{ me: false, text: `Assalamu alaikum, ${user?.name ?? 'friend'}! What shall we study today?` }]);
-  const [draft, setDraft] = useState('');
-  const ask = (q: string) => {
-    if (!q.trim()) return;
-    const reply = TUTOR_ANSWERS[q] ?? { me: false, text: 'The AI tutor is coming soon and will answer any lesson question. Try one of the suggestions above.' };
-    setMsgs((m) => [...m, { me: true, text: q }, reply]);
-    setDraft('');
-  };
+  const { isPhone } = useLayout();
   return (
-    <Screen>
-      <Band tint={colors.pink[0]} height={210} />
-      <Header title="Study Assistant" subtitle="Noon AI" right={<Tag text="Ask anything" tone="sky" />} />
-      <View style={{ gap: 10 }}>
-        {msgs.map((m, i) => (
-          <View key={i} style={{ alignSelf: m.me ? 'flex-end' : 'flex-start', maxWidth: '85%', backgroundColor: m.me ? colors.teal : '#FFF', borderRadius: 20, padding: 12, borderWidth: m.me ? 0 : 1.5, borderColor: colors.line }}>
-            <T style={{ color: m.me ? '#FFF' : colors.ink }}>{m.text}</T>
-            {m.example ? <View style={{ marginTop: 8, backgroundColor: colors.lav[0], borderRadius: 14, padding: 10 }}><Text style={{ fontFamily: fonts.arabic, fontSize: 28, color: colors.lav[1] }}>{m.example}</Text></View> : null}
-          </View>
-        ))}
-        {msgs.length === 1 ? (
-          <Row gap={8} style={{ flexWrap: 'wrap' }}>
-            {Object.keys(TUTOR_ANSWERS).map((q) => <SmallButton key={q} title={q} onPress={() => ask(q)} />)}
-          </Row>
-        ) : null}
-      </View>
-      <Row style={{ marginTop: 16, backgroundColor: '#FFF', borderRadius: 28, borderWidth: 1.5, borderColor: colors.line, paddingLeft: 16, paddingRight: 6, height: 56 }}>
-        <TextInput value={draft} onChangeText={setDraft} onSubmitEditing={() => ask(draft)} placeholder="Write a message" placeholderTextColor={colors.faint}
-          style={{ flex: 1, fontFamily: fonts.regular, fontSize: 15, color: colors.ink, outlineStyle: 'none' } as any} />
-        <Pressable accessibilityLabel="Speak" onPress={() => demoNote('Demo: voice questions come with the AI tutor backend.')} style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}><Ionicons name="mic-outline" size={22} color={colors.muted} /></Pressable>
-        <Pressable accessibilityLabel="Send" onPress={() => ask(draft)} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' }}><Ionicons name="send" size={18} color="#FFF" /></Pressable>
-      </Row>
-    </Screen>
+    <View style={{ flex: 1, backgroundColor: colors.bg, paddingBottom: isPhone ? 96 : 0 }}>
+      <View style={{ flex: 1, width: '100%', maxWidth: 760, alignSelf: 'center' }}><NooniChat onClose={() => (router.canGoBack() ? router.back() : router.replace('/' as any))} /></View>
+    </View>
   );
 }
 

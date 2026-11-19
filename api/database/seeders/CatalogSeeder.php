@@ -9,13 +9,13 @@ use Illuminate\Database\Seeder;
 
 /**
  * Platform content every institution shares: boards, classes, subjects and lessons
- * (Institution Support), Noon Courses and study tools. No people, no school data.
+ * (Madrasa Support), Noon Courses and study tools. No people, no school data.
  */
 class CatalogSeeder extends Seeder
 {
     public function run(): void
     {
-        // ---- Institution Support catalogue ----
+        // ---- Madrasa Support catalogue ----
         $subjects = [
             ['Quran', 'قرآن'], ['Thajweed', 'تجويد'], ['Fiqh', 'فقه'], ['Thareekh', 'تاريخ'],
             ['Aqeedah', 'عقيدة'], ['Akhlaq', 'أخلاق'], ['Hadith', 'حديث'], ['Arabic', 'لغة'],

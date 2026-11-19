@@ -13,7 +13,7 @@ import { colors } from '@/theme/tokens';
 const links: [string, string, keyof typeof Ionicons.glyphMap, readonly [string, string]][] = [
   ['Quran & Hifz', '/guest/quran', 'book', colors.mint],
   ['Study tools', '/guest/tools/chart', 'document-text', colors.butter],
-  ['Institution Support', '/guest/support', 'library', colors.sky],
+  ['Our Courses', '/guest/courses', 'school', colors.sky],
   ['Change my class', '/join', 'swap-horizontal', colors.lav],
 ];
 

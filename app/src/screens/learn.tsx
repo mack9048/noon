@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Button, Card, ErrorBox, GradientCard, Grid, Header, IconButton, Loading, Pill, Row, Screen, Segmented, T, TypeIcon, Empty } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useApi } from '@/lib/useApi';
+import { useAuth } from '@/lib/auth';
 import { useBase } from '@/lib/useBase';
 import { useLayout } from '@/lib/useLayout';
 import { setLearnSpace, useLearnSpaces } from '@/lib/learnSpace';
@@ -31,7 +32,7 @@ const deep = (hex: string) => {
 const BANNER: Record<string, [string, string]> = { Arabic: ['#5B43E0', '#9B7BE8'], Quran: ['#14945A', '#4ED68A'], Thajweed: ['#14945A', '#4ED68A'], Fiqh: ['#0B5166', '#1F8AA8'], Seerah: ['#C2307E', '#FF7EC4'], Hifz: ['#D9A21A', '#FFC93C'] };
 const bannerFor = (c: Course): [string, string] => BANNER[c.category] ?? [deep(c.cover), c.cover];
 
-/** Noon Courses: live banner, Noon Buds, then every course with progress. */
+/** Our Courses: live banner, Noon Buds, then Madrasa Support and every Noon Course. */
 export function CoursesScreen() {
   const base = useBase();
   const list = useApi<Course[]>('/courses');
@@ -39,7 +40,7 @@ export function CoursesScreen() {
   const live = courses.find((c) => c.enrolled && c.next_live_at);
   return (
     <Screen>
-      <Header title="Noon Courses" />
+      <Header title="Our Courses" />
       {live ? (
         <Pressable accessibilityRole="button" accessibilityLabel={`Join live ${live.title}`} onPress={() => router.push(`${base}/courses/${live.id}` as any)}
           style={{ borderRadius: 22, backgroundColor: colors.pink[0], borderWidth: 1.5, borderColor: '#EDBEDD', padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
@@ -62,9 +63,10 @@ export function CoursesScreen() {
           <View style={{ backgroundColor: '#FFF', borderRadius: 16, height: 32, paddingHorizontal: 14, justifyContent: 'center' }}><T style={{ color: '#14945A', fontFamily: fonts.semibold }}>Open</T></View>
         </LinearGradient>
       </Pressable>
-      <T v="h2" style={{ marginTop: 16, marginBottom: 10 }}>All courses · {courses.length}</T>
+      <T v="h2" style={{ marginTop: 16, marginBottom: 10 }}>All courses · {courses.length + 1}</T>
       {list.loading ? <Loading /> : list.error ? <ErrorBox message={list.error} onRetry={list.reload} /> : (
         <Grid cols={{ phone: 1, tablet: 2, desktop: 3 }} gap={12}>
+          <MadrasaSupportCard />
           {courses.map((c) => {
             const g = bannerFor(c);
             const tag = c.next_live_at ? `LIVE ${c.next_live_at.toUpperCase()}` : c.enrolled && c.progress != null ? `${Math.round((c.progress / 100) * c.lessons_count)} OF ${c.lessons_count} DONE` : c.is_free ? 'FREE' : 'NEW';
@@ -92,6 +94,30 @@ export function CoursesScreen() {
       )}
       {!list.loading && !courses.length ? <Empty text="No courses here yet." /> : null}
     </Screen>
+  );
+}
+
+/** Madrasa Support, shown as one of Our Courses: board → class → subject → lessons. */
+function MadrasaSupportCard() {
+  const base = useBase();
+  const { user } = useAuth();
+  const mine = user?.board_name || user?.class_label ? [user.board_name, user.class_label ? `Class ${user.class_label}` : null].filter(Boolean).join(' · ') : 'AP · EK · Samastha · General';
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel="Madrasa Support" onPress={() => router.push(`${base}/support` as any)} style={{ borderRadius: 26, backgroundColor: '#FFF', overflow: 'hidden' }}>
+      <LinearGradient colors={gradients.support as unknown as [string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ height: 96, padding: 14 }}>
+        <View style={{ position: 'absolute', right: -30, top: -40, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.14)' }} />
+        <T style={{ position: 'absolute', right: 18, top: 10, fontFamily: fonts.arabic, fontSize: 40, color: 'rgba(255,255,255,0.9)' }}>مدرسة</T>
+        <View style={{ alignSelf: 'flex-start', backgroundColor: '#FFF', borderRadius: 11, paddingHorizontal: 8, height: 22, justifyContent: 'center' }}><T style={{ fontSize: 10, fontFamily: fonts.semibold, color: colors.teal }}>CLASS 1 TO +2</T></View>
+      </LinearGradient>
+      <View style={{ padding: 14, gap: 6 }}>
+        <T v="h3">Madrasa Support</T>
+        <T v="small">Textbooks, video and audio classes for every subject · {mine}</T>
+        <Row style={{ justifyContent: 'space-between', marginTop: 4 }}>
+          <T v="small">By board and class</T>
+          <View style={{ backgroundColor: colors.teal, borderRadius: 16, height: 32, paddingHorizontal: 14, justifyContent: 'center' }}><T style={{ color: '#FFF', fontFamily: fonts.semibold, fontSize: 13 }}>Open ›</T></View>
+        </Row>
+      </View>
+    </Pressable>
   );
 }
 
@@ -292,14 +318,14 @@ function Progress({ value }: { value: number }) {
   );
 }
 
-/* ================= Institution Support: board → class → subject → lessons ================= */
+/* ================= Madrasa Support: board → class → subject → lessons ================= */
 
 export function BoardsScreen() {
   const base = useBase();
   const boards = useApi<Board[]>('/boards');
   return (
     <Screen>
-      <Header title="Institution Support" subtitle="Step 1 · choose your board" />
+      <Header title="Madrasa Support" subtitle="Step 1 · choose your board" />
       {boards.loading ? <Loading /> : (
         <Grid cols={{ phone: 1, tablet: 3, desktop: 3 }}>
           {(boards.data ?? []).map((b, i) => (

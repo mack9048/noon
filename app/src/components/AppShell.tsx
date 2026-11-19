@@ -8,6 +8,7 @@ import { useLayout } from '@/lib/useLayout';
 import { useAuth } from '@/lib/auth';
 import { ImpersonationBar } from './ImpersonationBar';
 import { Logo } from './Logo';
+import { NooniButton } from './Nooni';
 
 export interface NavItem {
   href: string;
@@ -51,6 +52,7 @@ export function AppShell({ items }: { items: NavItem[] }) {
       <View style={{ flex: 1, backgroundColor: colors.bg }}>
         <ImpersonationBar />
         <View style={{ flex: 1 }}><Slot /></View>
+        {user && !sheetFor ? <NooniButton /> : null}
         {sheetFor ? (
           <>
             <Pressable accessibilityLabel="Close menu" onPress={() => setSheetFor(null)} style={styles.scrim} />
@@ -112,7 +114,7 @@ export function AppShell({ items }: { items: NavItem[] }) {
           </View>
         ) : null}
       </View>
-      <View style={{ flex: 1 }}><Slot /></View>
+      <View style={{ flex: 1 }}><Slot />{user ? <NooniButton /> : null}</View>
     </View>
     </View>
   );

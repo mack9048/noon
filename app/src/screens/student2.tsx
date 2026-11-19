@@ -8,7 +8,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Button, Card, IconButton, IconTile, Row, Screen, T } from '@/components/ui';
 import { Tabs, demoNote } from '@/components/kit';
 import { AppTile, DetailRows, G, HeroHeader, MiniStat, OverlapCard, Panel, Select, TileRows } from '@/components/kit2';
-import { AskAiButton, BrandRow } from './home';
+import { BrandRow } from './home';
 import { CourseLogo } from '@/components/CourseLogo';
 import { useApi } from '@/lib/useApi';
 import { useBase } from '@/lib/useBase';
@@ -118,7 +118,7 @@ export function ClassroomScreen() {
   const lessonLine = course ? `${course.category} · Lesson ${pad(lessonNo)}` : `${name} · Lesson ${pad(current?.position ?? 5)}`;
 
   return (
-    <Screen bar={false} overlay={<AskAiButton base={base} />}>
+    <Screen bar={false}>
       <BrandRow base={base} title="Classroom" />
       <T style={{ marginTop: 8, fontFamily: fonts.medium, color: colors.muted }}>{CLASSROOM_INFO.title} · {CLASSROOM_INFO.cls}</T>
 

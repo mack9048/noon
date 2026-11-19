@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\CourseRequestController;
 use App\Http\Controllers\Api\CatalogController;
 use App\Http\Controllers\Api\ChatController;
 use App\Http\Controllers\Api\CourseBuilderController;
+use App\Http\Controllers\Api\NooniController;
 use App\Http\Controllers\Api\CourseController;
 use App\Http\Controllers\Api\SiteController;
 use App\Http\Controllers\Api\FeeController;
@@ -81,6 +82,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::post('/course-items/{item}/complete', [CourseController::class, 'complete']);
     Route::get('/course-items/{item}/open', [CourseBuilderController::class, 'open']);
     Route::get('/course-categories', [CourseBuilderController::class, 'categories']);
+    // Nooni voice assistant (every role). Limited per minute here and per day in the controller.
+    Route::post('/nooni', [NooniController::class, 'ask'])->middleware('throttle:12,1');
 
     // A student's subjects and courses, and each one's materials, syllabus, assessments, exams, results, report card
     Route::get('/learn', [LearnController::class, 'index']);

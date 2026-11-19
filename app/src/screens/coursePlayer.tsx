@@ -15,6 +15,7 @@ import { kindLabel } from '@/lib/courseBuilder';
 import type { CourseDetail, CourseItem, CourseLessonRow } from '@/lib/types';
 import { colors, fonts } from '@/theme/tokens';
 import { ContentViewerHost, openContent } from './courseBuilder';
+import { setNooniContext } from '@/lib/nooni';
 
 const web = Platform.OS === 'web';
 const el = (tag: string, props: Record<string, unknown>) => React.createElement(tag, props);
@@ -81,6 +82,12 @@ export function CoursePlayerScreen() {
   };
   // Non-playing content counts as done once it is opened.
   useEffect(() => { if (item && !locked && !PLAYS.has(item.kind) && item.kind !== 'test') complete(item); }, [item?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Nooni helps with what is open right now.
+  useEffect(() => {
+    setNooniContext({ course: c?.title, lesson: lesson?.title, item: item ? `${item.title} (${item.kind})` : undefined });
+    return () => setNooniContext({});
+  }, [c?.title, lesson?.id, item?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (course.loading && !c) return <Screen><Loading /></Screen>;
   if (!c) return <Screen><ErrorBox message={course.error ?? 'Not found'} onRetry={course.reload} /></Screen>;

@@ -55,18 +55,14 @@ export function HomeScreen() {
   const mine = useApi<Course[]>('/courses?scope=mine');
 
   return (
-    <Screen bar={false} overlay={<AskAiButton base={base} />}>
+    <Screen bar={false}>
       <BrandRow base={base} title="Campus" />
       <T v="h1" style={{ marginTop: 10 }}>My Campus</T>
       <T v="small">Noon Campus · everything in one place</T>
 
       <View style={{ marginTop: 12 }}>
-        <TileRows cols={2} gap={10}>
-          <CampusCard g={gradients.courses} tag={`${mine.data?.length ?? 0} ENROLLED`} title={'Noon\nCourses'} icon="school" ink={colors.lav[1]}
-            onPress={() => router.push(`${base}/courses` as any)} />
-          <CampusCard g={gradients.support} tag="AP · CLASS 5" title={'Institution\nSupport'} icon="business" ink={colors.teal}
-            onPress={() => router.push(`${base}/support` as any)} />
-        </TileRows>
+<CampusCard g={gradients.courses} tag={`MADRASA SUPPORT · ${mine.data?.length ?? 0} ENROLLED`} title={'Our\nCourses'} icon="school" ink={colors.lav[1]}
+          onPress={() => router.push(`${base}/courses` as any)} />
       </View>
 
       <GameCarousel base={base} />

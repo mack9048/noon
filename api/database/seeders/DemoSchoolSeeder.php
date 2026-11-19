@@ -119,7 +119,7 @@ class DemoSchoolSeeder extends Seeder
         // ---- Admission campaign and leads ----
         $campaign = AdmissionCampaign::create(['tenant_id' => $tenant->id, 'code' => 'ADMDEMO26', 'title' => 'Admissions 2026–27', 'academic_year' => '2026–27',
             'classes' => ['1', '2', '3', '4', '5'], 'seats' => 60, 'opens_on' => now()->subDays(20)->toDateString(), 'closes_on' => now()->addDays(40)->toDateString(),
-            'description' => 'Live online institution classes for children in Kerala and the Gulf.', 'fee_note' => '₹299 / month · first week free', 'status' => 'open']);
+            'description' => 'Live online madrasa classes for children in Kerala and the Gulf.', 'fee_note' => '₹299 / month · first week free', 'status' => 'open']);
         foreach ([
             ['Zainab Ali', 'Ali K', '971501230001', '3', 'portal', 'new', 1],
             ['Ibrahim Faisal', 'Faisal M', '971501230002', '5', 'whatsapp', 'contacted', 2],
