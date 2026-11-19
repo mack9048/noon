@@ -10,13 +10,23 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Course extends Model
 {
-    protected $fillable = ['title', 'description', 'category', 'level', 'cover', 'logo_url', 'status', 'is_free', 'price', 'offer_price', 'teacher_id', 'tenant_id', 'visibility', 'review_note'];
+    protected $fillable = ['title', 'description', 'category', 'level', 'cover', 'logo_url', 'status', 'is_free', 'price', 'offer_price', 'price_period', 'trial_days', 'free_for_subscribers', 'teacher_id', 'tenant_id', 'visibility', 'review_note'];
 
-    protected $casts = ['is_free' => 'boolean'];
+    protected $casts = ['is_free' => 'boolean', 'free_for_subscribers' => 'boolean'];
 
     public function items(): HasMany
     {
         return $this->hasMany(CourseItem::class)->orderBy('position')->orderBy('id');
+    }
+
+    public function subjects(): HasMany
+    {
+        return $this->hasMany(CourseSubject::class)->orderBy('position')->orderBy('id');
+    }
+
+    public function lessons(): HasMany
+    {
+        return $this->hasMany(CourseLesson::class)->orderBy('position')->orderBy('id');
     }
 
     public function madrasa(): BelongsTo
@@ -71,8 +81,12 @@ class Course extends Model
             'offer_price' => $this->offer_price,
             'status' => $this->status,
             'is_free' => $this->is_free,
+            'price_period' => $this->price_period ?? 'once',
+            'trial_days' => $this->trial_days ?? 7,
+            'free_for_subscribers' => (bool) ($this->free_for_subscribers ?? true),
             'teacher_name' => $this->teacher?->name,
-            'lessons_count' => $this->items->count(),
+            // Built with lessons: count lessons. Older courses: each item was a lesson.
+            'lessons_count' => $this->relationLoaded('lessons') && $this->lessons->count() ? $this->lessons->count() : $this->items->count(),
             'items_count' => $this->items->count(),
             'enrolled' => (bool) $pivot,
             'progress' => $pivot?->progress,

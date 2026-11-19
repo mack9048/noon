@@ -33,16 +33,16 @@ class CourseRequestController extends Controller
         ]);
         $course = Course::create(collect($data)->except('lessons')->all() + ['tenant_id' => $user->tenant_id, 'status' => 'pending', 'level' => $data['level'] ?? 'Beginner']);
         foreach ($data['lessons'] ?? [] as $i => $title) {
-            $course->items()->create(['kind' => 'video', 'title' => $title, 'position' => $i + 1]);
+            $course->lessons()->create(['title' => $title, 'position' => $i + 1]);
         }
 
-        return response()->json($this->row($course->load(['items', 'madrasa'])), 201);
+        return response()->json($this->row($course->load(['items', 'lessons', 'madrasa'])), 201);
     }
 
     /** GET /super/approvals — courses from madrasas (waiting first). */
     public function index()
     {
-        return Course::with(['items', 'madrasa', 'teacher'])->whereNotNull('tenant_id')
+        return Course::with(['items', 'lessons', 'madrasa', 'teacher'])->whereNotNull('tenant_id')
             ->orderByRaw("case status when 'pending' then 0 when 'changes' then 1 else 2 end")->latest()->limit(200)->get()
             ->map(fn (Course $c) => $this->row($c));
     }
@@ -58,7 +58,7 @@ class CourseRequestController extends Controller
             $course->tenants()->syncWithoutDetaching([$course->tenant_id => ['enabled' => true]]);
         }
 
-        return $this->row($course->load(['items', 'madrasa']));
+        return $this->row($course->load(['items', 'lessons', 'madrasa']));
     }
 
     /** POST /super/courses/{course}/logo and /admin/courses/{course}/logo (own courses only). */
@@ -85,7 +85,7 @@ class CourseRequestController extends Controller
             'category' => $c->category,
             'madrasa' => $c->madrasa?->name ?? 'Noon Learn',
             'when' => $c->created_at?->diffForHumans() ?? '',
-            'tags' => array_values(array_filter([$c->category, $c->items->count().' items', $c->level, $c->visibility === 'madrasa' ? 'My madrasa only' : 'All Noon Learn'])),
+            'tags' => array_values(array_filter([$c->category, $c->lessons->count().' lessons', $c->level, $c->visibility === 'madrasa' ? 'My madrasa only' : 'All Noon Learn'])),
             'status' => $status,
             'logo_url' => $c->logo_url,
             'note' => $c->review_note,

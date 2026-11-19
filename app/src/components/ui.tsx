@@ -205,6 +205,7 @@ export function TypeIcon({ kind, size = 44 }: { kind: ContentKind; size?: number
   const [bg, ink] = contentType[kind];
   const icon: Record<ContentKind, keyof typeof Ionicons.glyphMap> = {
     live: 'videocam', video: 'play', audio: 'musical-notes', pdf: 'document-text', test: 'checkbox',
+    html: 'code-slash', note: 'create', image: 'image', link: 'link',
   };
   return (
     <View style={{ width: size, height: size, borderRadius: size * 0.32, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }}>

@@ -34,13 +34,17 @@ export const gradients = {
   forms: ['#7D9BFF', '#4255E0'] as const,
 };
 
-// Content-type colours (live, video, audio, pdf, test)
+// Content-type colours (live, video, audio, pdf, test, html, note, image, link)
 export const contentType = {
   live: colors.pink,
   video: colors.sky,
   audio: colors.mint,
   pdf: colors.butter,
   test: colors.lav,
+  html: ['#E3E9FF', '#3B4FD0'],
+  note: colors.pink,
+  image: colors.lav,
+  link: colors.sky,
 } as const;
 export type ContentKind = keyof typeof contentType;
 

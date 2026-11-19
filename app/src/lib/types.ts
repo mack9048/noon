@@ -49,9 +49,12 @@ export interface Course {
 }
 export interface CourseItem {
   id: number; course_id: number; kind: ContentKind; title: string; meta?: string;
-  url?: string | null; starts_at?: string | null; done?: boolean;
+  url?: string | null; starts_at?: string | null; done?: boolean; body?: string | null; has_file?: boolean; lesson_id?: number | null;
 }
-export interface CourseDetail extends Course { items: CourseItem[] }
+export interface CourseLessonRow {
+  id: number; subject_id: number | null; title: string; description?: string | null; duration?: string | null; free_preview: boolean; items: CourseItem[];
+}
+export interface CourseDetail extends Course { items: CourseItem[]; lessons?: CourseLessonRow[]; subjects?: { id: number; title: string }[] }
 
 export type ToolType = 'chart' | 'adkar' | 'slide' | 'form';
 export interface StudyTool {

@@ -11,7 +11,8 @@ import { useBase } from '@/lib/useBase';
 import { useLayout } from '@/lib/useLayout';
 import { setLearnSpace, useLearnSpaces } from '@/lib/learnSpace';
 import { LearnTiles } from './learnspace';
-import type { Board, Course, CourseDetail, SchoolClass, Subject, SubjectDetail, StudyTool, ToolType } from '@/lib/types';
+import { ContentViewerHost, openContent } from './courseBuilder';
+import type { Board, Course, CourseDetail, CourseItem, SchoolClass, Subject, SubjectDetail, StudyTool, ToolType } from '@/lib/types';
 import { colors, ContentKind, fonts, gradients, scriptFont } from '@/theme/tokens';
 
 const pastels = [colors.lav, colors.sky, colors.mint, colors.pink, colors.butter];
@@ -139,10 +140,11 @@ function CourseIntro({ c, onJoin }: { c: CourseDetail; onJoin: () => Promise<voi
           <T v="h3">What you'll learn</T>
           {learn.map((l) => <Row key={l} gap={8}><Ionicons name="checkmark-circle" size={18} color={colors.green} /><T style={{ flex: 1, fontSize: 14 }}>{l}</T></Row>)}
         </Card>
-        <Row style={{ justifyContent: 'space-between', marginTop: 16, marginBottom: 8 }}><T v="h2">Lessons</T><T v="small">{c.items.length} items</T></Row>
+        <Row style={{ justifyContent: 'space-between', marginTop: 16, marginBottom: 8 }}><T v="h2">Lessons</T><T v="small">{c.lessons?.length ? `${c.lessons.length} lessons` : `${c.items.length} items`}</T></Row>
+        {c.lessons?.length ? <LessonList c={c} locked /> : (
         <View style={{ gap: 8 }}>
           {items.map((it, i) => (
-            <Card key={it.id} onPress={() => (i < 2 ? (it.kind === 'live' ? (meetLink(it.url) ? open(it.url) : router.push(`${base}/live` as any)) : open(it.url)) : demoNote('Join the course to open this lesson.'))}
+            <Card key={it.id} onPress={() => (i < 2 ? (it.kind === 'live' ? (meetLink(it.url) ? open(it.url) : router.push(`${base}/live` as any)) : openContent(it)) : demoNote('Join the course to open this lesson.'))}
               style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 }}>
               <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: i < 2 ? colors.pink[0] : '#EEF3F5', alignItems: 'center', justifyContent: 'center' }}><T style={{ fontFamily: fonts.semibold, color: i < 2 ? colors.pink[1] : colors.muted }}>{i + 1}</T></View>
               <View style={{ flex: 1 }}><T style={{ fontFamily: fonts.semibold }} numberOfLines={1}>{it.title}</T><T v="small">{it.meta ?? it.kind}</T></View>
@@ -156,6 +158,8 @@ function CourseIntro({ c, onJoin }: { c: CourseDetail; onJoin: () => Promise<voi
             </Pressable>
           ) : null}
         </View>
+        )}
+        <ContentViewerHost />
         <Card style={{ marginTop: 12, marginBottom: 100, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: colors.pink[0], alignItems: 'center', justifyContent: 'center' }}><T style={{ fontFamily: fonts.semibold, color: colors.pink[1] }}>{(c.teacher_name ?? 'NL').split(' ').map((w) => w[0]).join('').slice(0, 2)}</T></View>
           <View style={{ flex: 1 }}><T style={{ fontFamily: fonts.semibold }}>{c.teacher_name ?? 'Noon Learn'}</T><T v="small">{c.category} teacher</T></View>
@@ -175,13 +179,12 @@ export function CourseDetailScreen() {
   const base = useBase();
   const course = useApi<CourseDetail>(`/courses/${id}`);
   const [filter, setFilter] = useState<'all' | ContentKind>('all');
-  if (course.loading) return <Screen><Loading /></Screen>;
+  if (course.loading && !course.data) return <Screen><Loading /></Screen>;
   if (!course.data) return <Screen><ErrorBox message={course.error ?? 'Not found'} onRetry={course.reload} /></Screen>;
   const c = course.data;
   if (!c.enrolled) return <CourseIntro c={c} onJoin={async () => { await api.post(`/courses/${c.id}/enroll`); setLearnSpace(`course-${c.id}`); course.reload(); }} />;
   const items = c.items.filter((i) => filter === 'all' || i.kind === filter);
   const live = c.items.find((i) => i.kind === 'live' && !i.done);
-  const action: Record<ContentKind, string> = { live: 'Join', video: 'Watch', audio: 'Listen', pdf: 'Open', test: 'Start' };
 
   return (
     <Screen>
@@ -195,22 +198,89 @@ export function CourseDetailScreen() {
           <Button title="Join" style={{ height: 42 }} onPress={() => (meetLink(live.url) ? open(live.url) : router.push(`${base}/live` as any))} />
         </Card>
       ) : null}
+      <ContentViewerHost />
+      {c.lessons?.length ? <View style={{ marginTop: 14 }}><LessonList c={c} onDone={course.reload} /></View> : (
+      <>
       <View style={{ marginTop: 14 }}>
         <Segmented value={filter} onChange={setFilter} activeColor={colors.ink}
           options={[{ key: 'all', label: 'All' }, { key: 'live', label: 'Live' }, { key: 'video', label: 'Video' }, { key: 'audio', label: 'Audio' }, { key: 'pdf', label: 'PDF' }, { key: 'test', label: 'Tests' }]} />
       </View>
       <View style={{ marginTop: 10, gap: 8 }}>
-        {items.map((it) => (
-          <Card key={it.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <TypeIcon kind={it.kind} />
-            <View style={{ flex: 1 }}><T v="h3" numberOfLines={1}>{it.title}</T><T v="small">{it.meta}</T></View>
-            {it.done ? <Ionicons name="checkmark-circle" size={28} color={colors.green} accessibilityLabel="Done" />
-              : <Button title={action[it.kind]} kind="ghost" style={{ height: 38, paddingHorizontal: 14 }} onPress={() => (it.kind === 'live' ? (meetLink(it.url) ? open(it.url) : router.push(`${base}/live` as any)) : open(it.url))} />}
-          </Card>
-        ))}
+        {items.map((it) => <ItemRow key={it.id} it={it} onDone={course.reload} />)}
         {!items.length ? <Empty text="Nothing in this section yet." /> : null}
       </View>
+      </>
+      )}
     </Screen>
+  );
+}
+
+const ACTION: Record<ContentKind, string> = { live: 'Join', video: 'Watch', audio: 'Listen', pdf: 'Open', test: 'Start', html: 'Play', note: 'Read', image: 'View', link: 'Open' };
+
+/** Open a piece of content and mark it done (enrolled students only). */
+function ItemRow({ it, onDone, locked }: { it: CourseItem; onDone?: () => void; locked?: boolean }) {
+  const base = useBase();
+  const go = async () => {
+    if (locked) return demoNote('Join the course to open this lesson.');
+    if (it.kind === 'live') { if (meetLink(it.url)) open(it.url); else router.push(`${base}/live` as any); }
+    else await openContent(it);
+    if (onDone && !it.done) { api.post(`/course-items/${it.id}/complete`).then(onDone).catch(() => {}); }
+  };
+  return (
+    <Card onPress={go} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+      <TypeIcon kind={it.kind} />
+      <View style={{ flex: 1 }}><T v="h3" numberOfLines={1}>{it.title}</T>{it.meta ? <T v="small" numberOfLines={1}>{it.meta}</T> : null}</View>
+      {locked ? <Ionicons name="lock-closed-outline" size={16} color={colors.muted} />
+        : it.done ? <Ionicons name="checkmark-circle" size={28} color={colors.green} accessibilityLabel="Done" />
+        : <Button title={ACTION[it.kind] ?? 'Open'} kind="ghost" style={{ height: 38, paddingHorizontal: 14 }} onPress={go} />}
+    </Card>
+  );
+}
+
+/** Lessons grouped by subject; tap a lesson to see its content in order. */
+function LessonList({ c, locked, onDone }: { c: CourseDetail; locked?: boolean; onDone?: () => void }) {
+  const lessons = c.lessons ?? [];
+  const subjects = c.subjects ?? [];
+  const [openId, setOpenId] = useState<number | null>(lessons.find((l) => l.items.some((i) => !i.done))?.id ?? lessons[0]?.id ?? null);
+  const groups = [{ title: null as string | null, list: lessons.filter((l) => !l.subject_id || !subjects.some((s) => s.id === l.subject_id)) },
+    ...subjects.map((s) => ({ title: s.title as string | null, list: lessons.filter((l) => l.subject_id === s.id) }))].filter((g) => g.list.length);
+  let n = 0;
+  return (
+    <View style={{ gap: 14 }}>
+      {groups.map((g, gi) => (
+        <View key={gi} style={{ gap: 8 }}>
+          {g.title ? <Row gap={6}><Ionicons name="folder-open" size={18} color={colors.violet} /><T v="h3">{g.title}</T></Row> : null}
+          {g.list.map((l) => {
+            n += 1;
+            const shut = locked && !l.free_preview;
+            const isOpen = openId === l.id;
+            const done = l.items.length > 0 && l.items.every((i) => i.done);
+            return (
+              <View key={l.id} style={{ gap: 8 }}>
+                <Card onPress={() => (shut ? demoNote('Join the course to open this lesson.') : setOpenId(isOpen ? null : l.id))} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 }}>
+                  <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: done ? colors.mint[0] : shut ? '#EEF3F5' : colors.lav[0], alignItems: 'center', justifyContent: 'center' }}>
+                    {done ? <Ionicons name="checkmark" size={18} color={colors.mint[1]} /> : <T style={{ fontFamily: fonts.semibold, color: shut ? colors.muted : colors.lav[1] }}>{n}</T>}
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <T style={{ fontFamily: fonts.semibold }} numberOfLines={2}>{l.title}</T>
+                    <T v="small">{l.items.length} items{l.duration ? ` · ${l.duration}` : ''}</T>
+                  </View>
+                  {locked && l.free_preview ? <View style={{ backgroundColor: colors.pink[0], borderRadius: 12, paddingHorizontal: 10, height: 26, justifyContent: 'center' }}><T style={{ color: colors.pink[1], fontSize: 12, fontFamily: fonts.semibold }}>▶ Preview</T></View>
+                    : shut ? <Ionicons name="lock-closed-outline" size={16} color={colors.muted} /> : <Ionicons name={isOpen ? 'chevron-up' : 'chevron-down'} size={18} color={colors.muted} />}
+                </Card>
+                {isOpen && !shut ? (
+                  <View style={{ gap: 8, paddingLeft: 12, borderLeftWidth: 3, borderLeftColor: colors.lav[0], marginLeft: 16 }}>
+                    {l.description ? <T v="small">{l.description}</T> : null}
+                    {l.items.map((it) => <ItemRow key={it.id} it={it} onDone={onDone} />)}
+                    {!l.items.length ? <T v="small">Nothing in this lesson yet.</T> : null}
+                  </View>
+                ) : null}
+              </View>
+            );
+          })}
+        </View>
+      ))}
+    </View>
   );
 }
 

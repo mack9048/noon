@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\StudentController;
 use App\Http\Controllers\Api\CourseRequestController;
 use App\Http\Controllers\Api\CatalogController;
 use App\Http\Controllers\Api\ChatController;
+use App\Http\Controllers\Api\CourseBuilderController;
 use App\Http\Controllers\Api\CourseController;
 use App\Http\Controllers\Api\SiteController;
 use App\Http\Controllers\Api\FeeController;
@@ -55,6 +56,8 @@ Route::get('/catalog/courses', [CourseController::class, 'catalog']);
 Route::get('/site/content', [SiteController::class, 'content']);
 // An uploaded HTML game; only reachable through the short-lived signed link from /games/{id}/play.
 Route::get('/games/{id}/file', [GameController::class, 'file'])->whereNumber('id')->name('games.file')->middleware('signed:relative');
+// HTML lesson content; only through the short-lived signed link from /course-items/{item}/open.
+Route::get('/course-items/{id}/html', [CourseBuilderController::class, 'html'])->whereNumber('id')->name('course-items.html')->middleware('signed:relative');
 // Public admission form (from the link the madrasa shares)
 Route::post('/apply/{code}', [AdmissionController::class, 'apply'])->middleware('throttle:join');
 Route::get('/portal/{code}', [AdmissionController::class, 'portal'])->middleware('throttle:60,1');
@@ -76,6 +79,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::get('/courses/{course}', [CourseController::class, 'show']);
     Route::post('/courses/{course}/enroll', [CourseController::class, 'enroll']);
     Route::post('/course-items/{item}/complete', [CourseController::class, 'complete']);
+    Route::get('/course-items/{item}/open', [CourseBuilderController::class, 'open']);
+    Route::get('/course-categories', [CourseBuilderController::class, 'categories']);
 
     // A student's subjects and courses, and each one's materials, syllabus, assessments, exams, results, report card
     Route::get('/learn', [LearnController::class, 'index']);
@@ -175,7 +180,24 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::put('/courses/{course}', [CourseController::class, 'superUpdate']);
         Route::delete('/courses/{course}', [CourseController::class, 'superDestroy']);
         Route::post('/courses/{course}/items', [CourseController::class, 'superAddItem']);
-        Route::delete('/course-items/{item}', [CourseController::class, 'superDeleteItem']);
+        Route::delete('/course-items/{item}', [CourseBuilderController::class, 'destroyItem']);
+        // Course builder: subjects (optional) → lessons → content, each saved straight away
+        Route::get('/courses/{course}', [CourseBuilderController::class, 'show']);
+        Route::post('/courses/{course}/order', [CourseBuilderController::class, 'reorder']);
+        Route::post('/courses/{course}/subjects', [CourseBuilderController::class, 'storeSubject']);
+        Route::put('/course-subjects/{subject}', [CourseBuilderController::class, 'updateSubject']);
+        Route::delete('/course-subjects/{subject}', [CourseBuilderController::class, 'destroySubject']);
+        Route::post('/courses/{course}/lessons', [CourseBuilderController::class, 'storeLesson']);
+        Route::get('/course-lessons/{lesson}', [CourseBuilderController::class, 'showLesson']);
+        Route::put('/course-lessons/{lesson}', [CourseBuilderController::class, 'updateLesson']);
+        Route::delete('/course-lessons/{lesson}', [CourseBuilderController::class, 'destroyLesson']);
+        Route::post('/course-lessons/{lesson}/items', [CourseBuilderController::class, 'storeItem']);
+        Route::post('/course-lessons/{lesson}/order', [CourseBuilderController::class, 'reorderItems']);
+        Route::post('/course-items/{item}', [CourseBuilderController::class, 'updateItem']);
+        Route::post('/course-items/{item}/move', [CourseBuilderController::class, 'moveItem']);
+        Route::post('/course-categories', [CourseBuilderController::class, 'storeCategory']);
+        Route::put('/course-categories/{category}', [CourseBuilderController::class, 'updateCategory']);
+        Route::delete('/course-categories/{category}', [CourseBuilderController::class, 'destroyCategory']);
         Route::post('/courses/{course}/logo', [CourseRequestController::class, 'logo']);
         Route::get('/approvals', [CourseRequestController::class, 'index']);
         Route::patch('/approvals/{course}', [CourseRequestController::class, 'decide']);

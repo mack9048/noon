@@ -20,7 +20,7 @@ use Illuminate\Validation\Rule;
  */
 class CourseController extends Controller
 {
-    private const WITH = ['items', 'teacher', 'students'];
+    private const WITH = ['items', 'teacher', 'students', 'lessons'];
 
     /** Public catalogue for the sign-up page: published courses open to everyone (no madrasa-only ones). */
     public function catalog()
@@ -62,19 +62,24 @@ class CourseController extends Controller
             || ($user->hasRole('admin') && $course->status === 'published')
             || Course::visibleTo($user)->whereKey($course->id)->exists();
         abort_unless($canSee, 404);
-        $course->load(self::WITH);
+        $course->load([...self::WITH, 'lessons.items', 'subjects']);
         $done = $user->id ? DB::table('course_item_user')->where('user_id', $user->id)->pluck('course_item_id')->all() : [];
+        $item = fn (CourseItem $i) => CourseBuilderController::itemData($i, $done);
+        // Content in the order students follow it: older loose items first, then lesson by lesson.
+        $flat = $course->items->whereNull('course_lesson_id')->values()
+            ->concat($course->lessons->flatMap(fn ($l) => $l->items));
 
         return $course->toApp($user) + [
-            'items' => $course->items->map(fn (CourseItem $i) => [
-                'id' => $i->id,
-                'course_id' => $i->course_id,
-                'kind' => $i->kind,
-                'title' => $i->title,
-                'meta' => $i->meta ?? ($i->starts_at ? 'Live · '.$i->starts_at->format('D, j M g:i A') : null),
-                'url' => $i->url,
-                'starts_at' => $i->starts_at?->toIso8601String(),
-                'done' => in_array($i->id, $done, true),
+            'items' => $flat->map($item)->values(),
+            'subjects' => $course->subjects->map(fn ($s) => ['id' => $s->id, 'title' => $s->title]),
+            'lessons' => $course->lessons->map(fn ($l) => [
+                'id' => $l->id,
+                'subject_id' => $l->course_subject_id,
+                'title' => $l->title,
+                'description' => $l->description,
+                'duration' => $l->duration,
+                'free_preview' => $l->free_preview,
+                'items' => $l->items->map($item)->values(),
             ]),
         ];
     }
@@ -210,13 +215,6 @@ class CourseController extends Controller
         return $this->storeItem($request, $course);
     }
 
-    public function superDeleteItem(CourseItem $item)
-    {
-        $item->delete();
-
-        return response()->noContent();
-    }
-
     private function storeItem(Request $request, Course $course): CourseItem
     {
         $data = $request->validate([
@@ -250,6 +248,9 @@ class CourseController extends Controller
             'price' => ['nullable', 'integer', 'min:0', 'max:1000000'],
             'offer_price' => ['nullable', 'integer', 'min:0', 'max:1000000'],
             'is_free' => ['sometimes', 'boolean'],
+            'price_period' => ['sometimes', 'in:once,monthly'],
+            'trial_days' => ['sometimes', 'integer', 'min:0', 'max:60'],
+            'free_for_subscribers' => ['sometimes', 'boolean'],
             'teacher_id' => ['nullable', 'integer', Rule::exists('users', 'id')->where('role', 'teacher')],
         ]);
     }

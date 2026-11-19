@@ -1,6 +1,6 @@
 // Institute admin screens from the second design round, plus the course editor shared
 // with super admin and the public admission form.
-import React, { useState, useSyncExternalStore } from 'react';
+import React, { useEffect, useState, useSyncExternalStore } from 'react';
 import { Linking, Platform, Pressable, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +19,8 @@ import { api, ApiError } from '@/lib/api';
 import { useApi } from '@/lib/useApi';
 import { profileRows } from '@/lib/profile';
 import { useAuth } from '@/lib/auth';
+import type { BCourse } from '@/lib/courseBuilder';
+import { CategoryField, CourseStructure } from './courseBuilder';
 import { colors, fonts } from '@/theme/tokens';
 
 const TINTS = [colors.lav, colors.sky, colors.mint, colors.pink, colors.butter];
@@ -385,19 +387,16 @@ export function TeachersClassesScreen() {
 }
 
 /* ---------- Course editor (admin: send for approval · super: publish) ---------- */
-type Kind = 'live' | 'video' | 'audio' | 'pdf' | 'note' | 'image' | 'quiz' | 'link';
-type Lesson = { title: string; live?: boolean; items: Kind[] };
-const KIND_ICON: Record<Kind, [keyof typeof Ionicons.glyphMap, readonly [string, string]]> = {
-  live: ['radio-outline', ['#FBD9DC', colors.red]], video: ['videocam-outline', colors.sky], audio: ['headset-outline', colors.mint], pdf: ['book-outline', colors.butter],
-  note: ['document-text-outline', colors.pink], image: ['image-outline', colors.lav], quiz: ['checkmark-circle-outline', colors.lav], link: ['link-outline', colors.sky],
-};
 const COURSE_COLOURS = ['#7B5CF0', '#22A86B', '#1F8AA8', '#E0368C', '#F08A24', '#3B2FA8'];
 const LETTER: Record<string, string> = { Arabic: 'ع', Quran: 'ق', Fiqh: 'ف', Seerah: 'س', Hifz: 'ح', 'Duas & Adkar': 'د' };
 
-export function CourseEditorScreen({ mode }: { mode: 'admin' | 'super' }) {
-  const [title, setTitle] = useState('Arabic for Beginners');
-  const [desc, setDesc] = useState('Read and write the Arabic letters with harakath.');
-  const [cat, setCat] = useState('Arabic');
+export function CourseEditorScreen({ mode, id }: { mode: 'admin' | 'super'; id?: string }) {
+  const editing = mode === 'super' && !!id && /^\d+$/.test(id);
+  const existing = useApi<BCourse>(editing ? `/super/courses/${id}` : null);
+  const [course, setCourse] = useState<BCourse | null>(null);
+  const [title, setTitle] = useState(editing ? '' : 'Arabic for Beginners');
+  const [desc, setDesc] = useState(editing ? '' : 'Read and write the Arabic letters with harakath.');
+  const [cat, setCat] = useState(editing ? '' : 'Arabic');
   const [visible, setVisible] = useState(mode === 'admin' ? 'My madrasa only' : 'All madrasas');
   const [level, setLevel] = useState('Beginner');
   // Super admin: which madrasas (tenants) get the course.
@@ -419,49 +418,94 @@ export function CourseEditorScreen({ mode }: { mode: 'admin' | 'super' }) {
   const [price, setPrice] = useState('1499');
   const [offer, setOffer] = useState('999');
   const [trial, setTrial] = useState('7 days');
-  const [freeLessons, setFreeLessons] = useState('2');
   const [freeForSubs, setFreeForSubs] = useState(true);
-  const [lessons, setLessons] = useState<Lesson[]>([
-    { title: 'Welcome & the alphabet', live: true, items: ['live', 'video', 'pdf'] },
-    { title: 'Letters ا to ح', items: ['video', 'audio', 'note', 'quiz'] },
-    { title: 'Harakath: fatha, kasra, damma', items: ['video', 'pdf', 'image'] },
-    { title: 'Joining letters', items: [] },
-  ]);
+  // Madrasa admins list lesson titles; they become the course's lessons once approved.
+  const [lessons, setLessons] = useState<string[]>(['Welcome & the alphabet', 'Letters ا to ح', 'Harakath: fatha, kasra, damma']);
   const [busy, setBusy] = useState(false);
-  const base = mode === 'admin' ? '/admin' : '/super';
   const move = (i: number, d: -1 | 1) => { const j = i + d; if (j < 0 || j >= lessons.length) return; const l = [...lessons]; [l[i], l[j]] = [l[j], l[i]]; setLessons(l); };
-  const count = lessons.reduce((n, l) => n + l.items.length, 0);
 
-  const submit = async () => {
-    if (!title.trim()) return demoNote('Give the course a name.');
-    if (mode === 'super' && visible === 'Selected madrasas' && !tenantIds.length) return demoNote('Pick at least one madrasa for this course.');
+  // Editing: fill the form once from the saved course.
+  useEffect(() => {
+    const c = existing.data;
+    if (!c || course) return;
+    setCourse(c);
+    setTitle(c.title); setDesc(c.description ?? ''); setCat(c.category); setLevel(c.level);
+    setColour(COURSE_COLOURS.includes(c.cover) ? c.cover : COURSE_COLOURS[0]); setLogo(c.logo_url ?? null);
+    setVisible(c.audience === 'selected' ? 'Selected madrasas' : c.audience === 'guests' ? 'Guests only' : 'All madrasas'); setTenantIds(c.tenant_ids);
+    setPricing(c.is_free ? 'free' : c.price_period === 'monthly' ? 'monthly' : 'once');
+    setPrice(c.price != null ? String(c.price) : ''); setOffer(c.offer_price != null ? String(c.offer_price) : '');
+    setTrial(!c.trial_days ? 'None' : `${c.trial_days} days`); setFreeForSubs(c.free_for_subscribers ?? true);
+  }, [existing.data]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const details = () => {
     const priceN = pricing === 'free' ? null : Number(price) || null;
     const offerN = pricing === 'free' ? null : Number(offer) || null;
+    return {
+      title: title.trim(), description: desc.trim() || null, category: cat, level, cover: colour, is_free: pricing === 'free', price: priceN, offer_price: offerN,
+      price_period: pricing === 'monthly' ? 'monthly' : 'once', trial_days: trial === 'None' ? 0 : parseInt(trial, 10), free_for_subscribers: freeForSubs,
+      audience: visible === 'Selected madrasas' ? 'selected' : visible === 'Guests only' ? 'guests' : 'all', tenant_ids: visible === 'Selected madrasas' ? tenantIds : [],
+    };
+  };
+  const check = () => {
+    if (!title.trim()) return 'Give the course a name.';
+    if (!cat) return 'Choose a category.';
+    if (mode === 'super' && visible === 'Selected madrasas' && !tenantIds.length) return 'Pick at least one madrasa for this course.';
+    return null;
+  };
+
+  const submit = async (status?: 'draft' | 'published') => {
+    const problem = check();
+    if (problem) return demoNote(problem);
     setBusy(true);
     try {
       if (mode === 'admin') {
-        const row = await requestApproval({ title: title.trim(), description: desc.trim() || undefined, category: cat, level, cover: colour, visibility: visible === 'My madrasa only' ? 'madrasa' : 'all',
-          is_free: pricing === 'free', price: priceN, offer_price: offerN, lessons: lessons.map((l) => l.title), logo_url: logo });
+        const d = details();
+        const row = await requestApproval({ title: d.title, description: d.description ?? undefined, category: cat, level, cover: colour, visibility: visible === 'My madrasa only' ? 'madrasa' : 'all',
+          is_free: d.is_free, price: d.price, offer_price: d.offer_price, lessons: lessons.map((l) => l.trim()).filter(Boolean), logo_url: logo });
         if (logoFile) await uploadLogo(`/admin/courses/${row.id}/logo`, logoFile);
         demoNote('Sent to Noon Learn for approval. Students see it once it is approved.');
         router.replace('/admin/courses' as any);
         return;
       }
-      const c = await api.post<{ id: number }>('/super/courses', { title: title.trim(), description: desc.trim() || null, category: cat, level, cover: colour, status: 'published', is_free: pricing === 'free', price: priceN, offer_price: offerN, logo_url: logo,
-        audience: visible === 'Selected madrasas' ? 'selected' : visible === 'Guests only' ? 'guests' : 'all', tenant_ids: visible === 'Selected madrasas' ? tenantIds : [] });
-      if (logoFile) await uploadLogo(`/super/courses/${c.id}/logo`, logoFile);
-      for (const l of lessons) await api.post(`/super/courses/${c.id}/items`, { kind: l.live ? 'live' : 'video', title: l.title, meta: `${l.items.length} items` });
-      demoNote('Course published.');
-      router.replace('/super/courses' as any);
+      if (!editing) {
+        // New course: save it as a draft, then add subjects and lessons on its own page.
+        const c = await api.post<{ id: number }>('/super/courses', { ...details(), status: 'draft', logo_url: logo });
+        if (logoFile) await uploadLogo(`/super/courses/${c.id}/logo`, logoFile);
+        router.replace(`/super/courses/${c.id}` as any);
+        return;
+      }
+      const c = await api.put<BCourse>(`/super/courses/${id}`, { ...details(), ...(status ? { status } : {}) });
+      if (logoFile) { await uploadLogo(`/super/courses/${id}/logo`, logoFile); setLogoFile(null); }
+      setCourse((old) => (old ? { ...old, status: c.status } : old));
+      demoNote(status === 'published' ? 'Course published. Students can see it now.' : status === 'draft' ? 'Course moved to drafts. Students no longer see it.' : 'Changes saved.');
     } catch (e: any) { demoNote(e instanceof ApiError ? e.friendly : e?.message ?? 'Could not save the course.'); } finally { setBusy(false); }
   };
 
+  if (editing && !course) return <Screen>{existing.error ? <T style={{ color: colors.red }}>{existing.error}</T> : <T v="small">Loading the course…</T>}</Screen>;
+  const published = course?.status === 'published';
+  const lessonCount = course ? course.lessons.length : lessons.length;
+  const firstLesson = course ? course.lessons[0]?.title : lessons[0];
+
+  const ghost = { height: 56, paddingHorizontal: 22, borderRadius: 28, backgroundColor: '#FFF', borderWidth: 1.5, borderColor: colors.line, justifyContent: 'center' as const };
+  const solid = { flex: 1, height: 56, borderRadius: 28, backgroundColor: colors.ink, alignItems: 'center' as const, justifyContent: 'center' as const, opacity: busy ? 0.7 : 1 };
   return (
     <Screen overlay={<BottomActions>
-      <Pressable accessibilityRole="button" onPress={() => demoNote('Draft saved.')} style={{ height: 56, paddingHorizontal: 24, borderRadius: 28, backgroundColor: '#FFF', borderWidth: 1.5, borderColor: colors.line, justifyContent: 'center' }}><T style={{ fontFamily: fonts.semibold }}>Save draft</T></Pressable>
-      <Pressable accessibilityRole="button" disabled={busy} onPress={submit} style={{ flex: 1, height: 56, borderRadius: 28, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center', opacity: busy ? 0.7 : 1 }}><T style={{ color: '#FFF', fontFamily: fonts.semibold }}>{busy ? 'Saving…' : mode === 'admin' ? 'Send for approval' : 'Publish course'}</T></Pressable>
+      {editing ? (
+        <>
+          <Pressable accessibilityRole="button" disabled={busy} onPress={() => submit()} style={ghost}><T style={{ fontFamily: fonts.semibold }}>Save changes</T></Pressable>
+          <Pressable accessibilityRole="button" disabled={busy} onPress={() => submit(published ? 'draft' : 'published')} style={[solid, published ? { backgroundColor: '#FFF', borderWidth: 1.5, borderColor: colors.red } : null]}>
+            <T style={{ color: published ? colors.red : '#FFF', fontFamily: fonts.semibold }}>{busy ? 'Saving…' : published ? 'Unpublish' : 'Publish course'}</T>
+          </Pressable>
+        </>
+      ) : (
+        <Pressable accessibilityRole="button" disabled={busy} onPress={() => submit()} style={solid}><T style={{ color: '#FFF', fontFamily: fonts.semibold }}>{busy ? 'Saving…' : mode === 'admin' ? 'Send for approval' : 'Save & add lessons'}</T></Pressable>
+      )}
     </BottomActions>}>
-      <Row style={{ justifyContent: 'space-between' }}><T v="h1">Create course</T><Tag text="Draft" tone="butter" /></Row>
+      <Row style={{ justifyContent: 'space-between' }}>
+        {editing ? <IconButton name="chevron-back" label="All courses" size={44} onPress={() => router.replace('/super/courses' as any)} /> : null}
+        <T v="h1" style={{ flex: 1 }}>{editing ? 'Edit course' : 'Create course'}</T>
+        <Tag text={published ? 'Published' : 'Draft'} tone={published ? 'mint' : 'butter'} />
+      </Row>
       {mode === 'admin' ? (
         <View style={{ marginTop: 10, backgroundColor: '#FFF4CC', borderRadius: 18, padding: 12, flexDirection: 'row', gap: 10 }}>
           <Ionicons name="shield-checkmark-outline" size={20} color="#6A4D00" />
@@ -473,7 +517,7 @@ export function CourseEditorScreen({ mode }: { mode: 'admin' | 'super' }) {
         <T style={{ position: 'absolute', right: 24, top: 6, fontFamily: fonts.arabic, fontSize: 70, color: 'rgba(255,255,255,0.9)' }}>{LETTER[cat] ?? (title[0] || 'N')}</T>
         <Text style={{ marginTop: 'auto', fontFamily: fonts.fun, fontSize: 22, color: '#FFF' }} numberOfLines={1}>{title || 'Course name'}</Text>
         <Row style={{ justifyContent: 'space-between' }}>
-          <T style={{ color: '#EDE7FF', fontSize: 12 }}>{lessons.length} lessons · student card preview</T>
+          <T style={{ color: '#EDE7FF', fontSize: 12 }}>{lessonCount} lessons · student card preview</T>
           <View style={{ backgroundColor: '#FFF', borderRadius: 12, paddingHorizontal: 10, height: 26, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             {pricing === 'free' ? <T style={{ fontFamily: fonts.semibold, fontSize: 13 }}>Free</T> : <>{offer ? <T style={{ textDecorationLine: 'line-through', color: colors.muted, fontSize: 11 }}>₹{price}</T> : null}<T style={{ fontFamily: fonts.semibold, fontSize: 13 }}>₹{offer || price}{pricing === 'monthly' ? '/mo' : ''}</T></>}
           </View>
@@ -482,7 +526,7 @@ export function CourseEditorScreen({ mode }: { mode: 'admin' | 'super' }) {
       <Panel title="Course details">
         <Input label="Course name" value={title} onChangeText={setTitle} />
         <Input label="Short description" value={desc} onChangeText={setDesc} multiline />
-        <Row gap={10}><Select label="Category" value={cat} options={['Arabic', 'Quran', 'Fiqh', 'Seerah', 'Hifz', 'Duas & Adkar']} onChange={setCat} /><Select label="Visible to" value={visible} options={mode === 'admin' ? ['My madrasa only', 'All Noon Learn'] : ['All madrasas', 'Selected madrasas', 'Guests only']} onChange={setVisible} /></Row>
+        <Row gap={10} style={{ alignItems: 'flex-start' }}><CategoryField value={cat} onChange={setCat} manage={mode === 'super'} /><Select label="Visible to" value={visible} options={mode === 'admin' ? ['My madrasa only', 'All Noon Learn'] : ['All madrasas', 'Selected madrasas', 'Guests only']} onChange={setVisible} /></Row>
         {mode === 'super' ? (visible === 'Selected madrasas' ? (
           <View style={{ gap: 8 }}>
             <T v="small" style={{ fontFamily: fonts.medium }}>Madrasas · {tenantIds.length ? `${tenantIds.length} picked` : 'pick one or more'}</T>
@@ -522,7 +566,7 @@ export function CourseEditorScreen({ mode }: { mode: 'admin' | 'super' }) {
           <View style={{ flex: 1 }}>
             <T style={{ color: '#EDE7FF', fontFamily: fonts.semibold, fontSize: 10 }}>CURRENT LESSON</T>
             <T style={{ color: '#EDE7FF', fontSize: 12 }}>{cat} · Lesson 01</T>
-            <T style={{ color: '#FFF', fontFamily: fonts.fun, fontSize: 20 }} numberOfLines={1}>{(lessons[0]?.title ?? 'First lesson')}</T>
+            <T style={{ color: '#FFF', fontFamily: fonts.fun, fontSize: 20 }} numberOfLines={1}>{firstLesson || 'First lesson'}</T>
             <View style={{ marginTop: 6, alignSelf: 'flex-start', backgroundColor: '#FFF', borderRadius: 14, height: 28, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 6 }}><Ionicons name="videocam" size={12} color="#46308A" /><T style={{ fontFamily: fonts.fun, fontSize: 12, color: '#46308A' }}>Join Class</T></View>
           </View>
           <View style={{ width: 84, height: 84, borderRadius: 18, backgroundColor: '#FFF', alignItems: 'center', justifyContent: 'center' }}><CourseLogo title={title || 'Course'} logo={logo} category={cat} size={76} /></View>
@@ -535,81 +579,40 @@ export function CourseEditorScreen({ mode }: { mode: 'admin' | 'super' }) {
       <Panel title="Pricing" right={<T v="small">shown on the course card</T>}>
         <ChoiceChips value={pricing} onChange={setPricing} options={[{ key: 'free', label: 'Free' }, { key: 'once', label: 'One-time' }, { key: 'monthly', label: 'Monthly' }]} />
         {pricing !== 'free' ? <Row gap={10}><Input label="Course price (₹)" value={price} onChangeText={setPrice} keyboardType="number-pad" /><Input label="Offer price (optional)" value={offer} onChangeText={setOffer} keyboardType="number-pad" /></Row> : null}
-        <Row gap={10}><Select label="Free trial" value={trial} options={['None', '3 days', '7 days', '14 days']} onChange={setTrial} /><Select label="Free lessons" value={freeLessons} options={['0', '1', '2', '3', '5']} onChange={setFreeLessons} /></Row>
+        <Select label="Free trial" value={trial} options={['None', '3 days', '7 days', '14 days']} onChange={setTrial} />
+        {mode === 'super' ? <T v="small">Free lessons: switch on “Free preview” inside a lesson.</T> : null}
         <Row style={{ justifyContent: 'space-between' }}><T style={{ flex: 1, fontSize: 14 }}>Free for students of subscribed madrasas</T>
           <Pressable accessibilityRole="switch" accessibilityState={{ checked: freeForSubs }} onPress={() => setFreeForSubs(!freeForSubs)} style={{ width: 50, height: 30, borderRadius: 15, backgroundColor: freeForSubs ? colors.green : '#D2E1E5', padding: 3, alignItems: freeForSubs ? 'flex-end' : 'flex-start' }}><View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: '#FFF' }} /></Pressable>
         </Row>
         <T v="small">Students pay in the app (UPI / card). {mode === 'admin' ? 'Revenue share: 70% madrasa · 30% Noon Learn.' : 'Payments go to Noon Learn.'}</T>
       </Panel>
-      <Panel title="Lessons" right={<T v="small">{lessons.length} lessons · {count} items</T>} style={{ marginBottom: 90 }}>
-        {lessons.map((l, i) => (
-          <Pressable key={`${l.title}${i}`} accessibilityRole="button" onPress={() => router.push(`${base}/courses/lesson?n=${i + 1}&t=${encodeURIComponent(l.title)}&c=${encodeURIComponent(title)}` as any)}
-            style={{ borderRadius: 18, borderWidth: 1.5, borderColor: '#D9CCF7', padding: 10, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <View style={{ width: 34, height: 34, borderRadius: 12, backgroundColor: colors.violet, alignItems: 'center', justifyContent: 'center' }}><T style={{ color: '#FFF', fontFamily: fonts.semibold }}>{i + 1}</T></View>
-            <View style={{ flex: 1, gap: 4 }}>
-              <Row gap={6}><T style={{ fontFamily: fonts.semibold }} numberOfLines={1}>{l.title}</T>{l.live ? <Tag text="LIVE" tone="pink" /> : null}</Row>
-              {l.items.length ? <Row gap={4}>{l.items.map((k, j) => <View key={j} style={{ width: 24, height: 24, borderRadius: 7, backgroundColor: KIND_ICON[k][1][0], alignItems: 'center', justifyContent: 'center' }}><Ionicons name={KIND_ICON[k][0]} size={13} color={KIND_ICON[k][1][1]} /></View>)}</Row>
-                : <T v="small" style={{ color: colors.red }}>No content yet · tap to add</T>}
-            </View>
-            <View>
-              <IconButton name="chevron-up" label={`Move ${l.title} up`} size={28} tint="transparent" onPress={() => move(i, -1)} />
-              <IconButton name="chevron-down" label={`Move ${l.title} down`} size={28} tint="transparent" onPress={() => move(i, 1)} />
-            </View>
-          </Pressable>
-        ))}
-        <Pressable accessibilityRole="button" onPress={() => setLessons([...lessons, { title: `Lesson ${lessons.length + 1}`, items: [] }])}
-          style={{ height: 50, borderRadius: 18, borderWidth: 1.5, borderStyle: 'dashed', borderColor: '#B49CFF', alignItems: 'center', justifyContent: 'center' }}>
-          <T style={{ color: colors.violet, fontFamily: fonts.semibold }}>+ Add lesson</T>
-        </Pressable>
-      </Panel>
-    </Screen>
-  );
-}
-
-/* ---------- Lesson editor ---------- */
-const ADD: [Kind | 'live', string][] = [['video', 'Video'], ['audio', 'Audio'], ['pdf', 'PDF book'], ['note', 'Class note'], ['image', 'Image'], ['quiz', 'Quiz'], ['link', 'Link'], ['live', 'Live class']];
-export function LessonEditScreen() {
-  const { n, t, c } = useLocalSearchParams<{ n?: string; t?: string; c?: string }>();
-  const [title, setTitle] = useState(t ?? 'Letters ا to ح');
-  const [learn, setLearn] = useState('Say and write the first 7 letters.');
-  const [dur, setDur] = useState('45 min');
-  const [preview, setPreview] = useState('No');
-  const [items, setItems] = useState<{ kind: Kind; title: string; meta: string }[]>([
-    { kind: 'video', title: title, meta: 'Video · 12:40 · uploaded' }, { kind: 'audio', title: 'Listen and repeat', meta: 'Audio · 3:05 · uploaded' },
-    { kind: 'note', title: 'Class note: letter shapes', meta: '2 pages · written' }, { kind: 'quiz', title: 'Quiz: 7 letters', meta: '5 questions' },
-  ]);
-  const add = (k: Kind) => setItems([...items, { kind: k, title: `New ${ADD.find((a) => a[0] === k)?.[1].toLowerCase()}`, meta: 'Tap to upload or write' }]);
-  return (
-    <Screen overlay={<BottomActions>
-      <Pressable accessibilityRole="button" onPress={() => demoNote('Demo: this is how students will see the lesson.')} style={{ height: 56, paddingHorizontal: 20, borderRadius: 28, backgroundColor: '#FFF', borderWidth: 1.5, borderColor: colors.line, justifyContent: 'center' }}><T style={{ fontFamily: fonts.semibold }}>Student preview</T></Pressable>
-      <Pressable accessibilityRole="button" onPress={() => { demoNote('Lesson saved.'); router.back(); }} style={{ flex: 1, height: 56, borderRadius: 28, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' }}><T style={{ color: '#FFF', fontFamily: fonts.semibold }}>Save lesson</T></Pressable>
-    </BottomActions>}>
-      <Row style={{ justifyContent: 'space-between' }}>
-        <View style={{ flex: 1 }}><T v="small">{c ?? 'Arabic for Beginners'}</T><T v="h1">Lesson {n ?? 2}</T></View>
-        <Tag text={`${items.length} items`} tone="mint" />
-      </Row>
-      <Panel>
-        <Input label="Lesson title" value={title} onChangeText={setTitle} />
-        <Input label="What students will learn" value={learn} onChangeText={setLearn} multiline />
-        <Row gap={10}><Select label="Duration" value={dur} options={['15 min', '30 min', '45 min', '1 h']} onChange={setDur} /><Select label="Free preview" value={preview} options={['No', 'Yes']} onChange={setPreview} /></Row>
-      </Panel>
-      <Panel title="Lesson content" right={<T v="small">shown to students in this order</T>} style={{ marginBottom: 90 }}>
-        {items.map((it, i) => (
-          <Row key={i} gap={10} style={{ borderRadius: 16, borderWidth: 1.5, borderColor: '#D9CCF7', padding: 10 }}>
-            <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: KIND_ICON[it.kind][1][0], alignItems: 'center', justifyContent: 'center' }}><Ionicons name={KIND_ICON[it.kind][0]} size={18} color={KIND_ICON[it.kind][1][1]} /></View>
-            <View style={{ flex: 1 }}><T style={{ fontFamily: fonts.semibold }} numberOfLines={1}>{it.title}</T><T v="small">{it.meta}</T></View>
-            <IconButton name="trash-outline" label={`Delete ${it.title}`} size={36} tint="transparent" color={colors.red} onPress={() => setItems(items.filter((_, k) => k !== i))} />
-          </Row>
-        ))}
-        <T v="small" style={{ fontFamily: fonts.medium }}>Add content</T>
-        <TileRows cols={4} gap={8}>
-          {ADD.map(([k, l]) => (
-            <Pressable key={k} accessibilityRole="button" accessibilityLabel={`Add ${l}`} onPress={() => add(k)} style={{ height: 64, borderRadius: 16, backgroundColor: KIND_ICON[k][1][0], alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-              <Ionicons name={KIND_ICON[k][0]} size={18} color={KIND_ICON[k][1][1]} /><T style={{ fontSize: 11, fontFamily: fonts.semibold, color: KIND_ICON[k][1][1] }}>{l}</T>
-            </Pressable>
+      {mode === 'super' ? (
+        course ? <CourseStructure course={course} onChange={setCourse} /> : (
+          <Panel title="Subjects & lessons" style={{ marginBottom: 100 }}>
+            <Row gap={10} style={{ backgroundColor: '#F1EDFF', borderRadius: 18, padding: 12 }}>
+              <Ionicons name="information-circle-outline" size={22} color={colors.violet} />
+              <T style={{ flex: 1, fontSize: 14 }}>First save the course details with <T style={{ fontFamily: fonts.semibold }}>Save & add lessons</T>. Then you add subjects (optional) and lessons, and each lesson's videos, audios, PDFs and HTML.</T>
+            </Row>
+          </Panel>
+        )
+      ) : (
+        <Panel title="Lessons" right={<T v="small">{lessons.length} lessons</T>} style={{ marginBottom: 90 }}>
+          <T v="small">Noon Learn adds the videos and notes to these lessons when it approves the course.</T>
+          {lessons.map((l, i) => (
+            <Row key={i} gap={8} style={{ borderRadius: 18, borderWidth: 1.5, borderColor: '#D9CCF7', padding: 8 }}>
+              <View style={{ width: 34, height: 34, borderRadius: 12, backgroundColor: colors.violet, alignItems: 'center', justifyContent: 'center' }}><T style={{ color: '#FFF', fontFamily: fonts.semibold }}>{i + 1}</T></View>
+              <View style={{ flex: 1 }}><Input value={l} onChangeText={(v) => setLessons(lessons.map((x, k) => (k === i ? v : x)))} accessibilityLabel={`Lesson ${i + 1} title`} /></View>
+              <IconButton name="chevron-up" label={`Move lesson ${i + 1} up`} size={30} tint="transparent" onPress={() => move(i, -1)} />
+              <IconButton name="chevron-down" label={`Move lesson ${i + 1} down`} size={30} tint="transparent" onPress={() => move(i, 1)} />
+              <IconButton name="trash-outline" label={`Remove lesson ${i + 1}`} size={30} tint="transparent" color={colors.red} onPress={() => setLessons(lessons.filter((_, k) => k !== i))} />
+            </Row>
           ))}
-        </TileRows>
-      </Panel>
+          <Pressable accessibilityRole="button" onPress={() => setLessons([...lessons, ''])}
+            style={{ height: 50, borderRadius: 18, borderWidth: 1.5, borderStyle: 'dashed', borderColor: '#B49CFF', alignItems: 'center', justifyContent: 'center' }}>
+            <T style={{ color: colors.violet, fontFamily: fonts.semibold }}>+ Add lesson</T>
+          </Pressable>
+        </Panel>
+      )}
     </Screen>
   );
 }
@@ -637,3 +640,7 @@ export function AdminProfileScreen() {
 
 export const AdminCourseNewScreen = () => <CourseEditorScreen mode="admin" />;
 export const SuperCourseNewScreen = () => <CourseEditorScreen mode="super" />;
+export function SuperCourseEditScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  return <CourseEditorScreen key={id} mode="super" id={id} />;
+}

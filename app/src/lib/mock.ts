@@ -376,6 +376,11 @@ const routes: [string, RegExp, Handler][] = [
   ['GET', /^\/catalog\/courses$/, () => courses.filter((c) => c.status === 'published').map(({ items, ...c }) => ({ ...c, enrolled: false }))],
   ['GET', /^\/courses\/(\d+)$/, (m) => courses.find((c) => c.id === +m[1])],
   ['POST', /^\/courses\/(\d+)\/enroll$/, (m) => { const c = courses.find((x) => x.id === +m[1]); if (c) c.enrolled = true; return c; }],
+  ['GET', /^\/course-categories$/, () => ['Arabic', 'Quran', 'Fiqh', 'Seerah', 'Hifz', 'Duas & Adkar'].map((name, i) => ({ id: i + 1, name }))],
+  ['GET', /^\/super\/courses\/(\d+)$/, (m) => {
+    const c = courses.find((x) => x.id === +m[1]);
+    return c && { ...c, audience: 'all', tenant_ids: [], subjects: [], lessons: [], loose_items: c.items.map((i) => ({ ...i, lesson_id: null })) };
+  }],
   ['GET', /^\/super\/courses$/, () => courses.map(({ items, ...c }) => ({ ...c, items_count: items.length }))],
   ['POST', /^\/super\/courses$/, (_, b) => { const c: CourseDetail = { id: nextId++, title: b.title, category: b.category, level: b.level, cover: b.cover ?? '#DAD3F6', status: b.status ?? 'draft', lessons_count: 0, items: [], logo_url: b.logo_url ?? null }; courses = [c, ...courses]; return c; }],
   ['PUT', /^\/super\/courses\/(\d+)$/, (m, b) => { courses = courses.map((c) => (c.id === +m[1] ? { ...c, ...b } : c)); return courses.find((c) => c.id === +m[1]); }],
