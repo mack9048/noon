@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Linking, Pressable, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { demoNote } from '@/components/kit';
@@ -13,7 +13,7 @@ import { useLayout } from '@/lib/useLayout';
 import { setLearnSpace, useLearnSpaces } from '@/lib/learnSpace';
 import { LearnTiles } from './learnspace';
 import { ContentViewerHost, openContent } from './courseBuilder';
-import type { Board, Course, CourseDetail, CourseItem, SchoolClass, Subject, SubjectDetail, StudyTool, ToolType } from '@/lib/types';
+import type { Board, Course, CourseDetail, CourseItem, LiveInfo, SchoolClass, Subject, SubjectDetail, StudyTool, ToolType } from '@/lib/types';
 import { colors, ContentKind, fonts, gradients, scriptFont } from '@/theme/tokens';
 
 const pastels = [colors.lav, colors.sky, colors.mint, colors.pink, colors.butter];
@@ -75,6 +75,98 @@ export function CoursesScreen() {
   );
 }
 
+/* ================= Live-only courses ================= */
+
+const WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const whenText = (iso: string) => new Date(iso).toLocaleString([], { weekday: 'long', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
+const daysText = (d: number[]) => (d.length === 7 ? 'Every day' : [...d].sort((a, b) => ((a || 7) - (b || 7))).map((x) => WEEK[x]).join(', '));
+const timeText = (hhmm: string) => { const [h, m] = hhmm.split(':').map(Number); return `${((h + 11) % 12) + 1}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`; };
+
+/** Minutes or hours until a time, in plain words. */
+function untilText(iso: string, now: number) {
+  const min = Math.round((new Date(iso).getTime() - now) / 60000);
+  if (min <= 0) return 'now';
+  if (min < 60) return `in ${min} min`;
+  if (min < 24 * 60) return `in ${Math.floor(min / 60)} h ${min % 60} min`;
+  return `in ${Math.round(min / 1440)} day${Math.round(min / 1440) === 1 ? '' : 's'}`;
+}
+
+/** Open the meeting link of the class on now (the server checks the time and counts attendance). */
+export async function joinLiveCourse(courseId: number) {
+  try {
+    const r = await api.post<{ url: string }>(`/courses/${courseId}/live/join`);
+    await Linking.openURL(r.url);
+  } catch (e: any) { demoNote(e?.message ?? 'Could not open the class.'); }
+}
+
+/** The weekly timetable and the next classes (course page before and after joining). */
+export function LiveTimetableView({ live }: { live: LiveInfo }) {
+  return (
+    <View style={{ gap: 10, marginTop: 16 }}>
+      <T v="h2">Class timetable</T>
+      {live.slots.length ? (
+        <Card style={{ gap: 8 }}>
+          {live.slots.map((s) => (
+            <Row key={s.id} gap={10}>
+              <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: colors.lav[0], alignItems: 'center', justifyContent: 'center' }}><Ionicons name="videocam" size={18} color={colors.lav[1]} /></View>
+              <View style={{ flex: 1 }}><T style={{ fontFamily: fonts.semibold }}>{daysText(s.days)} · {timeText(s.start_time)}</T><T v="small">{s.duration_min} min live class{s.title ? ` · ${s.title}` : ''}</T></View>
+            </Row>
+          ))}
+          <T v="small">Times are India time (IST).</T>
+        </Card>
+      ) : <T v="small">The timetable will be added soon.</T>}
+      {live.upcoming.length ? (
+        <Card style={{ gap: 6 }}>
+          <T v="h3">Next classes · your time</T>
+          {live.upcoming.slice(0, 5).map((u) => <Row key={u.starts_at} gap={8}><Ionicons name={u.state === 'live' ? 'radio' : 'calendar-outline'} size={16} color={u.state === 'live' ? colors.red : colors.muted} /><T style={{ flex: 1 }}>{whenText(u.starts_at)}{u.title ? ` · ${u.title}` : ''}</T></Row>)}
+        </Card>
+      ) : null}
+    </View>
+  );
+}
+
+/** A joined live-only course: the next class with a countdown and Join, timetable, classes attended. */
+function LiveCourseScreen({ c, live, reload }: { c: CourseDetail; live: LiveInfo; reload: () => void }) {
+  const [now, setNow] = useState(Date.now());
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 30000); return () => clearInterval(t); }, []);
+  // When the next class starts or ends, ask the server for the new state.
+  const next = live.upcoming[0];
+  useEffect(() => {
+    if (!next) return;
+    const edge = (next.state === 'live' ? new Date(next.ends_at).getTime() : new Date(next.starts_at).getTime() - live.open_before_min * 60000) - Date.now();
+    if (edge > 0 && edge < 6 * 3600000) { const t = setTimeout(reload, edge + 1000); return () => clearTimeout(t); }
+  }, [next?.starts_at, next?.state]); // eslint-disable-line react-hooks/exhaustive-deps
+  const g = bannerFor(c);
+  const onNow = next?.state === 'live';
+  const join = async () => { setBusy(true); await joinLiveCourse(c.id); setBusy(false); reload(); };
+  return (
+    <Screen>
+      <Header title={c.title} subtitle={`Live classes · ${live.summary ?? 'timetable soon'}`} />
+      <LinearGradient colors={onNow ? ['#C2307E', '#FF7EC4'] : [g[0], g[1]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 28, padding: 20, gap: 6, overflow: 'hidden' }}>
+        <View style={{ position: 'absolute', right: -50, top: -50, width: 200, height: 200, borderRadius: 100, backgroundColor: 'rgba(255,255,255,0.14)' }} />
+        <T style={{ color: 'rgba(255,255,255,0.85)', fontFamily: fonts.semibold, fontSize: 12, letterSpacing: 0.5 }}>{onNow ? '● LIVE NOW' : 'NEXT LIVE CLASS'}</T>
+        {next ? (
+          <>
+            <T style={{ color: '#FFF', fontFamily: fonts.fun, fontSize: 26, lineHeight: 34 }}>{whenText(next.starts_at)}</T>
+            <T style={{ color: 'rgba(255,255,255,0.9)' }}>{onNow ? 'The class is open. Join now.' : `Starts ${untilText(next.starts_at, now)} · join opens ${live.open_before_min} min before`}{next.title ? ` · ${next.title}` : ''}</T>
+            <Pressable accessibilityRole="button" accessibilityLabel="Join live class" disabled={!onNow || busy} onPress={join}
+              style={{ marginTop: 10, alignSelf: 'flex-start', backgroundColor: '#FFF', borderRadius: 24, height: 48, paddingLeft: 6, paddingRight: 18, flexDirection: 'row', alignItems: 'center', gap: 10, opacity: onNow ? 1 : 0.6 }}>
+              <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: onNow ? '#C2307E' : '#9AA9AE', alignItems: 'center', justifyContent: 'center' }}><Ionicons name="videocam" size={16} color="#FFF" /></View>
+              <T style={{ fontFamily: fonts.fun, fontSize: 17, color: onNow ? '#74266A' : colors.muted }}>{busy ? 'Opening…' : onNow ? 'Join live class' : 'Join opens soon'}</T>
+            </Pressable>
+          </>
+        ) : <T style={{ color: '#FFF', fontSize: 16 }}>No classes are planned right now. Please check back soon.</T>}
+      </LinearGradient>
+      <Row gap={10} style={{ marginTop: 12 }}>
+        <Card style={{ flex: 1, alignItems: 'center', paddingVertical: 14 }}><T style={{ fontFamily: fonts.semibold, fontSize: 24, color: colors.violet }}>{live.attended}</T><T v="small">Classes attended</T></Card>
+        <Card style={{ flex: 1, alignItems: 'center', paddingVertical: 14 }}><T style={{ fontFamily: fonts.semibold, fontSize: 24, color: colors.teal }}>{live.slots.reduce((n, s) => n + s.days.length, 0)}</T><T v="small">Classes a week</T></Card>
+      </Row>
+      <LiveTimetableView live={live} />
+    </Screen>
+  );
+}
+
 /** One course card (Our Courses grid and the Classroom course picker). */
 export function CourseCard({ c }: { c: Course }) {
   const base = useBase();
@@ -90,7 +182,7 @@ export function CourseCard({ c }: { c: Course }) {
         </LinearGradient>
         <View style={{ padding: 14, gap: 6 }}>
           <T v="h3">{c.title}</T>
-          <T v="small">{c.teacher_name ?? c.category} · {c.lessons_count} lessons</T>
+          <T v="small">{c.teacher_name ?? c.category} · {c.format === 'live' ? `Live · ${c.live_summary ?? 'timetable soon'}` : `${c.lessons_count} lessons`}</T>
           {c.enrolled && c.progress != null ? <Progress value={c.progress} /> : null}
           <Row style={{ justifyContent: 'space-between', marginTop: 4 }}>
             <T v="small">{c.enrolled ? `Level · ${c.level}` : c.is_free ? 'Free course' : '7-day free trial'}</T>
@@ -160,7 +252,7 @@ function CourseIntro({ c, onJoin }: { c: CourseDetail; onJoin: () => Promise<voi
         <T v="small">{c.category} · {c.level} · with {c.teacher_name ?? 'Noon Learn teachers'}</T>
         <T v="small" style={{ marginTop: 4 }}><T style={{ color: '#D9A21A', fontFamily: fonts.semibold }}>★ 4.8</T> · Malayalam & English</T>
         <Row gap={8} style={{ marginTop: 12 }}>
-          {[[String(c.lessons_count), 'Lessons', colors.pink], [`${Math.max(1, Math.round(c.lessons_count / 5))} h`, 'Total', colors.lav], ['✓', 'Certificate', colors.butter]].map(([v, l, t]) => (
+          {(c.format === 'live' ? [['Live', 'Classes', colors.pink], [String(c.live?.upcoming.length ? c.live.slots.reduce((n, s) => n + s.days.length, 0) : 0), 'A week', colors.lav], [c.live?.slots[0] ? `${c.live.slots[0].duration_min}m` : '—', 'Each class', colors.butter]] : [[String(c.lessons_count), 'Lessons', colors.pink], [`${Math.max(1, Math.round(c.lessons_count / 5))} h`, 'Total', colors.lav], ['✓', 'Certificate', colors.butter]]).map(([v, l, t]) => (
             <View key={l as string} style={{ flex: 1, borderRadius: 18, backgroundColor: (t as readonly string[])[0], paddingVertical: 10, alignItems: 'center' }}>
               <T style={{ fontFamily: fonts.semibold, fontSize: 20, color: (t as readonly string[])[1] }}>{v as string}</T><T v="small" style={{ color: (t as readonly string[])[1] }}>{l as string}</T>
             </View>
@@ -170,8 +262,9 @@ function CourseIntro({ c, onJoin }: { c: CourseDetail; onJoin: () => Promise<voi
           <T v="h3">What you'll learn</T>
           {learn.map((l) => <Row key={l} gap={8}><Ionicons name="checkmark-circle" size={18} color={colors.green} /><T style={{ flex: 1, fontSize: 14 }}>{l}</T></Row>)}
         </Card>
-        <Row style={{ justifyContent: 'space-between', marginTop: 16, marginBottom: 8 }}><T v="h2">Lessons</T><T v="small">{c.lessons?.length ? `${c.lessons.length} lessons` : `${c.items.length} items`}</T></Row>
-        {c.lessons?.length ? <LessonList c={c} locked /> : (
+        {c.format === 'live' && c.live ? <LiveTimetableView live={c.live} /> : null}
+        {c.format === 'live' ? null : <Row style={{ justifyContent: 'space-between', marginTop: 16, marginBottom: 8 }}><T v="h2">Lessons</T><T v="small">{c.lessons?.length ? `${c.lessons.length} lessons` : `${c.items.length} items`}</T></Row>}
+        {c.format === 'live' ? null : c.lessons?.length ? <LessonList c={c} locked /> : (
         <View style={{ gap: 8 }}>
           {items.map((it, i) => (
             <Card key={it.id} onPress={() => (i < 2 ? (it.kind === 'live' ? (meetLink(it.url) ? open(it.url) : router.push(`${base}/live` as any)) : openContent(it)) : demoNote('Join the course to open this lesson.'))}
@@ -213,6 +306,7 @@ export function CourseDetailScreen() {
   if (!course.data) return <Screen><ErrorBox message={course.error ?? 'Not found'} onRetry={course.reload} /></Screen>;
   const c = course.data;
   if (!c.enrolled) return <CourseIntro c={c} onJoin={async () => { await api.post(`/courses/${c.id}/enroll`); setLearnSpace(`course-${c.id}`); course.reload(); }} />;
+  if (c.format === 'live' && c.live) return <LiveCourseScreen c={c} live={c.live} reload={course.reload} />;
   const items = c.items.filter((i) => filter === 'all' || i.kind === filter);
   const live = c.items.find((i) => i.kind === 'live' && !i.done);
 

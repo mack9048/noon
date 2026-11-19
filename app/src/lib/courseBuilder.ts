@@ -15,7 +15,12 @@ export type BCourse = {
   status: string; is_free: boolean; price?: number | null; offer_price?: number | null; price_period?: 'once' | 'monthly'; trial_days?: number; free_for_subscribers?: boolean;
   audience: 'all' | 'selected' | 'guests'; tenant_ids: number[];
   subjects: BSubject[]; lessons: BLesson[]; loose_items: BItem[]; lessons_count: number;
+  format?: 'recorded' | 'live'; meet_url?: string | null; live_timezone?: string; live_summary?: string | null;
+  live_slots?: LiveSlot[]; live_upcoming?: LiveClass[];
 };
+/** A repeating live class time: days 0 = Sunday … 6 = Saturday, start "19:00" (course time zone). */
+export type LiveSlot = { id: number; days: number[]; start_time: string; duration_min: number; title?: string | null };
+export type LiveClass = { starts_at: string; ends_at: string; title?: string | null; state: 'live' | 'upcoming' };
 export type LessonDetail = BLesson & { course: { id: number; title: string; status: string }; subject: BSubject | null; number: number };
 export type Category = { id: number; name: string };
 export type Picked = { uri: string; name?: string; mimeType?: string; size?: number; file?: File };

@@ -20,7 +20,7 @@ import { useApi } from '@/lib/useApi';
 import { profileRows } from '@/lib/profile';
 import { useAuth } from '@/lib/auth';
 import type { BCourse } from '@/lib/courseBuilder';
-import { CategoryField, CourseStructure } from './courseBuilder';
+import { CategoryField, CourseStructure, LiveTimetable } from './courseBuilder';
 import { colors, fonts } from '@/theme/tokens';
 
 const TINTS = [colors.lav, colors.sky, colors.mint, colors.pink, colors.butter];
@@ -414,6 +414,9 @@ export function CourseEditorScreen({ mode, id }: { mode: 'admin' | 'super'; id?:
     setLogo(f.uri);
     setLogoFile(f as any);
   };
+  // Recorded lessons, or live classes only (a weekly timetable and a meeting link).
+  const [format, setFormat] = useState<'recorded' | 'live'>('recorded');
+  const [meetUrl, setMeetUrl] = useState('');
   const [pricing, setPricing] = useState<'free' | 'once' | 'monthly'>('once');
   const [price, setPrice] = useState('1499');
   const [offer, setOffer] = useState('999');
@@ -435,6 +438,7 @@ export function CourseEditorScreen({ mode, id }: { mode: 'admin' | 'super'; id?:
     setPricing(c.is_free ? 'free' : c.price_period === 'monthly' ? 'monthly' : 'once');
     setPrice(c.price != null ? String(c.price) : ''); setOffer(c.offer_price != null ? String(c.offer_price) : '');
     setTrial(!c.trial_days ? 'None' : `${c.trial_days} days`); setFreeForSubs(c.free_for_subscribers ?? true);
+    setFormat(c.format === 'live' ? 'live' : 'recorded'); setMeetUrl(c.meet_url ?? '');
   }, [existing.data]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const details = () => {
@@ -443,12 +447,14 @@ export function CourseEditorScreen({ mode, id }: { mode: 'admin' | 'super'; id?:
     return {
       title: title.trim(), description: desc.trim() || null, category: cat, level, cover: colour, is_free: pricing === 'free', price: priceN, offer_price: offerN,
       price_period: pricing === 'monthly' ? 'monthly' : 'once', trial_days: trial === 'None' ? 0 : parseInt(trial, 10), free_for_subscribers: freeForSubs,
+      ...(mode === 'super' ? { format, meet_url: format === 'live' ? meetUrl.trim() || null : null } : {}),
       audience: visible === 'Selected institutions' ? 'selected' : visible === 'Guests only' ? 'guests' : 'all', tenant_ids: visible === 'Selected institutions' ? tenantIds : [],
     };
   };
   const check = () => {
     if (!title.trim()) return 'Give the course a name.';
     if (!cat) return 'Choose a category.';
+    if (format === 'live' && meetUrl.trim() && !/^https:\/\/\S+$/.test(meetUrl.trim())) return 'The meeting link should start with https://';
     if (mode === 'super' && visible === 'Selected institutions' && !tenantIds.length) return 'Pick at least one institution for this course.';
     return null;
   };
@@ -526,6 +532,18 @@ export function CourseEditorScreen({ mode, id }: { mode: 'admin' | 'super'; id?:
       <Panel title="Course details">
         <Input label="Course name" value={title} onChangeText={setTitle} />
         <Input label="Short description" value={desc} onChangeText={setDesc} multiline />
+        {mode === 'super' ? (
+          <View style={{ gap: 8 }}>
+            <T v="small" style={{ fontFamily: fonts.medium }}>Course type</T>
+            <ChoiceChips value={format} onChange={setFormat} options={[{ key: 'recorded', label: 'Recorded lessons' }, { key: 'live', label: 'Live classes only' }]} />
+            {format === 'live' ? (
+              <>
+                <Input label="Meeting link (Google Meet, Zoom…)" value={meetUrl} onChangeText={setMeetUrl} placeholder="https://meet.google.com/abc-defg-hij" autoCapitalize="none" keyboardType="url" />
+                <T v="small">Students get this link only when a class is about to start, and only after joining the course.</T>
+              </>
+            ) : null}
+          </View>
+        ) : null}
         <Row gap={10} style={{ alignItems: 'flex-start' }}><CategoryField value={cat} onChange={setCat} manage={mode === 'super'} /><Select label="Visible to" value={visible} options={mode === 'admin' ? ['My institution only', 'All Noon Learn'] : ['All institutions', 'Selected institutions', 'Guests only']} onChange={setVisible} /></Row>
         {mode === 'super' ? (visible === 'Selected institutions' ? (
           <View style={{ gap: 8 }}>
@@ -587,11 +605,14 @@ export function CourseEditorScreen({ mode, id }: { mode: 'admin' | 'super'; id?:
         <T v="small">Students pay in the app (UPI / card). {mode === 'admin' ? 'Revenue share: 70% institution · 30% Noon Learn.' : 'Payments go to Noon Learn.'}</T>
       </Panel>
       {mode === 'super' ? (
-        course ? <CourseStructure course={course} onChange={setCourse} /> : (
-          <Panel title="Subjects & lessons" style={{ marginBottom: 100 }}>
+        course && format === 'live' ? <LiveTimetable courseId={course.id} />
+        : course ? <CourseStructure course={course} onChange={setCourse} /> : (
+          <Panel title={format === 'live' ? 'Live class timetable' : 'Subjects & lessons'} style={{ marginBottom: 100 }}>
             <Row gap={10} style={{ backgroundColor: '#F1EDFF', borderRadius: 18, padding: 12 }}>
               <Ionicons name="information-circle-outline" size={22} color={colors.violet} />
-              <T style={{ flex: 1, fontSize: 14 }}>First save the course details with <T style={{ fontFamily: fonts.semibold }}>Save & add lessons</T>. Then you add subjects (optional) and lessons, and each lesson's videos, audios, PDFs and HTML.</T>
+              <T style={{ flex: 1, fontSize: 14 }}>{format === 'live'
+                ? <>First save the course details with <T style={{ fontFamily: fonts.semibold }}>Save & add lessons</T>. Then set the class times: every day or chosen days, at one or more times.</>
+                : <>First save the course details with <T style={{ fontFamily: fonts.semibold }}>Save & add lessons</T>. Then you add subjects (optional) and lessons, and each lesson's videos, audios, PDFs and HTML.</>}</T>
             </Row>
           </Panel>
         )

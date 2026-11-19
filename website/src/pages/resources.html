@@ -6,7 +6,7 @@
       <p class="crumb"><a href="/">Home</a> · Resources</p>
       <h1>Books &amp; learning<br><span class="hl">resources</span></h1>
       <p class="lead">Books, worksheets, charts, adkar cards and videos — for families at home and teachers in the institution. Many are free to download.</p>
-      <div class="actions"><a class="btn btn-yellow" href="#browse">Browse resources {{icon:arrow}}</a><a class="btn btn-ghost" href="/shop">Open the shop</a></div>
+      <div class="actions"><a class="btn btn-yellow" href="#browse">Browse resources {{icon:arrow}}</a></div>
     </div>
     <div class="hero-art book-stack" aria-hidden="true">
       <div class="bk" style="background:#F08A24;transform:rotate(-10deg);left:4%"><span lang="ar">ا ب</span><b>Alphabet Workbook</b></div>
@@ -45,45 +45,5 @@
     </div>
   </div>
 </section>
-
-<script>
-/* Shop: when Noon Learn has products for sale, show them here with Buy buttons that open the app's shop.
-   Until then (or if the server can't be reached) the sample list above stays. */
-(function () {
-  var API = 'https://noonapi.macadz.com/api';
-  var CAT = { quran: ['The Holy Quran', '#E9F0FF', '#1F5FE0', 'ق'], audio: ['Audio Books', '#E6F6F0', '#0E7A50', '♪'], pdf: ['Books', '#FFF3E4', '#C4600E', 'ك'],
-    adkar: ['Adkar Cards', '#F1EDFF', '#5B43E0', 'ذ'], chart: ['Learning Charts', '#E9F0FF', '#1F5FE0', 'ج'], slide: ['Lesson Slides', '#E6F6F0', '#0E7A50', 'ع'],
-    worksheet: ['Worksheets & Quizzes', '#FFF3E4', '#C4600E', 'خ'], form: ['Madrasa Forms', '#F1EDFF', '#5B43E0', 'م'], other: ['Other', '#FDE6F2', '#B0256E', 'ن'] };
-  var esc = function (t) { var d = document.createElement('div'); d.textContent = t == null ? '' : String(t); return d.innerHTML; };
-  var rupee = function (n) { return n ? '₹' + Number(n).toLocaleString('en-IN') : 'Free'; };
-  fetch(API + '/shop/products', { headers: { Accept: 'application/json' } }).then(function (r) { return r.ok ? r.json() : []; }).then(function (list) {
-    if (!Array.isArray(list) || !list.length) return;
-    var grid = document.querySelector('[data-group="res"]');
-    var side = document.querySelector('#browse aside');
-    if (!grid || !side) return;
-    var counts = {};
-    list.forEach(function (p) { counts[p.category] = (counts[p.category] || 0) + 1; });
-    side.innerHTML = '<h3 style="margin-bottom:10px">Categories</h3><div role="group" aria-label="Category" data-shop-filter>' +
-      '<button data-value="all" aria-pressed="true">All<small>' + list.length + '</small></button>' +
-      Object.keys(counts).map(function (k) { return '<button data-value="' + k + '" aria-pressed="false">' + esc((CAT[k] || CAT.other)[0]) + '<small>' + counts[k] + '</small></button>'; }).join('') +
-      '</div><p style="font-size:12px;color:var(--muted);margin-top:8px">Pay by UPI · Cash on Delivery for printed items</p>';
-    grid.removeAttribute('data-group');
-    grid.innerHTML = list.map(function (p) {
-      var c = CAT[p.category] || CAT.other;
-      var off = p.offer_price != null && p.offer_price < p.price;
-      var cover = p.cover_url ? '<img src="' + esc(p.cover_url) + '" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">' : '<span lang="ar">' + c[3] + '</span>';
-      return '<article class="course res" data-cat="' + esc(p.category) + '"><div class="cover" style="position:relative;overflow:hidden;background:' + c[1] + ';color:' + c[2] + '"><span class="tag">' + (p.type === 'digital' ? 'Digital' : 'Printed') + '</span>' + cover + '</div>' +
-        '<div class="body"><h3>' + esc(p.title) + '</h3><span class="meta">' + esc(c[0]) + (p.in_stock ? '' : ' · Out of stock') + '</span><div class="row"><span class="price' + (p.unit_price ? '" style="color:var(--ink)' : ' free') + '">' + rupee(p.unit_price) +
-        (off ? ' <s style="color:var(--muted);font-weight:400;font-size:.8em">' + rupee(p.price) + '</s>' : '') + '</span>' +
-        (p.in_stock ? '<a class="btn btn-violet btn-sm" style="min-height:36px" href="/shop#p-' + p.id + '">Buy</a>' : '') + '</div></div></article>';
-    }).join('');
-    side.querySelector('[data-shop-filter]').addEventListener('click', function (e) {
-      var b = e.target.closest('button'); if (!b) return;
-      side.querySelectorAll('[data-shop-filter] button').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
-      grid.querySelectorAll('article').forEach(function (a) { a.style.display = b.dataset.value === 'all' || a.dataset.cat === b.dataset.value ? '' : 'none'; });
-    });
-  }).catch(function () {});
-})();
-</script>
 
 {{cta {"title":"Made a great worksheet?","text":"Institution teachers can share resources with Noon Buds. Our team reviews them before they appear here.","btn":"Share a resource","href":"/contact"}}}

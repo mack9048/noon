@@ -28,7 +28,6 @@ const NAV = [
   ['courses', 'Courses', null],
   ['resources', 'Resources', '/resources'],
   ['games', 'Games', '/games'],
-  ['shop', 'Shop', '/shop'],
   ['about', 'About Us', '/about'],
   ['contact', 'Contact', '/contact'],
 ];

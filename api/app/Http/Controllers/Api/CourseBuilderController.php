@@ -8,6 +8,8 @@ use App\Models\CourseCategory;
 use App\Models\CourseItem;
 use App\Models\CourseLesson;
 use App\Models\CourseSubject;
+use App\Models\CourseLiveSlot;
+use App\Support\LiveSchedule;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -62,10 +64,13 @@ class CourseBuilderController extends Controller
 
     public function show(Course $course)
     {
-        $course->load(['items', 'teacher', 'students', 'lessons.items', 'subjects']);
+        $course->load(['items', 'teacher', 'students', 'lessons.items', 'subjects', 'liveSlots']);
         $ids = $course->tenants()->pluck('tenants.id')->all();
 
         return $course->toApp() + [
+            'meet_url' => $course->meet_url, 'live_timezone' => $course->live_timezone,
+            'live_slots' => $course->liveSlots->map(fn ($s) => $s->toApp())->values(),
+            'live_upcoming' => $course->isLive() ? LiveSchedule::forApp(LiveSchedule::upcoming($course, 6)) : [],
             'tenant_ids' => $ids,
             'audience' => $course->visibility === 'madrasa' ? 'selected' : ($ids ? 'all' : 'guests'),
             'subjects' => $course->subjects->map(fn (CourseSubject $s) => ['id' => $s->id, 'title' => $s->title]),
@@ -73,6 +78,49 @@ class CourseBuilderController extends Controller
             // Content added before lessons existed (shown so it can be moved or removed).
             'loose_items' => $course->items->whereNull('course_lesson_id')->values()->map(fn (CourseItem $i) => self::itemData($i)),
         ];
+    }
+
+    /* ---------- Live course timetable ---------- */
+
+    public function storeLiveSlot(Request $request, Course $course)
+    {
+        $data = $this->liveSlotRules($request);
+        $course->liveSlots()->create($data + ['position' => (int) $course->liveSlots()->max('position') + 1]);
+
+        return $this->show($course->fresh());
+    }
+
+    public function updateLiveSlot(Request $request, CourseLiveSlot $slot)
+    {
+        $slot->update($this->liveSlotRules($request, partial: true));
+
+        return $this->show(Course::findOrFail($slot->course_id));
+    }
+
+    public function destroyLiveSlot(CourseLiveSlot $slot)
+    {
+        $course = Course::findOrFail($slot->course_id);
+        $slot->delete();
+
+        return $this->show($course);
+    }
+
+    private function liveSlotRules(Request $request, bool $partial = false): array
+    {
+        $req = $partial ? 'sometimes' : 'required';
+        $data = $request->validate([
+            'days' => [$req, 'array', 'min:1', 'max:7'],
+            'days.*' => ['integer', 'between:0,6'],
+            'start_time' => [$req, 'regex:/^([01][0-9]|2[0-3]):[0-5][0-9]$/'],
+            'duration_min' => ['sometimes', 'integer', 'min:10', 'max:300'],
+            'title' => ['nullable', 'string', 'max:80'],
+        ], ['start_time.regex' => 'Enter the time like 19:00.']);
+        if (isset($data['days'])) {
+            $data['days'] = array_values(array_unique(array_map('intval', $data['days'])));
+            sort($data['days']);
+        }
+
+        return $data;
     }
 
     public static function lessonData(CourseLesson $l): array

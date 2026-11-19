@@ -9,6 +9,7 @@ use App\Models\Tenant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use App\Support\LiveSchedule;
 use Illuminate\Validation\Rule;
 
 /**
@@ -20,7 +21,7 @@ use Illuminate\Validation\Rule;
  */
 class CourseController extends Controller
 {
-    private const WITH = ['items', 'teacher', 'students', 'lessons'];
+    private const WITH = ['items', 'teacher', 'students', 'lessons', 'liveSlots'];
 
     /** Public catalogue for the sign-up page: published courses open to everyone (no institution-only ones). */
     public function catalog()
@@ -63,6 +64,9 @@ class CourseController extends Controller
             || Course::visibleTo($user)->whereKey($course->id)->exists();
         abort_unless($canSee, 404);
         $course->load([...self::WITH, 'lessons.items', 'subjects']);
+        if ($course->isLive()) {
+            return $course->toApp($user) + ['items' => [], 'lessons' => [], 'subjects' => [], 'live' => $this->liveInfo($course, $user)];
+        }
         $done = $user->id ? DB::table('course_item_user')->where('user_id', $user->id)->pluck('course_item_id')->all() : [];
         $item = fn (CourseItem $i) => CourseBuilderController::itemData($i, $done);
         // Content in the order students follow it: older loose items first, then lesson by lesson.
@@ -102,6 +106,14 @@ class CourseController extends Controller
         // No lesson done yet: the course joined most recently.
         $course = $last ? $courses->firstWhere('id', $last->course_id) : $courses->sortByDesc(fn ($c) => $c->pivot->created_at)->first();
         $course->load([...self::WITH, 'lessons.items', 'subjects']);
+        if ($course->isLive()) {
+            // A live course: the next live class instead of a lesson.
+            $next = LiveSchedule::upcoming($course, 1)[0] ?? null;
+
+            return ['course' => $course->toApp($user), 'lesson' => null, 'item' => null, 'done' => 0, 'total' => 0, 'lessons' => 0, 'finished' => false,
+                'live' => $next ? collect($next)->except('start')->all() : null,
+                'attended' => DB::table('course_live_attendance')->where('course_id', $course->id)->where('user_id', $user->id)->count()];
+        }
         $done = DB::table('course_item_user')->where('user_id', $user->id)->pluck('course_item_id')->flip();
 
         // Player order: lessons outside a subject first, then subject by subject.
@@ -124,6 +136,41 @@ class CourseController extends Controller
             'lessons' => $lessons->count(),
             'finished' => $total > 0 && $doneCount === $total,
         ];
+    }
+
+    /** A live course's timetable, coming classes and how many the user attended (never the meeting link). */
+    private function liveInfo(Course $course, $user): array
+    {
+        return [
+            'timezone' => $course->live_timezone, 'summary' => LiveSchedule::summary($course),
+            'slots' => $course->liveSlots->map(fn ($s) => $s->toApp())->values(),
+            'upcoming' => LiveSchedule::forApp(LiveSchedule::upcoming($course, 10)),
+            'attended' => $user?->id ? DB::table('course_live_attendance')->where('course_id', $course->id)->where('user_id', $user->id)->count() : 0,
+            'has_link' => (bool) $course->meet_url,
+            'open_before_min' => LiveSchedule::OPEN_BEFORE,
+        ];
+    }
+
+    /** Join the live class that is on now: gives the meeting link and marks attendance. */
+    public function liveJoin(Request $request, Course $course)
+    {
+        $user = $request->user();
+        abort_unless($course->isLive(), 404);
+        $staff = $user->hasRole('super') || $course->teacher_id === $user->id;
+        $enrolled = $user->courses()->whereKey($course->id)->exists() && Course::visibleTo($user)->whereKey($course->id)->exists();
+        abort_unless($staff || $enrolled, 403, 'Join the course first.');
+        abort_unless($course->meet_url, 422, 'The class link is not ready yet. Please check back soon.');
+        $course->load('liveSlots');
+        $now = LiveSchedule::current($course);
+        if (! $now && ! $staff) {
+            $next = LiveSchedule::upcoming($course, 1)[0] ?? null;
+            abort(422, $next ? 'The next class starts '.$next['start']->setTimezone($course->live_timezone)->format('D j M, g:i A').'. You can join '.LiveSchedule::OPEN_BEFORE.' minutes before.' : 'No class is planned right now.');
+        }
+        if ($now && $enrolled) {
+            DB::table('course_live_attendance')->insertOrIgnore(['course_id' => $course->id, 'user_id' => $user->id, 'session_at' => $now['start']->format('Y-m-d H:i:s'), 'joined_at' => now()]);
+        }
+
+        return ['url' => $course->meet_url];
     }
 
     public function enroll(Request $request, Course $course)
@@ -320,6 +367,9 @@ class CourseController extends Controller
             'price_period' => ['sometimes', 'in:once,monthly'],
             'trial_days' => ['sometimes', 'integer', 'min:0', 'max:60'],
             'free_for_subscribers' => ['sometimes', 'boolean'],
+            'format' => ['sometimes', 'in:recorded,live'],
+            'meet_url' => ['nullable', 'string', 'max:500', 'url:https'],
+            'live_timezone' => ['sometimes', 'timezone'],
             'teacher_id' => ['nullable', 'integer', Rule::exists('users', 'id')->where('role', 'teacher')],
         ]);
     }

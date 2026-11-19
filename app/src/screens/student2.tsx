@@ -17,7 +17,7 @@ import { profileLine, profileRows, splitName } from '@/lib/profile';
 import { setLearnSpace, useLearnSpaces } from '@/lib/learnSpace';
 import { CLASSROOM_INFO, PERFORMANCE } from '@/lib/demo';
 import { kindLabel } from '@/lib/courseBuilder';
-import { CourseCard, MadrasaSupportCard } from './learn';
+import { CourseCard, joinLiveCourse, MadrasaSupportCard } from './learn';
 import { useMyAttendancePercent } from './attendance';
 import type { Course, CourseDetail, CourseLessonRow, LeaveSummary, LearnDetail, LearnSpace } from '@/lib/types';
 import { colors, fonts } from '@/theme/tokens';
@@ -28,6 +28,8 @@ const pad = (n: number) => String(n).padStart(2, '0');
 type ContinueInfo = {
   course: Course; lesson: { id: number; title: string; number: number; duration?: string | null } | null;
   item: { id: number; title: string; kind: any } | null; done: number; total: number; lessons: number; finished: boolean;
+  /** Live-only course: its next class instead of a lesson. */
+  live?: { starts_at: string; ends_at: string; title?: string | null; state: 'live' | 'upcoming' } | null; attended?: number;
 } | null;
 const LESSON_TINTS = [['#F4F1FF', '#C9BEF5'], ['#EEF8FC', '#B4D7E6'], ['#EEFAF1', '#B5E2BE'], ['#FDF1F8', '#EDBEDD'], ['#FFF8E5', '#EBD596']] as const;
 
@@ -184,11 +186,14 @@ export function ClassroomScreen() {
   const m = current?.title.match(/^lesson\s*(\d+)\s*[·:-]\s*(.+)$/i);
   const lessonNo = m ? Number(m[1]) : current?.position ?? 1;
   const lessonTitle = m ? m[2] : current?.title ?? (course ? 'Lessons coming soon' : 'Najas');
-  const lessonLine = next?.lesson ? `${course!.title} · Lesson ${pad(next.lesson.number)} of ${pad(next.lessons)}`
+  const liveCourse = course?.format === 'live';
+  const liveNext = next?.live ?? null;
+  const lessonLine = liveCourse ? `${course!.title} · live class` : next?.lesson ? `${course!.title} · Lesson ${pad(next.lesson.number)} of ${pad(next.lessons)}`
     : course ? `${course.category} · Lesson ${pad(lessonNo)}` : `${name} · Lesson ${pad(current?.position ?? 5)}`;
-  const heroTitle = next ? (next.finished ? 'Course complete!' : next.lesson?.title ?? 'Lessons coming soon') : lessonTitle;
+  const heroTitle = liveCourse ? (liveNext ? new Date(liveNext.starts_at).toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : 'No class planned') : next ? (next.finished ? 'Course complete!' : next.lesson?.title ?? 'Lessons coming soon') : lessonTitle;
   const play = () => {
     if (!course) return router.push(`${base}/live` as any);
+    if (liveCourse) return liveNext?.state === 'live' ? joinLiveCourse(course.id) : router.push(`${base}/courses/${course.id}` as any);
     if (next?.finished) return router.push(`${base}/courses/${course.id}/certificate` as any);
     if (next?.lesson) return router.push(`${base}/courses/${course.id}/play?lesson=${next.lesson.id}${next.item ? `&item=${next.item.id}` : ''}` as any);
     router.push(`${base}/courses/${course.id}` as any);
@@ -204,11 +209,11 @@ export function ClassroomScreen() {
       {noCourse ? null : <LinearGradient colors={['#5B43E0', '#9B7BE8', '#D59BE0']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ marginTop: 10, borderRadius: 30, padding: 18, overflow: 'hidden', flexDirection: 'row', alignItems: 'center', gap: 12 }}>
         <View style={{ position: 'absolute', right: -60, top: -40, width: 230, height: 230, borderRadius: 115, backgroundColor: 'rgba(255,255,255,0.12)' }} />
         <View style={{ flex: 1, minWidth: 0 }}>
-          <T style={{ color: '#EDE7FF', fontFamily: fonts.semibold, fontSize: 12, letterSpacing: 0.5 }}>{next ? (next.finished ? 'ALL LESSONS DONE' : next.done ? 'UP NEXT' : 'START HERE') : 'CURRENT LESSON'}</T>
+          <T style={{ color: '#EDE7FF', fontFamily: fonts.semibold, fontSize: 12, letterSpacing: 0.5 }}>{liveCourse ? (liveNext?.state === 'live' ? '● LIVE NOW' : 'NEXT LIVE CLASS') : next ? (next.finished ? 'ALL LESSONS DONE' : next.done ? 'UP NEXT' : 'START HERE') : 'CURRENT LESSON'}</T>
           <T style={{ color: '#EDE7FF', marginTop: 6 }} numberOfLines={1}>{lessonLine}</T>
           <T style={{ color: '#FFF', fontFamily: fonts.fun, fontSize: 30, lineHeight: 38 }} numberOfLines={2}>{heroTitle}</T>
-          {next?.item ? <T style={{ color: '#EDE7FF', marginTop: 2 }} numberOfLines={1}>▶ {kindLabel(next.item.kind)} · {next.item.title}</T> : null}
-          {next && next.total ? (
+          {!liveCourse && next?.item ? <T style={{ color: '#EDE7FF', marginTop: 2 }} numberOfLines={1}>▶ {kindLabel(next.item.kind)} · {next.item.title}</T> : null}
+          {liveCourse ? <T style={{ color: '#EDE7FF', marginTop: 2 }} numberOfLines={1}>{course?.live_summary ?? ''}{next?.attended ? ` · ${next.attended} attended` : ''}</T> : next && next.total ? (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8, maxWidth: 260 }}>
               <View style={{ flex: 1, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.3)', overflow: 'hidden' }}>
                 <View style={{ width: `${Math.round((next.done / next.total) * 100)}%`, height: 6, backgroundColor: '#FFF' }} />
@@ -217,10 +222,10 @@ export function ClassroomScreen() {
             </View>
           ) : null}
           {liveWhen ? <T style={{ color: '#FFE6F6', fontFamily: fonts.semibold, fontSize: 11, marginTop: 2 }} numberOfLines={1}>● {liveWhen}{course?.teacher_name ? ` · ${course.teacher_name}` : ''}</T> : null}
-          <Pressable accessibilityRole="button" accessibilityLabel={next ? (next.finished ? 'Get certificate' : 'Continue lesson') : 'Join class'} onPress={play}
+          <Pressable accessibilityRole="button" accessibilityLabel={liveCourse ? (liveNext?.state === 'live' ? 'Join live class' : 'See timetable') : next ? (next.finished ? 'Get certificate' : 'Continue lesson') : 'Join class'} onPress={play}
             style={{ marginTop: 12, alignSelf: 'flex-start', backgroundColor: '#FFF', borderRadius: 24, height: 48, paddingLeft: 6, paddingRight: 18, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#5B36C9', alignItems: 'center', justifyContent: 'center' }}><Ionicons name={next ? (next.finished ? 'ribbon' : 'play') : 'videocam'} size={16} color="#FFF" /></View>
-            <T style={{ fontFamily: fonts.fun, fontSize: 17, color: '#46308A' }}>{next ? (next.finished ? 'Get certificate' : next.done ? 'Continue' : 'Start') : 'Join Class'}</T>
+            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#5B36C9', alignItems: 'center', justifyContent: 'center' }}><Ionicons name={liveCourse ? 'videocam' : next ? (next.finished ? 'ribbon' : 'play') : 'videocam'} size={16} color="#FFF" /></View>
+            <T style={{ fontFamily: fonts.fun, fontSize: 17, color: '#46308A' }}>{liveCourse ? (liveNext?.state === 'live' ? 'Join live' : 'Timetable') : next ? (next.finished ? 'Get certificate' : next.done ? 'Continue' : 'Start') : 'Join Class'}</T>
           </Pressable>
         </View>
         <Pressable accessibilityRole="button" accessibilityLabel={course ? `${course.title}. Change course` : 'Get a course'}
@@ -253,7 +258,7 @@ export function ClassroomScreen() {
       </Modal>
 
       <View style={{ marginTop: 14 }}><ClassTiles space={selected} /></View>
-      {course && showCourse ? (
+      {course && showCourse && !liveCourse ? (
         <CourseLessonsBlock course={course} nextId={next?.lesson?.id} subjects={subjects} onPickSubject={(sub) => { setShowCourse(false); select(sub); }} />
       ) : (
         <LessonsBlock subjects={subjects} selected={selected} onSelect={select} detail={detail.data}

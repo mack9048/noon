@@ -13,9 +13,19 @@ class Course extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = ['title', 'description', 'category', 'level', 'cover', 'logo_url', 'status', 'is_free', 'price', 'offer_price', 'price_period', 'trial_days', 'free_for_subscribers', 'teacher_id', 'tenant_id', 'visibility', 'review_note'];
+    protected $fillable = ['title', 'description', 'category', 'format', 'meet_url', 'live_timezone', 'level', 'cover', 'logo_url', 'status', 'is_free', 'price', 'offer_price', 'price_period', 'trial_days', 'free_for_subscribers', 'teacher_id', 'tenant_id', 'visibility', 'review_note'];
 
     protected $casts = ['is_free' => 'boolean', 'free_for_subscribers' => 'boolean'];
+
+    public function liveSlots(): HasMany
+    {
+        return $this->hasMany(CourseLiveSlot::class)->orderBy('position')->orderBy('id');
+    }
+
+    public function isLive(): bool
+    {
+        return $this->format === 'live';
+    }
 
     public function items(): HasMany
     {
@@ -71,6 +81,7 @@ class Course extends Model
     {
         $pivot = $user ? $this->students->firstWhere('id', $user->id)?->pivot : null;
         $nextLive = $this->items->where('kind', 'live')->filter(fn ($i) => $i->starts_at && $i->starts_at->isFuture())->sortBy('starts_at')->first();
+        $live = $this->isLive() ? (\App\Support\LiveSchedule::upcoming($this, 1)[0] ?? null) : null;
 
         return [
             'id' => $this->id,
@@ -93,7 +104,13 @@ class Course extends Model
             'items_count' => $this->items->count(),
             'enrolled' => (bool) $pivot,
             'progress' => $pivot?->progress,
-            'next_live_at' => $nextLive?->starts_at?->format('D g:i A'),
+            'next_live_at' => $this->isLive()
+                ? ($live ? \Illuminate\Support\Carbon::parse($live['starts_at'])->format('D g:i A') : null)
+                : $nextLive?->starts_at?->format('D g:i A'),
+            // Live-only courses: regular live classes instead of lessons.
+            'format' => $this->format ?? 'recorded',
+            'live_summary' => $this->isLive() ? \App\Support\LiveSchedule::summary($this) : null,
+            'live_now' => $live && $live['state'] === 'live',
         ];
     }
 }

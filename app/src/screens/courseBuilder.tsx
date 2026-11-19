@@ -11,7 +11,7 @@ import { demoNote, Tag } from '@/components/kit';
 import { BottomActions, ChoiceChips, DateInput, Input, Panel, Select, TileRows } from '@/components/kit2';
 import { api, ApiError } from '@/lib/api';
 import { useApi } from '@/lib/useApi';
-import { BCourse, BItem, BLesson, BSubject, Category, fileSize, KINDS, kindLabel, LessonDetail, moved, Picked, saveItem } from '@/lib/courseBuilder';
+import { BCourse, BItem, BLesson, BSubject, Category, fileSize, KINDS, kindLabel, LessonDetail, LiveSlot, moved, Picked, saveItem } from '@/lib/courseBuilder';
 import { colors, contentType, fonts, type ContentKind } from '@/theme/tokens';
 
 const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
@@ -73,6 +73,96 @@ function CategoriesSheet({ list, onClose, onChanged, onRenamed }: { list: Catego
       </Row>
       {err ? <T style={{ color: colors.red }}>{err}</T> : null}
     </Sheet>
+  );
+}
+
+/* ================= Live-only course: weekly timetable ================= */
+
+const DAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const DURATIONS = ['30', '45', '60', '90', '120'];
+/** "Mon 23 Nov · 7:00 PM" in the viewer's own time. */
+export const liveWhen = (iso: string) => new Date(iso).toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }).replace(',', ' ·');
+
+function DayPicker({ value, onChange }: { value: number[]; onChange: (d: number[]) => void }) {
+  const all = value.length === 7;
+  return (
+    <Row gap={6} style={{ flexWrap: 'wrap' }}>
+      <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: all }} onPress={() => onChange(all ? [] : [0, 1, 2, 3, 4, 5, 6])}
+        style={{ height: 36, paddingHorizontal: 12, borderRadius: 18, justifyContent: 'center', backgroundColor: all ? colors.violet : '#FFF', borderWidth: 1.5, borderColor: all ? colors.violet : colors.line }}>
+        <T style={{ fontSize: 13, fontFamily: fonts.semibold, color: all ? '#FFF' : colors.ink }}>Every day</T>
+      </Pressable>
+      {[1, 2, 3, 4, 5, 6, 0].map((d) => {
+        const on = value.includes(d);
+        return (
+          <Pressable key={d} accessibilityRole="checkbox" accessibilityState={{ checked: on }} accessibilityLabel={DAY_SHORT[d]} onPress={() => onChange(on ? value.filter((x) => x !== d) : [...value, d])}
+            style={{ width: 46, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: on ? '#EEEBFB' : '#FFF', borderWidth: 1.5, borderColor: on ? colors.violet : colors.line }}>
+            <T style={{ fontSize: 13, fontFamily: fonts.semibold, color: on ? colors.violet : colors.muted }}>{DAY_SHORT[d]}</T>
+          </Pressable>
+        );
+      })}
+    </Row>
+  );
+}
+
+function SlotForm({ slot, onSave, onDelete, busy }: { slot?: LiveSlot; onSave: (s: { days: number[]; start_time: string; duration_min: number; title: string }) => void; onDelete?: () => void; busy: boolean }) {
+  const [days, setDays] = useState<number[]>(slot?.days ?? [0, 1, 2, 3, 4, 5, 6]);
+  const [time, setTime] = useState(slot?.start_time ?? '19:00');
+  const [dur, setDur] = useState(String(slot?.duration_min ?? 60));
+  const [title, setTitle] = useState(slot?.title ?? '');
+  const changed = !slot || days.join() !== slot.days.join() || time !== slot.start_time || dur !== String(slot.duration_min) || title !== (slot.title ?? '');
+  const ok = days.length > 0 && /^([01][0-9]|2[0-3]):[0-5][0-9]$/.test(time);
+  return (
+    <View style={{ gap: 10, borderRadius: 18, borderWidth: 1.5, borderColor: slot ? colors.line : colors.violet, borderStyle: slot ? 'solid' : 'dashed', padding: 12, backgroundColor: '#FFF' }}>
+      <DayPicker value={days} onChange={setDays} />
+      <Row gap={10} style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
+        <View style={{ width: 130 }}><Input label="Time (24 h)" value={time} onChangeText={(v) => setTime(v.replace(/[^0-9:]/g, '').slice(0, 5))} placeholder="19:00" accessibilityLabel="Start time" /></View>
+        <View style={{ width: 150 }}><Select label="Length (minutes)" value={dur} options={DURATIONS.includes(dur) ? DURATIONS : [dur, ...DURATIONS]} onChange={setDur} /></View>
+        <View style={{ flex: 1, minWidth: 180 }}><Input label="Name (optional)" value={title} onChangeText={setTitle} placeholder="eg. Weekend revision" /></View>
+      </Row>
+      <Row gap={8}>
+        {changed ? <Button title={slot ? 'Save' : 'Add class time'} icon={slot ? 'checkmark' : 'add'} loading={busy} disabled={!ok} style={{ height: 42 }} onPress={() => onSave({ days, start_time: time, duration_min: parseInt(dur, 10), title })} /> : null}
+        {onDelete ? <Button title="Remove" kind="ghost" icon="trash-outline" style={{ height: 42 }} onPress={onDelete} /> : null}
+      </Row>
+    </View>
+  );
+}
+
+/** Super admin: class times of a live-only course and a preview of the next classes. */
+export function LiveTimetable({ courseId }: { courseId: number }) {
+  const data = useApi<BCourse>(`/super/courses/${courseId}`);
+  const [c, setC] = useState<BCourse | null>(null);
+  const [busy, setBusy] = useState<number | 'new' | null>(null);
+  const [formKey, setFormKey] = useState(0);
+  const [err, setErr] = useState('');
+  useEffect(() => { if (data.data) setC(data.data); }, [data.data]);
+  if (!c) return <Panel title="Live class timetable"><Loading /></Panel>;
+  const run = async (key: number | 'new', fn: () => Promise<BCourse>) => {
+    setBusy(key); setErr('');
+    try { setC(await fn()); if (key === 'new') setFormKey((k) => k + 1); } catch (e) { setErr(errText(e, 'Could not save.')); } finally { setBusy(null); }
+  };
+  return (
+    <Panel title="Live class timetable" right={<T v="small">India time (IST)</T>} style={{ marginBottom: 100 }}>
+      {c.live_summary ? <Card tint="#F1EDFF"><T style={{ fontFamily: fonts.semibold, color: colors.violet }}>{c.live_summary}</T></Card> : <T v="small">No class times yet. Add one below: every day, or the days you choose.</T>}
+      {!c.meet_url ? <T v="small" style={{ color: colors.red }}>Add the meeting link above (Course details) and save, so students can join.</T> : null}
+      {(c.live_slots ?? []).map((s) => (
+        <SlotForm key={`${s.id}-${s.days.join()}-${s.start_time}-${s.duration_min}-${s.title}`} slot={s} busy={busy === s.id}
+          onSave={(v) => run(s.id, () => api.put<BCourse>(`/super/course-live-slots/${s.id}`, v))}
+          onDelete={() => run(s.id, () => api.del<BCourse>(`/super/course-live-slots/${s.id}`))} />
+      ))}
+      <T v="small" style={{ fontFamily: fonts.medium, marginTop: 4 }}>{c.live_slots?.length ? 'Add another class time' : 'Add a class time'}</T>
+      <SlotForm key={`new-${formKey}`} busy={busy === 'new'} onSave={(v) => run('new', () => api.post<BCourse>(`/super/courses/${courseId}/live-slots`, v))} />
+      {err ? <T style={{ color: colors.red }}>{err}</T> : null}
+      {c.live_upcoming?.length ? (
+        <View style={{ gap: 6, marginTop: 6 }}>
+          <T v="h3">Next classes</T>
+          {c.live_upcoming.map((u) => (
+            <Row key={u.starts_at} gap={8}><Ionicons name={u.state === 'live' ? 'radio' : 'calendar-outline'} size={16} color={u.state === 'live' ? colors.red : colors.muted} />
+              <T style={{ flex: 1 }}>{liveWhen(u.starts_at)}{u.title ? ` · ${u.title}` : ''}</T>{u.state === 'live' ? <Tag text="On now" tone="pink" /> : null}</Row>
+          ))}
+          <T v="small">Shown in your own time. Students in the Gulf see the same classes in their time.</T>
+        </View>
+      ) : null}
+    </Panel>
   );
 }
 

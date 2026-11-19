@@ -92,6 +92,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::get('/courses/continue', [CourseController::class, 'continue']);
     Route::get('/courses/{course}', [CourseController::class, 'show']);
     Route::post('/courses/{course}/enroll', [CourseController::class, 'enroll']);
+    Route::post('/courses/{course}/live/join', [CourseController::class, 'liveJoin']);
     Route::post('/course-items/{item}/complete', [CourseController::class, 'complete']);
     Route::get('/course-items/{item}/open', [CourseBuilderController::class, 'open']);
     Route::get('/course-categories', [CourseBuilderController::class, 'categories']);
@@ -220,6 +221,9 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::put('/course-subjects/{subject}', [CourseBuilderController::class, 'updateSubject']);
         Route::delete('/course-subjects/{subject}', [CourseBuilderController::class, 'destroySubject']);
         Route::post('/courses/{course}/lessons', [CourseBuilderController::class, 'storeLesson']);
+        Route::post('/courses/{course}/live-slots', [CourseBuilderController::class, 'storeLiveSlot']);
+        Route::put('/course-live-slots/{slot}', [CourseBuilderController::class, 'updateLiveSlot']);
+        Route::delete('/course-live-slots/{slot}', [CourseBuilderController::class, 'destroyLiveSlot']);
         Route::get('/course-lessons/{lesson}', [CourseBuilderController::class, 'showLesson']);
         Route::put('/course-lessons/{lesson}', [CourseBuilderController::class, 'updateLesson']);
         Route::delete('/course-lessons/{lesson}', [CourseBuilderController::class, 'destroyLesson']);
