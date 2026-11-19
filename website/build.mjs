@@ -31,8 +31,8 @@ const NAV = [
 ];
 const COURSES = [
   ['noon-courses', 'Noon Courses', 'Arabic, Thajweed, Fiqh & Seerah', '/courses/noon-courses'],
-  ['madrasa-support', 'Institution Support', 'Class 1 – 10, +1, +2 lessons', '/courses/madrasa-support'],
-  ['noon-buds', 'Noon Buds', 'First institution for age 4 – 6', '/courses/noon-buds'],
+  ['madrasa-support', 'Madrasa Support', 'Class 1 – 10, +1, +2 lessons', '/courses/madrasa-support'],
+  ['noon-buds', 'Noon Buds', 'First madrasa for age 4 – 6', '/courses/noon-buds'],
 ];
 
 // Line icons (24×24, stroke) used across the site.
@@ -110,7 +110,7 @@ function footer() {
   return `<footer class="site-footer">${WAVE('#1B3A8C', true).replace('class="wave-top"', 'class="wave-top" style="transform:translateY(-69px)"')}
   <div class="container"><div class="foot">
     <div><a class="logo foot-logo" href="/"><img src="${BASE}/img/buds/logo-white.png" alt="Noon Buds — Islamic Early Learning" width="190" height="129"></a><p class="about">Islamic early learning for children by Noon Learn — made with love, care and good adab.</p></div>
-    <div><h4>Learn</h4><ul><li><a href="/courses/madrasa-support">Institution Support</a></li><li><a href="/courses/noon-courses">Noon Courses</a></li><li><a href="/courses/noon-buds">Noon Buds</a></li><li><a href="/resources">Resources</a></li><li><a href="/games">Games</a></li></ul></div>
+    <div><h4>Learn</h4><ul><li><a href="/courses/madrasa-support">Madrasa Support</a></li><li><a href="/courses/noon-courses">Noon Courses</a></li><li><a href="/courses/noon-buds">Noon Buds</a></li><li><a href="/resources">Resources</a></li><li><a href="/games">Games</a></li></ul></div>
     <div><h4>For institutions</h4><ul><li><a href="/courses/madrasa-support#madrasas">Pricing</a></li><li><a href="/courses/madrasa-support#madrasas">Admissions & fees</a></li><li><a href="${SITE.appLogin}">Teacher app</a></li><li><a href="/contact">Request a demo</a></li></ul></div>
     <div><h4>Contact</h4><div class="foot-company"><img src="${BASE}/img/logo.png" alt="Noon Learn" width="131" height="34"><small>Noon Buds is a Noon Learn programme</small></div><ul class="contact"><li>${icon('phone')}${SITE.phone}</li><li>${icon('mail')}<a href="mailto:${SITE.email}">${SITE.email}</a></li><li>${icon('pin')}${SITE.address}</li></ul></div>
     <div class="owl"><img src="${BASE}/art/owl.svg" alt="" width="120" height="128"></div>
