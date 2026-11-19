@@ -18,7 +18,7 @@ import { setLearnSpace, useLearnSpaces } from '@/lib/learnSpace';
 import { CLASSROOM_INFO, PERFORMANCE } from '@/lib/demo';
 import { kindLabel } from '@/lib/courseBuilder';
 import { useMyAttendancePercent } from './attendance';
-import type { Course, LeaveSummary, LearnDetail, LearnSpace } from '@/lib/types';
+import type { Course, CourseDetail, CourseLessonRow, LeaveSummary, LearnDetail, LearnSpace } from '@/lib/types';
 import { colors, fonts } from '@/theme/tokens';
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -57,9 +57,62 @@ function ClassTiles({ space, lesson }: { space: LearnSpace | null; lesson?: numb
   );
 }
 
+/** The course's own lessons (player order) with Upcoming / Done tabs; a lesson opens in the course player. */
+function CourseLessonsBlock({ course, subjects, onPickSubject, nextId }: { course: Course; subjects: LearnSpace[]; onPickSubject: (s: LearnSpace) => void; nextId?: number }) {
+  const base = useBase();
+  const detail = useApi<CourseDetail>(`/courses/${course.id}`);
+  const [tab, setTab] = useState<'up' | 'done'>('up');
+  const c = detail.data;
+  const subs = c?.subjects ?? [];
+  const lessons: CourseLessonRow[] = c?.lessons ?? [];
+  const ordered = [...lessons.filter((l) => !l.subject_id || !subs.some((x) => x.id === l.subject_id)), ...subs.flatMap((x) => lessons.filter((l) => l.subject_id === x.id))];
+  const isDone = (l: CourseLessonRow) => l.items.length > 0 && l.items.every((i) => i.done);
+  const up = ordered.filter((l) => !isDone(l));
+  const done = ordered.filter(isDone).reverse();
+  const list = tab === 'up' ? up : done;
+  const subjectOf = (l: CourseLessonRow) => subs.find((x) => x.id === l.subject_id)?.title ?? course.category;
+  return (
+    <View style={{ marginTop: 18 }}>
+      <Row style={{ justifyContent: 'space-between' }}>
+        <T v="h2">Lessons</T>
+        <Select compact label={undefined} value="my-course" options={[{ key: 'my-course', label: course.title }, ...subjects.map((x) => ({ key: x.key, label: x.title }))]}
+          onChange={(k) => { const x = subjects.find((y) => y.key === k); if (x) onPickSubject(x); }} />
+      </Row>
+      <Tabs value={tab} onChange={setTab} options={[{ key: 'up', label: `Upcoming · ${up.length}` }, { key: 'done', label: `Done · ${done.length}` }]} />
+      <View style={{ gap: 8 }}>
+        {detail.loading && !c ? <T v="small" style={{ padding: 16, textAlign: 'center' }}>Loading lessons…</T> : null}
+        {list.map((l, i) => {
+          const t = LESSON_TINTS[i % 5];
+          // The same lesson as the "Up next" card (the first unfinished one if that is not known).
+          const current = tab === 'up' && (nextId && up.some((x) => x.id === nextId) ? l.id === nextId : i === 0);
+          const n = ordered.indexOf(l) + 1;
+          const doneItems = l.items.filter((x) => x.done).length;
+          return (
+            <Pressable key={l.id} accessibilityRole="button" accessibilityLabel={`Lesson ${n}: ${l.title}`} onPress={() => router.push(`${base}/courses/${course.id}/play?lesson=${l.id}` as any)}
+              style={{ minHeight: 58, borderRadius: 18, backgroundColor: t[0], borderWidth: 1.5, borderColor: current ? colors.violet : t[1], flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, gap: 12 }}>
+              <T v="small" numberOfLines={1} style={{ width: 108, fontSize: 11 }}>{subjectOf(l)} · lesson {pad(n)}</T>
+              <View style={{ flex: 1 }}>
+                <T v="h3" numberOfLines={1}>{l.title}</T>
+                {tab === 'up' && l.items.length ? <T v="small" style={{ fontSize: 11 }}>{doneItems ? `${doneItems}/${l.items.length} done` : `${l.items.length} item${l.items.length === 1 ? '' : 's'}`}{l.duration ? ` · ${l.duration}` : ''}</T> : null}
+              </View>
+              <View style={{ width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: tab === 'done' ? colors.mint[0] : current ? '#E6E0FF' : colors.butter[0] }}>
+                {tab === 'done' ? <Ionicons name="checkmark" size={14} color={colors.mint[1]} />
+                  : current ? <Ionicons name="play" size={12} color={colors.violet} />
+                  : <View style={{ width: 9, height: 9, borderRadius: 5, borderWidth: 1.5, borderColor: colors.butter[1] }} />}
+              </View>
+            </Pressable>
+          );
+        })}
+        {c && !list.length ? <T v="small" style={{ padding: 16, textAlign: 'center' }}>{tab === 'up' ? (lessons.length ? 'All lessons done. MashaAllah!' : 'Lessons coming soon.') : 'No lessons done yet.'}</T> : null}
+      </View>
+    </View>
+  );
+}
+
 /** Lessons of the picked subject with Upcoming / Done tabs. */
-function LessonsBlock({ subjects, selected, onSelect, detail, doneFirst }: {
+function LessonsBlock({ subjects, selected, onSelect, detail, doneFirst, course, onPickCourse }: {
   subjects: LearnSpace[]; selected: LearnSpace | null; onSelect: (s: LearnSpace) => void; detail?: LearnDetail; doneFirst?: boolean;
+  course?: Course; onPickCourse?: () => void;
 }) {
   const base = useBase();
   const [tab, setTab] = useState<'up' | 'done'>(doneFirst ? 'done' : 'up');
@@ -74,8 +127,8 @@ function LessonsBlock({ subjects, selected, onSelect, detail, doneFirst }: {
       <Row style={{ justifyContent: 'space-between' }}>
         <T v="h2">Lessons</T>
         {subjects.length ? (
-          <Select compact label={undefined} value={selected?.key ?? ''} options={subjects.map((s) => ({ key: s.key, label: s.title }))}
-            onChange={(k) => { const s = subjects.find((x) => x.key === k); if (s) onSelect(s); }} />
+          <Select compact label={undefined} value={selected?.key ?? ''} options={[...(course ? [{ key: 'my-course', label: course.title }] : []), ...subjects.map((s) => ({ key: s.key, label: s.title }))]}
+            onChange={(k) => { if (k === 'my-course') return onPickCourse?.(); const s = subjects.find((x) => x.key === k); if (s) onSelect(s); }} />
         ) : null}
       </Row>
       <Tabs value={tab} onChange={setTab} options={doneFirst ? [tabs[1], tabs[0]] : tabs} />
@@ -112,6 +165,8 @@ export function ClassroomScreen() {
   const mine = useApi<Course[]>('/courses?scope=mine');
   const [courseId, setCourseId] = useState<number | null>(null);
   const [pickOpen, setPickOpen] = useState(false);
+  // Lessons list: the student's course by default; the dropdown can switch to a Madrasa Support subject.
+  const [showCourse, setShowCourse] = useState(true);
   // Up next: where the student stopped (last course worked on, or the one picked with the switcher).
   const cont = useApi<ContinueInfo>(courseId ? `/courses/continue?course=${courseId}` : '/courses/continue');
   const course = mine.data?.find((c) => c.id === (courseId ?? cont.data?.course.id)) ?? mine.data?.[0];
@@ -178,7 +233,7 @@ export function ClassroomScreen() {
           <View style={{ backgroundColor: colors.bg, borderRadius: 26, padding: 14, gap: 8, width: '100%', maxWidth: 440, alignSelf: 'center' }}>
             <T v="h3" style={{ marginBottom: 4 }}>My courses</T>
             {(mine.data ?? []).map((c) => (
-              <Pressable key={c.id} accessibilityRole="button" onPress={() => { setCourseId(c.id); setPickOpen(false); }}
+              <Pressable key={c.id} accessibilityRole="button" onPress={() => { setCourseId(c.id); setShowCourse(true); setPickOpen(false); }}
                 style={{ backgroundColor: '#FFF', borderRadius: 18, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 2, borderColor: c.id === course?.id ? colors.violet : 'transparent' }}>
                 <View style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: '#FFF', borderWidth: 1, borderColor: colors.line, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}><CourseLogo title={c.title} logo={c.logo_url} size={46} /></View>
                 <View style={{ flex: 1 }}><T style={{ fontFamily: fonts.semibold }}>{c.title}</T><T v="small">{c.teacher_name ?? c.category}{c.progress != null ? ` · ${c.progress}% done` : ''}</T></View>
@@ -193,7 +248,12 @@ export function ClassroomScreen() {
       </Modal>
 
       <View style={{ marginTop: 14 }}><ClassTiles space={selected} /></View>
-      <LessonsBlock subjects={subjects} selected={selected} onSelect={select} detail={detail.data} />
+      {course && showCourse ? (
+        <CourseLessonsBlock course={course} nextId={next?.lesson?.id} subjects={subjects} onPickSubject={(sub) => { setShowCourse(false); select(sub); }} />
+      ) : (
+        <LessonsBlock subjects={subjects} selected={selected} onSelect={select} detail={detail.data}
+          course={course} onPickCourse={() => setShowCourse(true)} />
+      )}
     </Screen>
   );
 }
