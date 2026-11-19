@@ -83,6 +83,7 @@ export function SuperUsersScreen() {
   const { tenant } = useLocalSearchParams<{ tenant?: string }>();
   const [q, setQ] = useState('');
   const [group, setGroup] = useState<Group>('admins');
+  const [allGuests, setAllGuests] = useState(false);
   const url = (role: string) => {
     const qs = new URLSearchParams({ role });
     if (q.trim()) qs.set('q', q.trim());
@@ -113,7 +114,14 @@ export function SuperUsersScreen() {
             <>
               <T v="h3" style={{ marginTop: 4 }}>Guests <T v="small">· students on the free app</T></T>
               <View style={{ height: 8 }} />
-              {guests.loading && !guests.data ? <Loading /> : guests.error ? <Empty text={guests.error} /> : list(guests.data, 'No guests found.')}
+              {guests.loading && !guests.data ? <Loading /> : guests.error ? <Empty text={guests.error} />
+                // One guest is enough to see the free app as a guest; the rest only on request or when searching.
+                : list(allGuests || q.trim() ? guests.data : guests.data?.slice(0, 1), 'No guests found.')}
+              {!q.trim() && (guests.data?.length ?? 0) > 1 ? (
+                <Pressable accessibilityRole="button" onPress={() => setAllGuests(!allGuests)} style={{ paddingVertical: 8 }}>
+                  <T style={{ color: colors.violet, fontFamily: fonts.semibold }}>{allGuests ? 'Show one guest' : `Show all ${guests.data!.length} guest accounts`}</T>
+                </Pressable>
+              ) : null}
               <View style={{ height: 16 }} />
             </>
           ) : null}
