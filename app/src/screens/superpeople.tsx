@@ -76,28 +76,52 @@ function UserList({ rows, showTenant }: { rows: UserRow[]; showTenant: boolean }
   );
 }
 
-/* ---------- All users: staff and students separately (parents use their child's login) ---------- */
-type Group = 'staff' | 'students' | 'guests';
+/* ---------- All users: admins, teachers, then students (guests first: a guest is a student on the free app) ---------- */
+type Group = 'admins' | 'teachers' | 'students';
 
 export function SuperUsersScreen() {
   const { tenant } = useLocalSearchParams<{ tenant?: string }>();
   const [q, setQ] = useState('');
-  const [group, setGroup] = useState<Group>('staff');
-  const qs = new URLSearchParams({ group });
-  if (q.trim()) qs.set('q', q.trim());
-  if (tenant) qs.set('tenant_id', String(tenant));
-  const { data, loading, error } = useApi<UserRow[]>(`/super/users?${qs}`);
-  const tenantName = tenant && data?.[0]?.tenant_name;
+  const [group, setGroup] = useState<Group>('admins');
+  const url = (role: string) => {
+    const qs = new URLSearchParams({ role });
+    if (q.trim()) qs.set('q', q.trim());
+    if (tenant) qs.set('tenant_id', String(tenant));
+    return `/super/users?${qs}`;
+  };
+  const main = useApi<UserRow[]>(url(group === 'admins' ? 'admin' : group === 'teachers' ? 'teacher' : 'student'));
+  // Guests belong to no institution, so they are not shown inside one institution's people.
+  const guests = useApi<UserRow[]>(group === 'students' && !tenant ? url('guest') : null);
+  const tenantName = tenant && main.data?.[0]?.tenant_name;
+  const list = (rows: UserRow[] | undefined, empty: string) => (!rows?.length ? <Empty text={empty} /> : <UserList rows={rows} showTenant={!tenant} />);
   return (
     <Screen>
       <Header title={tenantName ? `People · ${tenantName}` : 'Users'} subtitle="Log in as anyone to see the app the way they see it. Every login is recorded." />
       <Segmented value={group} onChange={setGroup} activeColor={colors.violet} options={[
-        { key: 'staff', label: 'Staff' }, { key: 'students', label: 'Students' }, ...(tenant ? [] : [{ key: 'guests' as Group, label: 'Guests' }]),
+        { key: 'admins', label: 'Admins' }, { key: 'teachers', label: 'Teachers' }, { key: 'students', label: 'Students' },
       ]} />
       <View style={{ height: 10 }} />
       <SearchBox value={q} onChange={setQ} placeholder={group === 'students' ? 'Search name, admission no. or parent phone' : 'Search name, email or phone'} />
-      <T v="small" style={{ marginBottom: 8 }}>{group === 'staff' ? 'Institution admins and teachers' : group === 'students' ? 'Parents use their child\'s login, so they are shown with the student.' : 'People exploring the free app'}</T>
-      {loading && !data ? <Loading /> : error ? <Empty text={error} /> : !data?.length ? <Empty text="No one found." /> : <UserList rows={data} showTenant={!tenant} />}
+      {group !== 'students' ? (
+        <>
+          <T v="small" style={{ marginBottom: 8 }}>{group === 'admins' ? 'Institution admins' : 'Teachers of every institution'}</T>
+          {main.loading && !main.data ? <Loading /> : main.error ? <Empty text={main.error} /> : list(main.data, 'No one found.')}
+        </>
+      ) : (
+        <>
+          {!tenant ? (
+            <>
+              <T v="h3" style={{ marginTop: 4 }}>Guests <T v="small">· students on the free app</T></T>
+              <View style={{ height: 8 }} />
+              {guests.loading && !guests.data ? <Loading /> : guests.error ? <Empty text={guests.error} /> : list(guests.data, 'No guests found.')}
+              <View style={{ height: 16 }} />
+            </>
+          ) : null}
+          <T v="h3">Institution students</T>
+          <T v="small" style={{ marginBottom: 8 }}>Parents use their child's login, so they are shown with the student.</T>
+          {main.loading && !main.data ? <Loading /> : main.error ? <Empty text={main.error} /> : list(main.data, 'No students found.')}
+        </>
+      )}
     </Screen>
   );
 }
