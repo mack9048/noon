@@ -58,6 +58,13 @@ Route::get('/boards', [CatalogController::class, 'boards']);
 Route::get('/catalog/courses', [CourseController::class, 'catalog']);
 // Shop: products are public (website); a bought file only through its short-lived signed link.
 Route::get('/shop/products', [ShopController::class, 'products']);
+// Website checkout without an account; each order is reached by its secret link.
+Route::get('/shop/item/{id}', [ShopController::class, 'websiteProduct'])->whereNumber('id');
+Route::get('/shop/checkout-settings', [ShopController::class, 'websiteSettings']);
+Route::post('/shop/web-orders', [ShopController::class, 'websiteOrder'])->middleware('throttle:web-orders');
+Route::get('/shop/web-orders/{ref}', [ShopController::class, 'websiteShow'])->middleware('throttle:web-order-link');
+Route::post('/shop/web-orders/{ref}/upi', [ShopController::class, 'websiteUpi'])->middleware('throttle:web-order-link');
+Route::post('/shop/web-orders/{ref}/cancel', [ShopController::class, 'websiteCancel'])->middleware('throttle:web-order-link');
 Route::get('/shop/files/{id}', [ShopController::class, 'file'])->whereNumber('id')->name('shop.file')->middleware('signed:relative');
 Route::get('/site/content', [SiteController::class, 'content']);
 // An uploaded HTML game; only reachable through the short-lived signed link from /games/{id}/play.

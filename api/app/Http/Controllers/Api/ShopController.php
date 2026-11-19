@@ -120,9 +120,110 @@ class ShopController extends Controller
         $user = $request->user();
         $cart = $this->cart($request);
         abort_if(! $cart['items']->count(), 422, 'Your cart is empty.');
-        $physical = $cart['has_physical'];
-        $s = $cart['settings'];
-        $data = $request->validate([
+        $lines = collect($cart['items'])->map(fn ($l) => [Product::find($l['product']['id']), $l['qty']])->all();
+        $data = $this->checkoutRules($request, $cart['has_physical']);
+        $order = $this->createOrder($lines, $data, $user);
+        CartItem::where('user_id', $user->id)->delete();
+
+        return response()->json($order->load('items', 'tenant')->toApp(), 201);
+    }
+
+    /* ---------- Website checkout (no account) ---------- */
+
+    /** The website's checkout: the cart comes from the browser; the buyer gives a name and phone. */
+    public function websiteOrder(Request $request)
+    {
+        // A field people never see: forms filled in by bots are dropped quietly.
+        abort_if(filled($request->input('website')), 422, 'Please try again.');
+        $items = $request->validate([
+            'items' => ['required', 'array', 'min:1', 'max:30'],
+            'items.*.product_id' => ['required', 'integer'],
+            'items.*.qty' => ['required', 'integer', 'min:1', 'max:20'],
+        ])['items'];
+        $products = Product::where('status', 'live')->whereIn('id', collect($items)->pluck('product_id'))->get()->keyBy('id');
+        $lines = [];
+        foreach (collect($items)->groupBy('product_id') as $id => $rows) {
+            $p = $products[$id] ?? null;
+            if (! $p) {
+                throw ValidationException::withMessages(['items' => 'Some items are no longer for sale. Please refresh your cart.']);
+            }
+            $lines[] = [$p, $p->type === 'digital' ? 1 : min(20, (int) $rows->sum('qty'))];
+        }
+        $physical = collect($lines)->contains(fn ($l) => $l[0]->type === 'physical');
+        $data = $this->checkoutRules($request, $physical) + $request->validate([
+            'buyer_name' => ['required', 'string', 'max:80'],
+            'buyer_phone' => ['required', 'string', 'regex:/^\+?[0-9 ]{10,15}$/'],
+            'buyer_email' => ['nullable', 'email', 'max:120'],
+        ], ['buyer_phone.regex' => 'Enter a phone number with 10 digits or more.']);
+        $order = $this->createOrder($lines, $data, null);
+
+        return response()->json($this->websiteView($order) + ['token' => $order->access_token], 201);
+    }
+
+    public function websiteShow(Request $request, string $ref)
+    {
+        return $this->websiteView($this->byToken($request, $ref));
+    }
+
+    public function websiteUpi(Request $request, string $ref)
+    {
+        $order = $this->byToken($request, $ref);
+        $this->applyUpiRef($request, $order);
+
+        return $this->websiteView($order->fresh(['items']));
+    }
+
+    public function websiteCancel(Request $request, string $ref)
+    {
+        $order = $this->byToken($request, $ref);
+        abort_unless(in_array($order->status, ['placed', 'confirmed'], true) && $order->payment_status !== 'paid', 422, 'This order can no longer be cancelled. Please contact us.');
+        self::cancelOrder($order);
+
+        return $this->websiteView($order->fresh(['items']));
+    }
+
+    /** Public product details (website and app). */
+    public function websiteProduct(int $id)
+    {
+        return Product::where('status', 'live')->findOrFail($id)->toApp();
+    }
+
+    public function websiteSettings()
+    {
+        return ShopSetting::forBuyers();
+    }
+
+    private function byToken(Request $request, string $ref): Order
+    {
+        $token = (string) $request->query('t', $request->input('t', ''));
+        $order = Order::with('items')->where('ref', $ref)->whereNull('user_id')->whereNotNull('access_token')->first();
+        abort_unless($order && strlen($token) >= 32 && hash_equals($order->access_token, $token), 404, 'Order not found. Please use the link you got after ordering.');
+
+        return $order;
+    }
+
+    /** The order for its secret link, with download links for paid digital files. */
+    private function websiteView(Order $order): array
+    {
+        $paid = $order->payment_status === 'paid' && $order->status !== 'cancelled';
+        $downloads = $paid ? $order->items->where('type', 'digital')->filter(fn ($i) => $i->product_id)->map(function ($i) {
+            $p = Product::withTrashed()->find($i->product_id);
+            if (! $p?->file_path) {
+                return null;
+            }
+            $path = URL::temporarySignedRoute('shop.file', now()->addHours(2), ['id' => $p->id], absolute: false);
+
+            return ['title' => $i->title, 'file_name' => $p->file_name, 'url' => rtrim(config('app.url'), '/').$path];
+        })->filter()->values() : [];
+
+        return $order->toApp() + ['buyer_name' => $order->buyer_name, 'buyer_phone' => $order->buyer_phone, 'downloads' => $downloads, 'settings' => ShopSetting::forBuyers()];
+    }
+
+    /* ---------- Shared checkout ---------- */
+
+    private function checkoutRules(Request $request, bool $physical): array
+    {
+        return $request->validate([
             'payment_method' => ['required', 'in:upi,cod'],
             'upi_ref' => ['nullable', 'string', 'max:40', 'regex:/^[A-Za-z0-9\-]{6,40}$/'],
             'note' => ['nullable', 'string', 'max:300'],
@@ -133,50 +234,69 @@ class ShopController extends Controller
             'ship_city' => [$physical ? 'required' : 'nullable', 'string', 'max:60'],
             'ship_state' => [$physical ? 'required' : 'nullable', 'string', 'max:40'],
             'ship_pincode' => [$physical ? 'required' : 'nullable', 'regex:/^[0-9]{6}$/'],
-        ], ['upi_ref.regex' => 'Enter the UPI reference (UTR) number from your payment app.', 'ship_pincode.regex' => 'Enter a 6-digit PIN code.']);
+        ], ['upi_ref.regex' => 'Enter the UPI reference (UTR) number from your payment app.', 'ship_pincode.regex' => 'Enter a 6-digit PIN code.', 'ship_phone.regex' => 'Enter a phone number with 10 digits or more.']);
+    }
 
+    /**
+     * Create an order from [product, qty] lines; checks payment rules and stock, takes stock.
+     * $user is null for website orders (they get a secret link instead).
+     */
+    private function createOrder(array $lines, array $data, ?User $user): Order
+    {
+        $s = ShopSetting::forBuyers();
+        $physical = collect($lines)->contains(fn ($l) => $l[0]->type === 'physical');
+        $hasDigital = collect($lines)->contains(fn ($l) => $l[0]->type === 'digital');
+        $subtotal = (int) collect($lines)->sum(fn ($l) => $l[0]->unitPrice() * $l[1]);
+        $shipping = $physical && $subtotal < $s['free_shipping_above'] ? $s['shipping_fee'] : 0;
+        $total = $subtotal + $shipping;
         if ($data['payment_method'] === 'cod') {
             abort_unless($physical && $s['cod_enabled'], 422, 'Cash on Delivery is only for printed items.');
-            abort_if(collect($cart['items'])->contains(fn ($l) => $l['product']['type'] === 'digital'), 422, 'Digital files are paid by UPI. Remove them or pay the whole order by UPI.');
-            abort_if($s['cod_max'] && $cart['total'] > $s['cod_max'], 422, "Cash on Delivery is for orders up to ₹{$s['cod_max']}. Please pay by UPI.");
+            abort_if($hasDigital, 422, 'Digital files are paid by UPI. Remove them or pay the whole order by UPI.');
+            abort_if($s['cod_max'] && $total > $s['cod_max'], 422, "Cash on Delivery is for orders up to ₹{$s['cod_max']}. Please pay by UPI.");
         } else {
             abort_unless($s['upi_id'], 422, 'UPI payment is not set up yet. Please try again later.');
         }
 
-        $order = DB::transaction(function () use ($user, $data, $cart, $physical) {
+        return DB::transaction(function () use ($user, $data, $lines, $physical, $subtotal, $shipping, $total) {
             // Lock the products while stock is checked and taken.
-            $products = Product::whereIn('id', collect($cart['items'])->pluck('product.id'))->lockForUpdate()->get()->keyBy('id');
-            foreach ($cart['items'] as $line) {
-                $p = $products[$line['product']['id']];
-                if (! $p->inStock($line['qty'])) {
+            $products = Product::whereIn('id', collect($lines)->map(fn ($l) => $l[0]->id))->lockForUpdate()->get()->keyBy('id');
+            foreach ($lines as [$line, $qty]) {
+                $p = $products[$line->id];
+                if (! $p->inStock($qty)) {
                     throw ValidationException::withMessages(['cart' => "{$p->title}: only {$p->stock} left. Please change the quantity."]);
                 }
             }
             $order = Order::create([
-                'ref' => 'TMP'.bin2hex(random_bytes(6)), 'user_id' => $user->id,
-                'tenant_id' => ($data['for_institution'] ?? false) && $user->hasRole('admin') ? $user->tenant_id : null,
+                'ref' => 'TMP'.bin2hex(random_bytes(6)), 'user_id' => $user?->id,
+                'tenant_id' => $user && ($data['for_institution'] ?? false) && $user->hasRole('admin') ? $user->tenant_id : null,
+                'buyer_name' => $user ? null : $data['buyer_name'], 'buyer_phone' => $user ? null : $data['buyer_phone'], 'buyer_email' => $user ? null : ($data['buyer_email'] ?? null),
+                'access_token' => $user ? null : bin2hex(random_bytes(24)),
                 'status' => $data['payment_method'] === 'cod' ? 'confirmed' : 'placed',
                 'payment_method' => $data['payment_method'],
                 'payment_status' => $data['payment_method'] === 'upi' && ! empty($data['upi_ref']) ? 'verifying' : 'unpaid',
                 'upi_ref' => $data['upi_ref'] ?? null,
-                'subtotal' => $cart['subtotal'], 'shipping' => $cart['shipping'], 'total' => $cart['total'],
+                'subtotal' => $subtotal, 'shipping' => $shipping, 'total' => $total,
                 'note' => $data['note'] ?? null,
             ] + ($physical ? collect($data)->only(['ship_name', 'ship_phone', 'ship_address', 'ship_city', 'ship_state', 'ship_pincode'])->all() : []));
             $order->update(['ref' => 'NL'.now()->format('ymd').'-'.str_pad((string) $order->id, 5, '0', STR_PAD_LEFT)]);
-            foreach ($cart['items'] as $line) {
-                $p = $products[$line['product']['id']];
-                OrderItem::create(['order_id' => $order->id, 'product_id' => $p->id, 'title' => $p->title, 'type' => $p->type, 'unit_price' => $p->unitPrice(), 'qty' => $line['qty'], 'line_total' => $line['line_total']]);
+            foreach ($lines as [$line, $qty]) {
+                $p = $products[$line->id];
+                OrderItem::create(['order_id' => $order->id, 'product_id' => $p->id, 'title' => $p->title, 'type' => $p->type, 'unit_price' => $p->unitPrice(), 'qty' => $qty, 'line_total' => $p->unitPrice() * $qty]);
                 if ($p->type === 'physical' && $p->stock !== null) {
-                    $p->decrement('stock', $line['qty']);
+                    $p->decrement('stock', $qty);
                 }
-                $p->increment('sold', $line['qty']);
+                $p->increment('sold', $qty);
             }
-            CartItem::where('user_id', $user->id)->delete();
 
             return $order;
         });
+    }
 
-        return response()->json($order->load('items', 'tenant')->toApp(), 201);
+    private function applyUpiRef(Request $request, Order $order): void
+    {
+        $data = $request->validate(['upi_ref' => ['required', 'string', 'regex:/^[A-Za-z0-9\-]{6,40}$/']], ['upi_ref.regex' => 'Enter the UPI reference (UTR) number from your payment app.']);
+        abort_unless($order->payment_method === 'upi' && in_array($order->payment_status, ['unpaid', 'verifying'], true) && $order->status !== 'cancelled', 422, 'This order does not need a UPI reference.');
+        $order->update(['upi_ref' => $data['upi_ref'], 'payment_status' => 'verifying']);
     }
 
     public function orders(Request $request)
@@ -193,9 +313,7 @@ class ShopController extends Controller
     public function submitUpi(Request $request, string $ref)
     {
         $order = $this->mine($request, $ref);
-        $data = $request->validate(['upi_ref' => ['required', 'string', 'regex:/^[A-Za-z0-9\-]{6,40}$/']], ['upi_ref.regex' => 'Enter the UPI reference (UTR) number from your payment app.']);
-        abort_unless($order->payment_method === 'upi' && in_array($order->payment_status, ['unpaid', 'verifying'], true) && $order->status !== 'cancelled', 422, 'This order does not need a UPI reference.');
-        $order->update(['upi_ref' => $data['upi_ref'], 'payment_status' => 'verifying']);
+        $this->applyUpiRef($request, $order);
 
         return $order->fresh(['items', 'tenant'])->toApp();
     }

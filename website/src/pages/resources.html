@@ -75,7 +75,7 @@
       return '<article class="course res" data-cat="' + esc(p.category) + '"><div class="cover" style="position:relative;overflow:hidden;background:' + c[1] + ';color:' + c[2] + '"><span class="tag">' + (p.type === 'digital' ? 'Digital' : 'Printed') + '</span>' + cover + '</div>' +
         '<div class="body"><h3>' + esc(p.title) + '</h3><span class="meta">' + esc(c[0]) + (p.in_stock ? '' : ' · Out of stock') + '</span><div class="row"><span class="price' + (p.unit_price ? '" style="color:var(--ink)' : ' free') + '">' + rupee(p.unit_price) +
         (off ? ' <s style="color:var(--muted);font-weight:400;font-size:.8em">' + rupee(p.price) + '</s>' : '') + '</span>' +
-        (p.in_stock ? '<a class="btn btn-violet btn-sm" style="min-height:36px" href="/shop/' + p.id + '">Buy</a>' : '') + '</div></div></article>';
+        (p.in_stock ? '<a class="btn btn-violet btn-sm" style="min-height:36px" href="/shop#p-' + p.id + '">Buy</a>' : '') + '</div></div></article>';
     }).join('');
     side.querySelector('[data-shop-filter]').addEventListener('click', function (e) {
       var b = e.target.closest('button'); if (!b) return;

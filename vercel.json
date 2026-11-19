@@ -38,6 +38,18 @@
       "destination": "/site/noon-buds.html"
     },
     {
+      "source": "/shop",
+      "destination": "/site/shop.html"
+    },
+    {
+      "source": "/checkout",
+      "destination": "/site/checkout.html"
+    },
+    {
+      "source": "/order",
+      "destination": "/site/order.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/app.html"
     }

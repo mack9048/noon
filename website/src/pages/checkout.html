@@ -1,0 +1,37 @@
+<!--{"title":"Checkout — Noon Buds shop","desc":"Pay by UPI or Cash on Delivery.","nav":"shop","path":"/checkout"}-->
+<section class="section shop-page" style="padding-top:40px">
+  <div class="container">
+    <p class="shop-crumb"><a href="/shop">← Back to the shop</a></p>
+    <h1 class="shop-title">Checkout</h1>
+    <div class="checkout" data-checkout>
+      <form class="checkout-form card" data-checkout-form novalidate>
+        <h3>Your details</h3>
+        <div class="field"><label for="c-name">Full name</label><input class="input" id="c-name" name="buyer_name" autocomplete="name" required maxlength="80"></div>
+        <div class="two">
+          <div class="field"><label for="c-phone">Phone (WhatsApp)</label><input class="input" id="c-phone" name="buyer_phone" type="tel" autocomplete="tel" required inputmode="tel" maxlength="16"></div>
+          <div class="field"><label for="c-email">Email (optional)</label><input class="input" id="c-email" name="buyer_email" type="email" autocomplete="email" maxlength="120"></div>
+        </div>
+        <div data-ship hidden>
+          <h3 style="margin-top:22px">Delivery address</h3>
+          <div class="field"><label for="c-addr">House, street, area</label><textarea class="input" id="c-addr" name="ship_address" autocomplete="street-address" maxlength="300" style="min-height:80px"></textarea></div>
+          <div class="three">
+            <div class="field"><label for="c-city">City / town</label><input class="input" id="c-city" name="ship_city" autocomplete="address-level2" maxlength="60"></div>
+            <div class="field"><label for="c-state">State</label><input class="input" id="c-state" name="ship_state" value="Kerala" autocomplete="address-level1" maxlength="40"></div>
+            <div class="field"><label for="c-pin">PIN code</label><input class="input" id="c-pin" name="ship_pincode" inputmode="numeric" autocomplete="postal-code" maxlength="6"></div>
+          </div>
+        </div>
+        <h3 style="margin-top:22px">Payment</h3>
+        <div class="pay-opts" role="radiogroup" aria-label="Payment">
+          <label class="pay-opt"><input type="radio" name="payment_method" value="upi" checked><span><b>UPI</b><small>GPay, PhonePe, Paytm or any UPI app. Pay, then send us the UPI reference.</small></span></label>
+          <label class="pay-opt" data-cod-opt><input type="radio" name="payment_method" value="cod"><span><b>Cash on Delivery</b><small data-cod-why>Pay in cash when the parcel arrives.</small></span></label>
+        </div>
+        <div class="field"><label for="c-note">Note for us (optional)</label><input class="input" id="c-note" name="note" maxlength="300"></div>
+        <div class="hp" aria-hidden="true"><label>Leave this empty <input name="website" tabindex="-1" autocomplete="off"></label></div>
+        <p class="form-err" data-checkout-err role="alert"></p>
+        <button class="btn btn-yellow" type="submit" style="width:100%;margin-top:10px" data-place>Place order</button>
+      </form>
+      <aside class="card checkout-sum"><h3>Your order</h3><div data-cart-lines></div><div data-cart-totals></div></aside>
+    </div>
+  </div>
+</section>
+{{js:shop}}

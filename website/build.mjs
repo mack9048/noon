@@ -17,6 +17,8 @@ const SITE = {
   address: 'Manama, Bahrain',
   appLogin: '/login',
   appStart: '/welcome',
+  // The Noon Learn server the website shop talks to (set SHOP_API to test against another one).
+  api: process.env.SHOP_API || 'https://noonapi.macadz.com/api',
   playStore: '#',
   appStore: '#',
 };
@@ -26,6 +28,7 @@ const NAV = [
   ['courses', 'Courses', null],
   ['resources', 'Resources', '/resources'],
   ['games', 'Games', '/games'],
+  ['shop', 'Shop', '/shop'],
   ['about', 'About Us', '/about'],
   ['contact', 'Contact', '/contact'],
 ];
@@ -128,6 +131,7 @@ function render(raw) {
     .replace(/\{\{sparkle:([^}]+)\}\}/g, (_, s) => SPARKLE(s))
     .replace(/\{\{cta (\{[\s\S]*?\})\}\}/g, (_, j) => CTA(JSON.parse(j)))
     .replace(/\{\{art\}\}/g, `${BASE}/art`)
+    .replace(/\{\{js:([a-z]+)\}\}/g, (_, n) => `<script src="${BASE}/js/${n}.js?v=${Date.now().toString(36)}" defer></script>`)
     .replace(/\{\{(start|login|email|phone|address|playStore|appStore|waLink|waLabel|tel)\}\}/g, (_, k) => ({
       start: SITE.appStart, login: SITE.appLogin, email: SITE.email, phone: SITE.phone, address: SITE.address, playStore: SITE.playStore, appStore: SITE.appStore,
       waLink: SITE.whatsapp ? `https://wa.me/${SITE.whatsapp.replace(/\D/g, '')}` : '/contact',
@@ -155,7 +159,7 @@ function page(file) {
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600;700&family=Fredoka:wght@500;600;700&family=Amiri:wght@700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="${BASE}/css/site.css?v=${Date.now().toString(36)}">
-<script>window.NOON = ${JSON.stringify({ whatsapp: SITE.whatsapp, email: SITE.email })};</script>
+<script>window.NOON = ${JSON.stringify({ whatsapp: SITE.whatsapp, email: SITE.email, api: SITE.api })};</script>
 </head>
 <body>
 <a class="sr-only" href="#main">Skip to content</a>

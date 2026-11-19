@@ -32,6 +32,9 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         // Login, OTP and guest sign-up: 10 a minute per IP, 5 per phone/login.
+        // Website shop (no account): placing orders, and opening / paying an order by its link.
+        RateLimiter::for('web-orders', fn (Request $r) => Limit::perMinute(6)->by('web-orders|'.$r->ip()));
+        RateLimiter::for('web-order-link', fn (Request $r) => Limit::perMinute(60)->by('web-order-link|'.$r->ip()));
         RateLimiter::for('auth', function (Request $request) {
             $raw = (string) ($request->input('phone') ?? $request->input('parent_phone') ?? $request->input('login') ?? '');
             $who = Phone::looksLikePhone($raw) ? (string) Phone::normalize($raw) : strtolower(trim($raw));

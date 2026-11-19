@@ -152,6 +152,7 @@ class ShopAdminController extends Controller
             })
             ->when($data['q'] ?? null, fn ($q, $s) => $q->where(fn ($w) => $w->where('ref', 'like', "%{$s}%")->orWhere('ship_name', 'like', "%{$s}%")
                 ->orWhere('ship_phone', 'like', "%{$s}%")->orWhere('upi_ref', 'like', "%{$s}%")
+                ->orWhere('buyer_name', 'like', "%{$s}%")->orWhere('buyer_phone', 'like', "%{$s}%")
                 ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$s}%")->orWhere('phone', 'like', "%{$s}%"))))
             ->latest()->limit(300)->get()->map(fn (Order $o) => $o->toApp(true));
     }

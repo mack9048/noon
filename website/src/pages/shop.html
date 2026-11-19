@@ -1,0 +1,41 @@
+<!--{"title":"Shop — books, audio, charts and cards | Noon Buds","desc":"Buy Islamic learning books, audio books, charts, adkar cards, slides and worksheets. Pay by UPI or Cash on Delivery for printed items. No account needed.","nav":"shop","path":"/shop"}-->
+<section class="hero shop-hero">
+  {{sparkle:left:46%;top:96px}}
+  <div class="container">
+    <div>
+      <p class="crumb"><a href="/">Home</a> · Shop</p>
+      <h1>Learning <span class="hl">shop</span></h1>
+      <p class="lead">Books, audio, charts, adkar cards and worksheets for home and the madrasa. Pay by UPI, or cash on delivery for printed items. No account needed.</p>
+      <div class="actions"><a class="btn btn-yellow" href="#products">Browse {{icon:arrow}}</a><button class="btn btn-ghost" type="button" data-cart-open>View cart · <span data-cart-count>0</span></button></div>
+    </div>
+    <div class="hero-art" aria-hidden="true"><img src="{{art}}/nooni-book.svg" alt="" width="150" height="260" style="width:150px;margin:0 auto;display:block"></div>
+  </div>
+  {{wave:#F4F9FF}}
+</section>
+
+<section class="section" id="products" style="padding-top:28px">
+  <div class="container">
+    <div class="shop-cats" data-shop-cats></div>
+    <div class="shop-bar">
+      <input class="input" type="search" placeholder="Search books, audio, charts…" aria-label="Search the shop" data-shop-search>
+      <button class="btn btn-violet btn-sm" type="button" data-cart-open>Cart · <span data-cart-count>0</span></button>
+    </div>
+    <div class="grid g4 shop-grid" data-shop-grid aria-live="polite"><p class="shop-note">Loading the shop…</p></div>
+    <div class="shop-orders" data-my-orders hidden>
+      <h2 style="font-size:24px;margin-top:40px">My recent orders</h2>
+      <p class="shop-note">Orders placed on this phone or computer. Each order also has its own link you can keep.</p>
+      <div class="grid g3" data-my-orders-list style="margin-top:14px"></div>
+    </div>
+  </div>
+</section>
+
+<dialog class="shop-dialog" data-product-dialog aria-label="Product"></dialog>
+<div class="cart-drawer" data-cart-drawer role="dialog" aria-modal="true" aria-label="Your cart" hidden>
+  <div class="cart-panel">
+    <div class="cart-head"><h2>Your cart</h2><button class="cart-x" type="button" data-cart-close aria-label="Close cart">×</button></div>
+    <div data-cart-lines></div>
+    <div data-cart-totals></div>
+    <a class="btn btn-yellow" href="/checkout" data-cart-checkout style="width:100%;margin-top:14px">Checkout {{icon:arrow}}</a>
+  </div>
+</div>
+{{js:shop}}

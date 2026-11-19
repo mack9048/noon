@@ -128,4 +128,43 @@ class ShopTest extends TestCase
         // Only super admin manages the shop.
         $this->as($admin)->getJson('/api/super/shop/orders')->assertForbidden();
     }
+
+    public function test_website_visitor_buys_without_an_account_using_the_secret_order_link(): void
+    {
+        $this->as($this->boss)->postJson('/api/super/shop/settings', ['upi_id' => 'noon@oksbi', 'shipping_fee' => 40, 'free_shipping_above' => 1000]);
+        $pdf = $this->product(['type' => 'digital', 'category' => 'pdf', 'title' => 'Duas book', 'price' => 60, 'status' => 'live'], UploadedFile::fake()->create('duas.pdf', 20, 'application/pdf'));
+        $chart = $this->product(['type' => 'physical', 'category' => 'chart', 'title' => 'Alphabet chart', 'price' => 100, 'stock' => 5, 'status' => 'live']);
+        $this->getJson("/api/shop/item/{$chart['id']}")->assertOk()->assertJsonPath('title', 'Alphabet chart');
+        $this->getJson('/api/shop/checkout-settings')->assertJsonPath('upi_id', 'noon@oksbi');
+        $buyer = ['buyer_name' => 'Fathima', 'buyer_phone' => '9847000000', 'payment_method' => 'upi'];
+
+        // Bots filling the hidden field, missing name, and printed items without an address are refused.
+        $this->postJson('/api/shop/web-orders', ['items' => [['product_id' => $pdf['id'], 'qty' => 1]], 'website' => 'x'] + $buyer)->assertUnprocessable();
+        $this->postJson('/api/shop/web-orders', ['items' => [['product_id' => $pdf['id'], 'qty' => 1]], 'payment_method' => 'upi'])->assertJsonValidationErrors(['buyer_name', 'buyer_phone']);
+        $this->postJson('/api/shop/web-orders', ['items' => [['product_id' => $chart['id'], 'qty' => 1]]] + $buyer)->assertJsonValidationErrors(['ship_address']);
+
+        $o = $this->postJson('/api/shop/web-orders', ['items' => [['product_id' => $pdf['id'], 'qty' => 3], ['product_id' => $chart['id'], 'qty' => 2]]] + $buyer + $this->address())
+            ->assertCreated()->assertJsonPath('total', 60 + 200 + 40)->assertJsonPath('items.0.qty', 1)->json();
+        $this->assertSame(48, strlen($o['token']));
+        $this->getJson('/api/shop/products')->assertJsonPath('1.stock', 3);
+
+        // The order opens only with its secret link.
+        $this->getJson("/api/shop/web-orders/{$o['ref']}")->assertNotFound();
+        $this->getJson("/api/shop/web-orders/{$o['ref']}?t=".str_repeat('a', 48))->assertNotFound();
+        $link = "/api/shop/web-orders/{$o['ref']}?t={$o['token']}";
+        $this->getJson($link)->assertOk()->assertJsonPath('buyer_name', 'Fathima')->assertJsonPath('downloads', [])->assertJsonMissingPath('token');
+        $this->postJson("/api/shop/web-orders/{$o['ref']}/upi?t={$o['token']}", ['upi_ref' => 'UTR123456789'])->assertOk()->assertJsonPath('payment_status', 'verifying');
+
+        // Noon sees the website buyer, confirms; the download appears on the order link.
+        $this->as($this->boss)->getJson('/api/super/shop/orders?q=Fathima')->assertJsonCount(1)->assertJsonPath('0.buyer.role', 'website')->assertJsonPath('0.buyer.phone', '9847000000');
+        $this->as($this->boss)->putJson("/api/super/shop/orders/{$o['id']}", ['action' => 'confirm_payment'])->assertJsonPath('status', 'confirmed');
+        $url = $this->getJson($link)->assertJsonCount(1, 'downloads')->json('downloads.0.url');
+        $this->get(parse_url($url, PHP_URL_PATH).'?'.parse_url($url, PHP_URL_QUERY))->assertOk();
+
+        // Cancel by link (a separate unpaid order); app users can't open website orders as theirs.
+        $o2 = $this->postJson('/api/shop/web-orders', ['items' => [['product_id' => $chart['id'], 'qty' => 1]], 'payment_method' => 'cod'] + $buyer + $this->address())->assertCreated()->json();
+        $this->postJson("/api/shop/web-orders/{$o2['ref']}/cancel?t={$o2['token']}")->assertOk()->assertJsonPath('status', 'cancelled');
+        $someone = User::create(['name' => 'X', 'email' => 'x@x.test', 'password' => 'secret123', 'role' => 'guest']);
+        $this->as($someone)->getJson("/api/shop/orders/{$o['ref']}")->assertNotFound();
+    }
 }
