@@ -199,7 +199,12 @@ export function CourseDetailScreen() {
         </Card>
       ) : null}
       <ContentViewerHost />
-      {c.lessons?.length ? <View style={{ marginTop: 14 }}><LessonList c={c} onDone={course.reload} /></View> : (
+      {c.lessons?.length ? (
+        <View style={{ marginTop: 14, gap: 12 }}>
+          <Button title={(c.progress ?? 0) > 0 ? 'Continue learning' : 'Start learning'} icon="play" onPress={() => router.push(`${base}/courses/${c.id}/play` as any)} />
+          <LessonList c={c} onDone={course.reload} />
+        </View>
+      ) : (
       <>
       <View style={{ marginTop: 14 }}>
         <Segmented value={filter} onChange={setFilter} activeColor={colors.ink}
@@ -237,11 +242,11 @@ function ItemRow({ it, onDone, locked }: { it: CourseItem; onDone?: () => void; 
   );
 }
 
-/** Lessons grouped by subject; tap a lesson to see its content in order. */
-function LessonList({ c, locked, onDone }: { c: CourseDetail; locked?: boolean; onDone?: () => void }) {
+/** Lessons grouped by subject; tap a lesson to open it in the course player. */
+function LessonList({ c, locked }: { c: CourseDetail; locked?: boolean; onDone?: () => void }) {
+  const base = useBase();
   const lessons = c.lessons ?? [];
   const subjects = c.subjects ?? [];
-  const [openId, setOpenId] = useState<number | null>(lessons.find((l) => l.items.some((i) => !i.done))?.id ?? lessons[0]?.id ?? null);
   const groups = [{ title: null as string | null, list: lessons.filter((l) => !l.subject_id || !subjects.some((s) => s.id === l.subject_id)) },
     ...subjects.map((s) => ({ title: s.title as string | null, list: lessons.filter((l) => l.subject_id === s.id) }))].filter((g) => g.list.length);
   let n = 0;
@@ -253,29 +258,21 @@ function LessonList({ c, locked, onDone }: { c: CourseDetail; locked?: boolean; 
           {g.list.map((l) => {
             n += 1;
             const shut = locked && !l.free_preview;
-            const isOpen = openId === l.id;
             const done = l.items.length > 0 && l.items.every((i) => i.done);
+            const started = l.items.some((i) => i.done);
             return (
-              <View key={l.id} style={{ gap: 8 }}>
-                <Card onPress={() => (shut ? demoNote('Join the course to open this lesson.') : setOpenId(isOpen ? null : l.id))} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 }}>
-                  <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: done ? colors.mint[0] : shut ? '#EEF3F5' : colors.lav[0], alignItems: 'center', justifyContent: 'center' }}>
-                    {done ? <Ionicons name="checkmark" size={18} color={colors.mint[1]} /> : <T style={{ fontFamily: fonts.semibold, color: shut ? colors.muted : colors.lav[1] }}>{n}</T>}
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <T style={{ fontFamily: fonts.semibold }} numberOfLines={2}>{l.title}</T>
-                    <T v="small">{l.items.length} items{l.duration ? ` · ${l.duration}` : ''}</T>
-                  </View>
-                  {locked && l.free_preview ? <View style={{ backgroundColor: colors.pink[0], borderRadius: 12, paddingHorizontal: 10, height: 26, justifyContent: 'center' }}><T style={{ color: colors.pink[1], fontSize: 12, fontFamily: fonts.semibold }}>▶ Preview</T></View>
-                    : shut ? <Ionicons name="lock-closed-outline" size={16} color={colors.muted} /> : <Ionicons name={isOpen ? 'chevron-up' : 'chevron-down'} size={18} color={colors.muted} />}
-                </Card>
-                {isOpen && !shut ? (
-                  <View style={{ gap: 8, paddingLeft: 12, borderLeftWidth: 3, borderLeftColor: colors.lav[0], marginLeft: 16 }}>
-                    {l.description ? <T v="small">{l.description}</T> : null}
-                    {l.items.map((it) => <ItemRow key={it.id} it={it} onDone={onDone} />)}
-                    {!l.items.length ? <T v="small">Nothing in this lesson yet.</T> : null}
-                  </View>
-                ) : null}
-              </View>
+              <Card key={l.id} onPress={() => (shut ? demoNote('Join the course to open this lesson.') : router.push(`${base}/courses/${c.id}/play?lesson=${l.id}` as any))}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 }}>
+                <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: done ? colors.mint[0] : shut ? '#EEF3F5' : colors.lav[0], alignItems: 'center', justifyContent: 'center' }}>
+                  {done ? <Ionicons name="checkmark" size={18} color={colors.mint[1]} /> : <T style={{ fontFamily: fonts.semibold, color: shut ? colors.muted : colors.lav[1] }}>{n}</T>}
+                </View>
+                <View style={{ flex: 1 }}>
+                  <T style={{ fontFamily: fonts.semibold }} numberOfLines={2}>{l.title}</T>
+                  <T v="small">{l.items.length} items{l.duration ? ` · ${l.duration}` : ''}{!locked && started && !done ? ` · ${l.items.filter((i) => i.done).length}/${l.items.length} done` : ''}</T>
+                </View>
+                {locked && l.free_preview ? <View style={{ backgroundColor: colors.pink[0], borderRadius: 12, paddingHorizontal: 10, height: 26, justifyContent: 'center' }}><T style={{ color: colors.pink[1], fontSize: 12, fontFamily: fonts.semibold }}>▶ Preview</T></View>
+                  : shut ? <Ionicons name="lock-closed-outline" size={16} color={colors.muted} /> : <Ionicons name="play-circle" size={26} color={colors.violet} />}
+              </Card>
             );
           })}
         </View>
