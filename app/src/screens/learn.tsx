@@ -67,29 +67,7 @@ export function CoursesScreen() {
       {list.loading ? <Loading /> : list.error ? <ErrorBox message={list.error} onRetry={list.reload} /> : (
         <Grid cols={{ phone: 1, tablet: 2, desktop: 3 }} gap={12}>
           <MadrasaSupportCard />
-          {courses.map((c) => {
-            const g = bannerFor(c);
-            const tag = c.next_live_at ? `LIVE ${c.next_live_at.toUpperCase()}` : c.enrolled && c.progress != null ? `${Math.round((c.progress / 100) * c.lessons_count)} OF ${c.lessons_count} DONE` : c.is_free ? 'FREE' : 'NEW';
-            return (
-              <Pressable key={c.id} accessibilityRole="button" accessibilityLabel={c.title} onPress={() => router.push(`${base}/courses/${c.id}` as any)}
-                style={{ borderRadius: 26, backgroundColor: '#FFF', overflow: 'hidden' }}>
-                <LinearGradient colors={g} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ height: 96, padding: 14 }}>
-                  <View style={{ position: 'absolute', right: -30, top: -40, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.14)' }} />
-                  <T style={{ position: 'absolute', right: 22, top: 6, fontFamily: fonts.arabic, fontSize: 48, color: 'rgba(255,255,255,0.9)' }}>{COURSE_GLYPH[c.category] ?? c.title[0]}</T>
-                  <View style={{ alignSelf: 'flex-start', backgroundColor: '#FFF', borderRadius: 11, paddingHorizontal: 8, height: 22, justifyContent: 'center' }}><T style={{ fontSize: 10, fontFamily: fonts.semibold, color: g[0] }}>{c.next_live_at ? '● ' : ''}{tag}</T></View>
-                </LinearGradient>
-                <View style={{ padding: 14, gap: 6 }}>
-                  <T v="h3">{c.title}</T>
-                  <T v="small">{c.teacher_name ?? c.category} · {c.lessons_count} lessons</T>
-                  {c.enrolled && c.progress != null ? <Progress value={c.progress} /> : null}
-                  <Row style={{ justifyContent: 'space-between', marginTop: 4 }}>
-                    <T v="small">{c.enrolled ? `Level · ${c.level}` : c.is_free ? 'Free course' : '7-day free trial'}</T>
-                    <View style={{ backgroundColor: g[0], borderRadius: 16, height: 32, paddingHorizontal: 14, justifyContent: 'center' }}><T style={{ color: '#FFF', fontFamily: fonts.semibold, fontSize: 13 }}>{c.enrolled ? 'Explore ›' : 'View ›'}</T></View>
-                  </Row>
-                </View>
-              </Pressable>
-            );
-          })}
+          {courses.map((c) => <CourseCard key={c.id} c={c} />)}
         </Grid>
       )}
       {!list.loading && !courses.length ? <Empty text="No courses here yet." /> : null}
@@ -97,8 +75,34 @@ export function CoursesScreen() {
   );
 }
 
+/** One course card (Our Courses grid and the Classroom course picker). */
+export function CourseCard({ c }: { c: Course }) {
+  const base = useBase();
+    const g = bannerFor(c);
+    const tag = c.next_live_at ? `LIVE ${c.next_live_at.toUpperCase()}` : c.enrolled && c.progress != null ? `${Math.round((c.progress / 100) * c.lessons_count)} OF ${c.lessons_count} DONE` : c.is_free ? 'FREE' : 'NEW';
+    return (
+      <Pressable accessibilityRole="button" accessibilityLabel={c.title} onPress={() => router.push(`${base}/courses/${c.id}` as any)}
+        style={{ borderRadius: 26, backgroundColor: '#FFF', overflow: 'hidden' }}>
+        <LinearGradient colors={g} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ height: 96, padding: 14 }}>
+          <View style={{ position: 'absolute', right: -30, top: -40, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.14)' }} />
+          <T style={{ position: 'absolute', right: 22, top: 6, fontFamily: fonts.arabic, fontSize: 48, color: 'rgba(255,255,255,0.9)' }}>{COURSE_GLYPH[c.category] ?? c.title[0]}</T>
+          <View style={{ alignSelf: 'flex-start', backgroundColor: '#FFF', borderRadius: 11, paddingHorizontal: 8, height: 22, justifyContent: 'center' }}><T style={{ fontSize: 10, fontFamily: fonts.semibold, color: g[0] }}>{c.next_live_at ? '● ' : ''}{tag}</T></View>
+        </LinearGradient>
+        <View style={{ padding: 14, gap: 6 }}>
+          <T v="h3">{c.title}</T>
+          <T v="small">{c.teacher_name ?? c.category} · {c.lessons_count} lessons</T>
+          {c.enrolled && c.progress != null ? <Progress value={c.progress} /> : null}
+          <Row style={{ justifyContent: 'space-between', marginTop: 4 }}>
+            <T v="small">{c.enrolled ? `Level · ${c.level}` : c.is_free ? 'Free course' : '7-day free trial'}</T>
+            <View style={{ backgroundColor: g[0], borderRadius: 16, height: 32, paddingHorizontal: 14, justifyContent: 'center' }}><T style={{ color: '#FFF', fontFamily: fonts.semibold, fontSize: 13 }}>{c.enrolled ? 'Explore ›' : 'View ›'}</T></View>
+          </Row>
+        </View>
+      </Pressable>
+    );
+}
+
 /** Madrasa Support, shown as one of Our Courses: board → class → subject → lessons. */
-function MadrasaSupportCard() {
+export function MadrasaSupportCard() {
   const base = useBase();
   const { user } = useAuth();
   const mine = user?.board_name || user?.class_label ? [user.board_name, user.class_label ? `Class ${user.class_label}` : null].filter(Boolean).join(' · ') : 'AP · EK · Samastha · General';

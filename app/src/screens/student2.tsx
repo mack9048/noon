@@ -5,7 +5,7 @@ import { Linking, Modal, Platform, Pressable, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Button, Card, IconButton, IconTile, Row, Screen, T } from '@/components/ui';
+import { Button, Card, Grid, IconButton, IconTile, Row, Screen, T } from '@/components/ui';
 import { Tabs, demoNote } from '@/components/kit';
 import { AppTile, DetailRows, G, HeroHeader, MiniStat, OverlapCard, Panel, Select, TileRows } from '@/components/kit2';
 import { BrandRow } from './home';
@@ -17,6 +17,7 @@ import { profileLine, profileRows, splitName } from '@/lib/profile';
 import { setLearnSpace, useLearnSpaces } from '@/lib/learnSpace';
 import { CLASSROOM_INFO, PERFORMANCE } from '@/lib/demo';
 import { kindLabel } from '@/lib/courseBuilder';
+import { CourseCard, MadrasaSupportCard } from './learn';
 import { useMyAttendancePercent } from './attendance';
 import type { Course, CourseDetail, CourseLessonRow, LeaveSummary, LearnDetail, LearnSpace } from '@/lib/types';
 import { colors, fonts } from '@/theme/tokens';
@@ -169,8 +170,11 @@ export function ClassroomScreen() {
   const [showCourse, setShowCourse] = useState(true);
   // Up next: where the student stopped (last course worked on, or the one picked with the switcher).
   const cont = useApi<ContinueInfo>(courseId ? `/courses/continue?course=${courseId}` : '/courses/continue');
-  const course = mine.data?.find((c) => c.id === (courseId ?? cont.data?.course.id)) ?? mine.data?.[0];
-  const next = cont.data && cont.data.course.id === course?.id ? cont.data : null;
+  // No course yet: the server sends an empty answer, so only trust it when it names a course.
+  const contData = cont.data?.course ? cont.data : null;
+  const course = mine.data?.find((c) => c.id === (courseId ?? contData?.course.id)) ?? mine.data?.[0];
+  const next = contData && contData.course.id === course?.id ? contData : null;
+  const noCourse = !mine.loading && !mine.error && !mine.data?.length;
   const courseDetail = useApi<LearnDetail>(course && !next ? `/learn/course/${course.id}` : null);
   const current = course ? courseDetail.data?.syllabus.find((l) => !l.done) : detail.data?.syllabus.find((l) => !l.done);
   const name = course ? course.title : selected?.title ?? CLASSROOM_INFO.live.subject;
@@ -195,8 +199,9 @@ export function ClassroomScreen() {
       <BrandRow base={base} title="Classroom" />
       <T style={{ marginTop: 8, fontFamily: fonts.medium, color: colors.muted }}>{CLASSROOM_INFO.title} · {CLASSROOM_INFO.cls}</T>
 
+      {noCourse ? <ChooseCourse /> : null}
       {/* Current lesson of the course the student bought; its logo on the right (tap to switch course). */}
-      <LinearGradient colors={['#5B43E0', '#9B7BE8', '#D59BE0']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ marginTop: 10, borderRadius: 30, padding: 18, overflow: 'hidden', flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+      {noCourse ? null : <LinearGradient colors={['#5B43E0', '#9B7BE8', '#D59BE0']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ marginTop: 10, borderRadius: 30, padding: 18, overflow: 'hidden', flexDirection: 'row', alignItems: 'center', gap: 12 }}>
         <View style={{ position: 'absolute', right: -60, top: -40, width: 230, height: 230, borderRadius: 115, backgroundColor: 'rgba(255,255,255,0.12)' }} />
         <View style={{ flex: 1, minWidth: 0 }}>
           <T style={{ color: '#EDE7FF', fontFamily: fonts.semibold, fontSize: 12, letterSpacing: 0.5 }}>{next ? (next.finished ? 'ALL LESSONS DONE' : next.done ? 'UP NEXT' : 'START HERE') : 'CURRENT LESSON'}</T>
@@ -227,7 +232,7 @@ export function ClassroomScreen() {
             <View style={{ position: 'absolute', right: 6, bottom: 6, width: 22, height: 22, borderRadius: 11, backgroundColor: '#EEF3F5', alignItems: 'center', justifyContent: 'center' }}><Ionicons name="swap-horizontal" size={13} color={colors.ink} /></View>
           ) : null}
         </Pressable>
-      </LinearGradient>
+      </LinearGradient>}
       <Modal visible={pickOpen} transparent animationType="fade" onRequestClose={() => setPickOpen(false)}>
         <Pressable accessibilityLabel="Close" onPress={() => setPickOpen(false)} style={{ flex: 1, backgroundColor: 'rgba(11,42,53,0.42)', justifyContent: 'center', padding: 24 }}>
           <View style={{ backgroundColor: colors.bg, borderRadius: 26, padding: 14, gap: 8, width: '100%', maxWidth: 440, alignSelf: 'center' }}>
@@ -255,6 +260,28 @@ export function ClassroomScreen() {
           course={course} onPickCourse={() => setShowCourse(true)} />
       )}
     </Screen>
+  );
+}
+
+/** A student without a course: Madrasa Support and every course, to pick one and start. */
+function ChooseCourse() {
+  const list = useApi<Course[]>('/courses');
+  const courses = (list.data ?? []).filter((c) => !c.enrolled);
+  return (
+    <View style={{ marginTop: 10, gap: 10 }}>
+      <LinearGradient colors={['#5B43E0', '#9B7BE8', '#D59BE0']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 30, padding: 20, overflow: 'hidden' }}>
+        <View style={{ position: 'absolute', right: -60, top: -40, width: 230, height: 230, borderRadius: 115, backgroundColor: 'rgba(255,255,255,0.12)' }} />
+        <T style={{ color: '#EDE7FF', fontFamily: fonts.semibold, fontSize: 12, letterSpacing: 0.5 }}>START LEARNING</T>
+        <T style={{ color: '#FFF', fontFamily: fonts.fun, fontSize: 28, lineHeight: 36, marginTop: 4 }}>Choose your course</T>
+        <T style={{ color: '#EDE7FF', marginTop: 4 }}>Pick one below to join. Your next lesson will show here every time you open the app.</T>
+      </LinearGradient>
+      {list.loading && !list.data ? <T v="small">Loading courses…</T> : (
+        <Grid cols={{ phone: 1, tablet: 2, desktop: 3 }} gap={12}>
+          <MadrasaSupportCard />
+          {courses.map((c) => <CourseCard key={c.id} c={c} />)}
+        </Grid>
+      )}
+    </View>
   );
 }
 
