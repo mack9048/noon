@@ -34,7 +34,7 @@ function CartButton() {
   );
 }
 
-function Price({ p, big }: { p: Product; big?: boolean }) {
+export function Price({ p, big }: { p: Product; big?: boolean }) {
   const off = p.offer_price != null && p.offer_price < p.price;
   return (
     <Row gap={6}>
@@ -45,7 +45,7 @@ function Price({ p, big }: { p: Product; big?: boolean }) {
   );
 }
 
-function Cover({ p, height }: { p: Product; height: number }) {
+export function Cover({ p, height }: { p: Product; height: number }) {
   const c = catOf(p.category);
   return (
     <View style={{ height, backgroundColor: c.tint[0], alignItems: 'center', justifyContent: 'center' }}>
@@ -179,7 +179,7 @@ export function ProductScreen() {
   );
 }
 
-function Stepper({ value, onChange, max }: { value: number; onChange: (n: number) => void; max: number }) {
+export function Stepper({ value, onChange, max }: { value: number; onChange: (n: number) => void; max: number }) {
   const b = (icon: 'remove' | 'add', next: number, label: string) => (
     <Pressable accessibilityRole="button" accessibilityLabel={label} disabled={next < 1 || next > max} onPress={() => onChange(next)}
       style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center', opacity: next < 1 || next > max ? 0.4 : 1 }}>
@@ -196,7 +196,7 @@ function Stepper({ value, onChange, max }: { value: number; onChange: (n: number
 }
 
 /* ---------- Cart ---------- */
-function Totals({ c }: { c: { subtotal: number; shipping: number; total: number; has_physical?: boolean; settings?: Cart['settings'] } }) {
+export function Totals({ c }: { c: { subtotal: number; shipping: number; total: number; has_physical?: boolean; settings?: Cart['settings'] } }) {
   const line = (k: string, v: string, bold = false) => <Row style={{ justifyContent: 'space-between' }}><T style={bold ? { fontFamily: fonts.semibold, fontSize: 18 } : { color: colors.muted }}>{k}</T><T style={bold ? { fontFamily: fonts.semibold, fontSize: 18 } : undefined}>{v}</T></Row>;
   return (
     <Card style={{ gap: 6 }}>
