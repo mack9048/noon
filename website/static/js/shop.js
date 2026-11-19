@@ -100,7 +100,10 @@
   /* ---------- Shop page ---------- */
   var grid = $('[data-shop-grid]');
   if (grid) {
-    var all = []; var current = 'all'; var q = '';
+    var all = []; var q = '';
+    // /shop?category=quran opens straight into one category (links from other pages and sites).
+    var current = new URLSearchParams(location.search).get('category') || 'all';
+    if (current !== 'all' && !CAT[current]) current = 'all';
     var dialog = $('[data-product-dialog]');
     var paint = function () {
       var list = all.filter(function (p) { return (current === 'all' || p.category === current) && (!q || p.title.toLowerCase().indexOf(q) > -1); });
@@ -118,7 +121,16 @@
       cats.innerHTML = '<button class="chip violet" aria-pressed="' + (current === 'all') + '" data-cat="all">All · ' + all.length + '</button>' +
         Object.keys(CAT).filter(function (k) { return used[k]; }).map(function (k) { return '<button class="chip violet" aria-pressed="' + (current === k) + '" data-cat="' + k + '">' + esc(CAT[k][0]) + ' · ' + used[k] + '</button>'; }).join('');
     };
-    cats.addEventListener('click', function (e) { var b = e.target.closest('[data-cat]'); if (b) { current = b.dataset.cat; paintCats(); paint(); } });
+    var heading = function () {
+      var h = $('.shop-hero h1');
+      if (h) h.innerHTML = current === 'all' ? 'Learning <span class="hl">shop</span>' : esc(CAT[current][0]) + ' <span class="hl">shop</span>';
+    };
+    cats.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-cat]'); if (!b) return;
+      current = b.dataset.cat; paintCats(); paint(); heading();
+      history.replaceState(null, '', current === 'all' ? '/shop' : '/shop?category=' + current);
+    });
+    heading();
     $('[data-shop-search]').addEventListener('input', function (e) { q = e.target.value.trim().toLowerCase(); paint(); });
     var byId = function (id) { return all.filter(function (p) { return p.id === id; })[0]; };
     var added = function (btn) { var t = btn.textContent; btn.textContent = 'Added ✓'; btn.disabled = true; setTimeout(function () { btn.textContent = t; btn.disabled = false; }, 1400); };
