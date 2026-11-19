@@ -77,6 +77,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::get('/subjects/{subject}', [CatalogController::class, 'subject']);
 
     Route::get('/courses', [CourseController::class, 'index']);
+    Route::get('/courses/continue', [CourseController::class, 'continue']);
     Route::get('/courses/{course}', [CourseController::class, 'show']);
     Route::post('/courses/{course}/enroll', [CourseController::class, 'enroll']);
     Route::post('/course-items/{item}/complete', [CourseController::class, 'complete']);

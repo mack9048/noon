@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -50,9 +50,17 @@ export function BrandRow({ base, title }: { base: string; title?: string }) {
 }
 
 /** Student home: "My Campus". */
+// Only once per app start: a student with a course lands in Classroom (their next lesson).
+let openedApp = false;
+
 export function HomeScreen() {
   const base = useBase();
   const mine = useApi<Course[]>('/courses?scope=mine');
+  useEffect(() => {
+    if (openedApp || mine.loading) return;
+    openedApp = true;
+    if (mine.data?.length) router.replace(`${base}/classroom` as any);
+  }, [mine.loading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <Screen bar={false}>

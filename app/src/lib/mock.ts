@@ -376,6 +376,8 @@ const routes: [string, RegExp, Handler][] = [
   ['GET', /^\/catalog\/courses$/, () => courses.filter((c) => c.status === 'published').map(({ items, ...c }) => ({ ...c, enrolled: false }))],
   ['GET', /^\/courses\/(\d+)$/, (m) => courses.find((c) => c.id === +m[1])],
   ['POST', /^\/courses\/(\d+)\/enroll$/, (m) => { const c = courses.find((x) => x.id === +m[1]); if (c) c.enrolled = true; return c; }],
+  ['GET', /^\/courses\/continue(\?course=\d+)?$/, () => null],
+  ['POST', /^\/nooni$/, () => ({ reply: 'Assalamu alaikum! This is sample-data mode, so I can only say hello. Log in to the real app to ask me anything.', open: null })],
   ['GET', /^\/course-categories$/, () => ['Arabic', 'Quran', 'Fiqh', 'Seerah', 'Hifz', 'Duas & Adkar'].map((name, i) => ({ id: i + 1, name }))],
   ['GET', /^\/super\/courses\/(\d+)$/, (m) => {
     const c = courses.find((x) => x.id === +m[1]);

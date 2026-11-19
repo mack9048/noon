@@ -16,11 +16,18 @@ import { useAuth } from '@/lib/auth';
 import { profileLine, profileRows, splitName } from '@/lib/profile';
 import { setLearnSpace, useLearnSpaces } from '@/lib/learnSpace';
 import { CLASSROOM_INFO, PERFORMANCE } from '@/lib/demo';
+import { kindLabel } from '@/lib/courseBuilder';
 import { useMyAttendancePercent } from './attendance';
 import type { Course, LeaveSummary, LearnDetail, LearnSpace } from '@/lib/types';
 import { colors, fonts } from '@/theme/tokens';
 
 const pad = (n: number) => String(n).padStart(2, '0');
+
+/** GET /courses/continue: the next lesson after the last one the student completed. */
+type ContinueInfo = {
+  course: Course; lesson: { id: number; title: string; number: number; duration?: string | null } | null;
+  item: { id: number; title: string; kind: any } | null; done: number; total: number; lessons: number; finished: boolean;
+} | null;
 const LESSON_TINTS = [['#F4F1FF', '#C9BEF5'], ['#EEF8FC', '#B4D7E6'], ['#EEFAF1', '#B5E2BE'], ['#FDF1F8', '#EDBEDD'], ['#FFF8E5', '#EBD596']] as const;
 
 /** The student's class subjects and the one picked in Classroom (remembered with the learning space). */
@@ -105,8 +112,11 @@ export function ClassroomScreen() {
   const mine = useApi<Course[]>('/courses?scope=mine');
   const [courseId, setCourseId] = useState<number | null>(null);
   const [pickOpen, setPickOpen] = useState(false);
-  const course = mine.data?.find((c) => c.id === courseId) ?? mine.data?.[0];
-  const courseDetail = useApi<LearnDetail>(course ? `/learn/course/${course.id}` : null);
+  // Up next: where the student stopped (last course worked on, or the one picked with the switcher).
+  const cont = useApi<ContinueInfo>(courseId ? `/courses/continue?course=${courseId}` : '/courses/continue');
+  const course = mine.data?.find((c) => c.id === (courseId ?? cont.data?.course.id)) ?? mine.data?.[0];
+  const next = cont.data && cont.data.course.id === course?.id ? cont.data : null;
+  const courseDetail = useApi<LearnDetail>(course && !next ? `/learn/course/${course.id}` : null);
   const current = course ? courseDetail.data?.syllabus.find((l) => !l.done) : detail.data?.syllabus.find((l) => !l.done);
   const name = course ? course.title : selected?.title ?? CLASSROOM_INFO.live.subject;
   const teacher = course?.teacher_name ?? CLASSROOM_INFO.live.teacher;
@@ -115,7 +125,15 @@ export function ClassroomScreen() {
   const m = current?.title.match(/^lesson\s*(\d+)\s*[·:-]\s*(.+)$/i);
   const lessonNo = m ? Number(m[1]) : current?.position ?? 1;
   const lessonTitle = m ? m[2] : current?.title ?? (course ? 'Lessons coming soon' : 'Najas');
-  const lessonLine = course ? `${course.category} · Lesson ${pad(lessonNo)}` : `${name} · Lesson ${pad(current?.position ?? 5)}`;
+  const lessonLine = next?.lesson ? `${course!.title} · Lesson ${pad(next.lesson.number)} of ${pad(next.lessons)}`
+    : course ? `${course.category} · Lesson ${pad(lessonNo)}` : `${name} · Lesson ${pad(current?.position ?? 5)}`;
+  const heroTitle = next ? (next.finished ? 'Course complete!' : next.lesson?.title ?? 'Lessons coming soon') : lessonTitle;
+  const play = () => {
+    if (!course) return router.push(`${base}/live` as any);
+    if (next?.finished) return router.push(`${base}/courses/${course.id}/certificate` as any);
+    if (next?.lesson) return router.push(`${base}/courses/${course.id}/play?lesson=${next.lesson.id}${next.item ? `&item=${next.item.id}` : ''}` as any);
+    router.push(`${base}/courses/${course.id}` as any);
+  };
 
   return (
     <Screen bar={false}>
@@ -126,14 +144,23 @@ export function ClassroomScreen() {
       <LinearGradient colors={['#5B43E0', '#9B7BE8', '#D59BE0']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ marginTop: 10, borderRadius: 30, padding: 18, overflow: 'hidden', flexDirection: 'row', alignItems: 'center', gap: 12 }}>
         <View style={{ position: 'absolute', right: -60, top: -40, width: 230, height: 230, borderRadius: 115, backgroundColor: 'rgba(255,255,255,0.12)' }} />
         <View style={{ flex: 1, minWidth: 0 }}>
-          <T style={{ color: '#EDE7FF', fontFamily: fonts.semibold, fontSize: 12, letterSpacing: 0.5 }}>CURRENT LESSON</T>
+          <T style={{ color: '#EDE7FF', fontFamily: fonts.semibold, fontSize: 12, letterSpacing: 0.5 }}>{next ? (next.finished ? 'ALL LESSONS DONE' : next.done ? 'UP NEXT' : 'START HERE') : 'CURRENT LESSON'}</T>
           <T style={{ color: '#EDE7FF', marginTop: 6 }} numberOfLines={1}>{lessonLine}</T>
-          <T style={{ color: '#FFF', fontFamily: fonts.fun, fontSize: 30, lineHeight: 38 }} numberOfLines={2}>{lessonTitle}</T>
+          <T style={{ color: '#FFF', fontFamily: fonts.fun, fontSize: 30, lineHeight: 38 }} numberOfLines={2}>{heroTitle}</T>
+          {next?.item ? <T style={{ color: '#EDE7FF', marginTop: 2 }} numberOfLines={1}>▶ {kindLabel(next.item.kind)} · {next.item.title}</T> : null}
+          {next && next.total ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8, maxWidth: 260 }}>
+              <View style={{ flex: 1, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.3)', overflow: 'hidden' }}>
+                <View style={{ width: `${Math.round((next.done / next.total) * 100)}%`, height: 6, backgroundColor: '#FFF' }} />
+              </View>
+              <T style={{ color: '#FFF', fontSize: 12, fontFamily: fonts.semibold }}>{next.done}/{next.total}</T>
+            </View>
+          ) : null}
           {liveWhen ? <T style={{ color: '#FFE6F6', fontFamily: fonts.semibold, fontSize: 11, marginTop: 2 }} numberOfLines={1}>● {liveWhen}{course?.teacher_name ? ` · ${course.teacher_name}` : ''}</T> : null}
-          <Pressable accessibilityRole="button" accessibilityLabel="Join class" onPress={() => router.push((course ? `${base}/courses/${course.id}` : `${base}/live`) as any)}
+          <Pressable accessibilityRole="button" accessibilityLabel={next ? (next.finished ? 'Get certificate' : 'Continue lesson') : 'Join class'} onPress={play}
             style={{ marginTop: 12, alignSelf: 'flex-start', backgroundColor: '#FFF', borderRadius: 24, height: 48, paddingLeft: 6, paddingRight: 18, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#5B36C9', alignItems: 'center', justifyContent: 'center' }}><Ionicons name="videocam" size={16} color="#FFF" /></View>
-            <T style={{ fontFamily: fonts.fun, fontSize: 17, color: '#46308A' }}>Join Class</T>
+            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#5B36C9', alignItems: 'center', justifyContent: 'center' }}><Ionicons name={next ? (next.finished ? 'ribbon' : 'play') : 'videocam'} size={16} color="#FFF" /></View>
+            <T style={{ fontFamily: fonts.fun, fontSize: 17, color: '#46308A' }}>{next ? (next.finished ? 'Get certificate' : next.done ? 'Continue' : 'Start') : 'Join Class'}</T>
           </Pressable>
         </View>
         <Pressable accessibilityRole="button" accessibilityLabel={course ? `${course.title}. Change course` : 'Get a course'}

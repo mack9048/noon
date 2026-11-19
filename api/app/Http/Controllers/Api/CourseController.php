@@ -84,6 +84,48 @@ class CourseController extends Controller
         ];
     }
 
+    /**
+     * "Continue learning": the course the student worked on last and the next lesson after the
+     * last one they completed (lesson order as the course player shows it). Null when not enrolled.
+     */
+    public function continue(Request $request)
+    {
+        $user = $request->user();
+        $courses = $user->courses()->whereIn('courses.id', Course::visibleTo($user)->select('courses.id'))
+            ->when($request->integer('course'), fn ($q, $id) => $q->where('courses.id', $id))->get();
+        if ($courses->isEmpty()) {
+            return response()->json(null);
+        }
+        $last = DB::table('course_item_user')->join('course_items', 'course_items.id', '=', 'course_item_user.course_item_id')
+            ->where('course_item_user.user_id', $user->id)->whereIn('course_items.course_id', $courses->pluck('id'))
+            ->orderByDesc('course_item_user.completed_at')->orderByDesc('course_items.id')->first(['course_items.id', 'course_items.course_id']);
+        // No lesson done yet: the course joined most recently.
+        $course = $last ? $courses->firstWhere('id', $last->course_id) : $courses->sortByDesc(fn ($c) => $c->pivot->created_at)->first();
+        $course->load([...self::WITH, 'lessons.items', 'subjects']);
+        $done = DB::table('course_item_user')->where('user_id', $user->id)->pluck('course_item_id')->flip();
+
+        // Player order: lessons outside a subject first, then subject by subject.
+        $subjectPos = $course->subjects->pluck('id')->flip();
+        $lessons = $course->lessons->sortBy(fn ($l) => [$l->course_subject_id && $subjectPos->has($l->course_subject_id) ? 1 + $subjectPos[$l->course_subject_id] : 0, $l->position, $l->id])->values();
+        $flat = $lessons->flatMap(fn ($l) => $l->items->map(fn ($i) => [$l, $i]))->values();
+        $total = $flat->count();
+        $doneCount = $flat->filter(fn ($p) => $done->has($p[1]->id))->count();
+        $after = $last ? $flat->search(fn ($p) => $p[1]->id === $last->id) : false;
+        $next = ($after !== false ? $flat->slice($after + 1)->first(fn ($p) => ! $done->has($p[1]->id)) : null)
+            ?? $flat->first(fn ($p) => ! $done->has($p[1]->id));
+        [$lesson, $item] = $next ?? [$lessons->first(), null];
+
+        return [
+            'course' => $course->toApp($user),
+            'lesson' => $lesson ? ['id' => $lesson->id, 'title' => $lesson->title, 'number' => $lessons->search(fn ($l) => $l->id === $lesson->id) + 1, 'duration' => $lesson->duration] : null,
+            'item' => $item ? ['id' => $item->id, 'title' => $item->title, 'kind' => $item->kind] : null,
+            'done' => $doneCount,
+            'total' => $total,
+            'lessons' => $lessons->count(),
+            'finished' => $total > 0 && $doneCount === $total,
+        ];
+    }
+
     public function enroll(Request $request, Course $course)
     {
         $user = $request->user();

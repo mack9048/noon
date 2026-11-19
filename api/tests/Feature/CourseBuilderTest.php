@@ -113,4 +113,33 @@ class CourseBuilderTest extends TestCase
         $this->as($boss)->deleteJson("/api/super/courses/{$c['id']}")->assertNoContent();
         $this->as($boss)->deleteJson("/api/super/course-categories/{$cat['id']}")->assertNoContent();
     }
+
+    public function test_continue_shows_the_next_lesson_after_the_last_completed(): void
+    {
+        $boss = $this->boss();
+        $t = Tenant::create(['name' => 'Inst A', 'code' => 'AAA111']);
+        $s = User::create(['name' => 'S', 'email' => 's@x.test', 'password' => 'secret123', 'role' => 'student', 'tenant_id' => $t->id]);
+        $this->as($s)->getJson('/api/courses/continue')->assertOk()->assertExactJson([]);
+        $c = $this->as($boss)->postJson('/api/super/courses', ['title' => 'Arabic', 'category' => 'Arabic', 'status' => 'published', 'audience' => 'all'])->json();
+        $sub = $this->as($boss)->postJson("/api/super/courses/{$c['id']}/subjects", ['title' => 'Reading'])->json();
+        // Made in this order, but the subject's lesson comes after the loose one in the player.
+        $l2 = $this->as($boss)->postJson("/api/super/courses/{$c['id']}/lessons", ['title' => 'Two', 'subject_id' => $sub['id']])->json();
+        $l1 = $this->as($boss)->postJson("/api/super/courses/{$c['id']}/lessons", ['title' => 'One'])->json();
+        $item = fn ($l, $title) => $this->as($boss)->postJson("/api/super/course-lessons/{$l['id']}/items", ['kind' => 'note', 'title' => $title, 'body' => 'x'])->json();
+        $a = $item($l1, 'A'); $b = $item($l1, 'B'); $c2 = $item($l2, 'C');
+        $this->as($s)->postJson("/api/courses/{$c['id']}/enroll")->assertOk();
+
+        $this->as($s)->getJson('/api/courses/continue')->assertOk()
+            ->assertJsonPath('course.id', $c['id'])->assertJsonPath('lesson.id', $l1['id'])->assertJsonPath('item.id', $a['id'])->assertJsonPath('done', 0);
+        $this->as($s)->postJson("/api/course-items/{$b['id']}/complete")->assertNoContent();
+        // After B comes C (next lesson), even though A is still open.
+        $this->as($s)->getJson('/api/courses/continue')->assertJsonPath('lesson.id', $l2['id'])->assertJsonPath('lesson.number', 2)->assertJsonPath('item.id', $c2['id']);
+        $this->as($s)->postJson("/api/course-items/{$c2['id']}/complete");
+        $this->as($s)->getJson('/api/courses/continue')->assertJsonPath('item.id', $a['id']);
+        $this->as($s)->postJson("/api/course-items/{$a['id']}/complete");
+        $this->as($s)->getJson('/api/courses/continue')->assertJsonPath('finished', true)->assertJsonPath('item', null)->assertJsonPath('total', 3);
+        // A chosen course; one the student has not joined gives nothing.
+        $this->as($s)->getJson("/api/courses/continue?course={$c['id']}")->assertJsonPath('course.id', $c['id']);
+        $this->as($s)->getJson('/api/courses/continue?course=99999')->assertExactJson([]);
+    }
 }
