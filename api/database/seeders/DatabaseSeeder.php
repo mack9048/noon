@@ -7,12 +7,12 @@ use Illuminate\Support\Str;
 use Illuminate\Database\Seeder;
 
 /**
- * Fresh database: platform content, the super admin, and one demo madrasa.
+ * Fresh database: platform content, the super admin, and one demo institution.
  *
  * Set these in .env before seeding a live server:
  *   SUPER_ADMIN_EMAIL, SUPER_ADMIN_PASSWORD  your own super admin login
- *   DEMO_PASSWORD                            shared password of every demo madrasa login
- * Skip the demo madrasa with SEED_DEMO_SCHOOL=false.
+ *   DEMO_PASSWORD                            shared password of every demo institution login
+ * Skip the demo institution with SEED_DEMO_SCHOOL=false.
  */
 class DatabaseSeeder extends Seeder
 {

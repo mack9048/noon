@@ -25,8 +25,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'tenant' => ResolveTenant::class,
             'active' => EnsureActiveUser::class,
         ]);
-        // The madrasa must be known before {leave}, {conversation} etc. are loaded,
-        // so a row from another madrasa is simply "not found".
+        // The institution must be known before {leave}, {conversation} etc. are loaded,
+        // so a row from another institution is simply "not found".
         $middleware->prependToPriorityList(before: SubstituteBindings::class, prepend: ResolveTenant::class);
         $middleware->prependToPriorityList(before: ResolveTenant::class, prepend: EnsureActiveUser::class);
 

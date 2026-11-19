@@ -21,7 +21,7 @@ class TenantCrudTest extends TestCase
             'name' => 'Al Noor', 'plan' => 'basic', 'admin_name' => 'Office', 'admin_email' => 'office@alnoor.test', 'admin_password' => 'firstpass1',
         ])->assertCreated()->assertJsonPath('name', 'Al Noor')->json('id');
 
-        $this->putJson("/api/super/tenants/{$id}", ['name' => 'Al Noor Madrasa', 'plan' => 'pro', 'admin_password' => 'newpass123'])
+        $this->putJson("/api/super/tenants/{$id}", ['name' => 'Al Noor Institution', 'plan' => 'pro', 'admin_password' => 'newpass123'])
             ->assertOk()->assertJsonPath('plan', 'pro');
         $this->assertTrue(Hash::check('newpass123', User::where('email', 'office@alnoor.test')->first()->password));
 

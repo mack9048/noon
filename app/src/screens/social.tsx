@@ -55,7 +55,7 @@ export function ChatListScreen() {
       {tab !== 'chats' ? (
         <Card style={{ marginTop: 12, alignItems: 'center', gap: 8, paddingVertical: 30 }}>
           <Ionicons name={tab === 'status' ? 'aperture-outline' : 'call-outline'} size={34} color={colors.muted} />
-          <T v="small">{tab === 'status' ? 'Class updates and notices from your madrasa show here.' : 'Your voice and video calls with teachers show here.'}</T>
+          <T v="small">{tab === 'status' ? 'Class updates and notices from your institution show here.' : 'Your voice and video calls with teachers show here.'}</T>
         </Card>
       ) : null}
       {tab === 'chats' ? <Card style={{ marginTop: 4, padding: 0 }}>
@@ -144,7 +144,7 @@ function ChatThread({ id, embedded = false }: { id: number; embedded?: boolean }
           <View style={{ alignItems: 'center', gap: 8, marginBottom: 6 }}>
             <View style={{ backgroundColor: '#FFF', borderRadius: 12, paddingHorizontal: 12, height: 26, justifyContent: 'center' }}><T v="small" style={{ fontFamily: fonts.semibold }}>TODAY</T></View>
             <View style={{ backgroundColor: '#FFF4CC', borderRadius: 14, paddingHorizontal: 12, paddingVertical: 6, maxWidth: 320 }}>
-              <T v="small" style={{ textAlign: 'center', color: '#6A4D00' }}>🔒 Safe chat — only your madrasa's teachers, staff and parents can message you.</T>
+              <T v="small" style={{ textAlign: 'center', color: '#6A4D00' }}>🔒 Safe chat — only your institution's teachers, staff and parents can message you.</T>
             </View>
           </View>
         )}

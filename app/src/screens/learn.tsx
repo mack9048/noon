@@ -295,14 +295,14 @@ function Progress({ value }: { value: number }) {
   );
 }
 
-/* ================= Madrasa Support: board → class → subject → lessons ================= */
+/* ================= Institution Support: board → class → subject → lessons ================= */
 
 export function BoardsScreen() {
   const base = useBase();
   const boards = useApi<Board[]>('/boards');
   return (
     <Screen>
-      <Header title="Madrasa Support" subtitle="Step 1 · choose your board" />
+      <Header title="Institution Support" subtitle="Step 1 · choose your board" />
       {boards.loading ? <Loading /> : (
         <Grid cols={{ phone: 1, tablet: 3, desktop: 3 }}>
           {(boards.data ?? []).map((b, i) => (

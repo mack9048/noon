@@ -9,12 +9,12 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * Staff set a new password for someone who forgot theirs.
- * Madrasa admins: people in their own madrasa. Super admins: anyone except another super admin.
+ * Institution admins: people in their own institution. Super admins: anyone except another super admin.
  * The person is signed out everywhere and every change is logged.
  */
 class PasswordAdminController extends Controller
 {
-    /** Admin: the people of my madrasa, for the People screen. */
+    /** Admin: the people of my institution, for the People screen. */
     public function people(Request $request)
     {
         $data = $request->validate([

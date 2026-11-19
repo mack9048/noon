@@ -64,7 +64,7 @@ export function HomeScreen() {
         <TileRows cols={2} gap={10}>
           <CampusCard g={gradients.courses} tag={`${mine.data?.length ?? 0} ENROLLED`} title={'Noon\nCourses'} icon="school" ink={colors.lav[1]}
             onPress={() => router.push(`${base}/courses` as any)} />
-          <CampusCard g={gradients.support} tag="AP · CLASS 5" title={'Madrasa\nSupport'} icon="business" ink={colors.teal}
+          <CampusCard g={gradients.support} tag="AP · CLASS 5" title={'Institution\nSupport'} icon="business" ink={colors.teal}
             onPress={() => router.push(`${base}/support` as any)} />
         </TileRows>
       </View>
@@ -74,7 +74,7 @@ export function HomeScreen() {
       <T v="h2" style={{ marginTop: 18, marginBottom: 10 }}>Campus life</T>
       <TileRows cols={3} gap={10}>
         {CAMPUS_LIFE.map((l) => (
-          <Pressable key={l.name} accessibilityRole="button" accessibilityLabel={l.name} onPress={() => demoNote(`Demo: ${l.name} opens here once your madrasa posts it.`)}
+          <Pressable key={l.name} accessibilityRole="button" accessibilityLabel={l.name} onPress={() => demoNote(`Demo: ${l.name} opens here once your institution posts it.`)}
             style={{ height: 112, borderRadius: 22, backgroundColor: l.tint[0], padding: 12, justifyContent: 'space-between' }}>
             <Ionicons name={l.icon} size={28} color={l.tint[1]} />
             <View>

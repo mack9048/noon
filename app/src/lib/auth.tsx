@@ -13,7 +13,7 @@ interface GuestSignup {
 interface AuthState {
   user: User | null;
   loading: boolean;
-  /** Throws ApiError with code 'tenant_required' (and body.tenants) when the login exists in several madrasas. */
+  /** Throws ApiError with code 'tenant_required' (and body.tenants) when the login exists in several institutions. */
   login: (login: string, password: string, tenantCode?: string) => Promise<User>;
   /** Log in with the 6-digit code sent on WhatsApp to the account's number. */
   loginWithOtp: (phone: string, otp: string) => Promise<User>;

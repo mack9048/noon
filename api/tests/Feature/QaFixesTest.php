@@ -14,7 +14,7 @@ class QaFixesTest extends TestCase
     public function test_sign_up_page_can_list_public_courses_without_logging_in(): void
     {
         Course::create(['title' => 'Arabic', 'category' => 'Arabic', 'status' => 'published', 'visibility' => 'all']);
-        Course::create(['title' => 'Own madrasa only', 'category' => 'Duas', 'status' => 'published', 'visibility' => 'madrasa']);
+        Course::create(['title' => 'Own institution only', 'category' => 'Duas', 'status' => 'published', 'visibility' => 'madrasa']);
         Course::create(['title' => 'Draft', 'category' => 'Fiqh', 'status' => 'draft', 'visibility' => 'all']);
 
         $res = $this->getJson('/api/catalog/courses')->assertOk();
@@ -79,8 +79,8 @@ class QaFixesTest extends TestCase
         $admin = $this->member($t, 'admin');
         $this->member($t, 'student');
         $this->as($admin)->getJson('/api/admin/institution')->assertOk()->assertJsonPath('code', 'NOON01')->assertJsonPath('counts.students', 1);
-        $this->as($admin)->putJson('/api/admin/institution', ['name' => 'Noon Madrasa Kozhikode', 'phone' => '+91 95626 51864', 'academic_year' => '2026–27', 'default_fee' => 600])
-            ->assertOk()->assertJsonPath('name', 'Noon Madrasa Kozhikode')->assertJsonPath('default_fee', 600);
+        $this->as($admin)->putJson('/api/admin/institution', ['name' => 'Noon Institution Kozhikode', 'phone' => '+91 95626 51864', 'academic_year' => '2026–27', 'default_fee' => 600])
+            ->assertOk()->assertJsonPath('name', 'Noon Institution Kozhikode')->assertJsonPath('default_fee', 600);
         $this->as($this->member($t, 'teacher'))->putJson('/api/admin/institution', ['name' => 'X'])->assertForbidden();
     }
 }

@@ -151,7 +151,7 @@ export function LoginScreen() {
   const [pw, setPw] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  // Set when this login exists in more than one madrasa.
+  // Set when this login exists in more than one institution.
   const [choices, setChoices] = useState<{ code: string; name: string }[] | null>(null);
 
   const submit = (tenantCode?: string) => submitAs(id.trim(), pw, tenantCode);
@@ -379,7 +379,7 @@ const DEMO_ACCOUNTS: [label: string, login: string, icon: keyof typeof Ionicons.
   ['Institute admin', USE_MOCK ? 'admin' : 'admin@demo.noonlearn.com', 'grid-outline', colors.butter],
   ...(USE_MOCK ? [['Super admin', 'super', 'shield-checkmark-outline', colors.lav] as (typeof DEMO_ACCOUNTS)[number]] : []),
 ];
-/** Shared password of the demo madrasa logins (DEMO_PASSWORD on the server). */
+/** Shared password of the demo institution logins (DEMO_PASSWORD on the server). */
 const DEMO_PASSWORD = 'Demo@1234';
 
 function DemoLogins({ busy, onPick }: { busy: boolean; onPick: (login: string) => void }) {

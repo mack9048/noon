@@ -8,8 +8,8 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Madrasa routes: the signed-in user's madrasa becomes the current tenant,
- * so tenant-owned models (leave, chat, ...) only ever load that madrasa's rows.
+ * Institution routes: the signed-in user's institution becomes the current tenant,
+ * so tenant-owned models (leave, chat, ...) only ever load that institution's rows.
  * Runs before route-model binding (see bootstrap/app.php).
  */
 class ResolveTenant
@@ -22,10 +22,10 @@ class ResolveTenant
         $tenant = $request->user()?->tenant;
 
         if (! $tenant) {
-            return response()->json(['message' => 'Join a madrasa to use this.'], 403);
+            return response()->json(['message' => 'Join an institution to use this.'], 403);
         }
         if (! $tenant->active) {
-            return response()->json(['message' => 'Your madrasa account is not active.'], 403);
+            return response()->json(['message' => 'Your institution account is not active.'], 403);
         }
 
         $this->context->set($tenant);

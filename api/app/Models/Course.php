@@ -49,12 +49,12 @@ class Course extends Model
         return $this->belongsToMany(Tenant::class)->withPivot(['enabled', 'teacher_id', 'class_ids']);
     }
 
-    /** Courses a user may see: guests/super see all published; madrasa users only those their tenant enabled. */
+    /** Courses a user may see: guests/super see all published; institution users only those their tenant enabled. */
     public function scopeVisibleTo(Builder $q, User $user): Builder
     {
         $q->where('status', 'published');
         if (! $user->tenant_id && ! $user->hasRole('super')) {
-            // Guests never see a course a madrasa kept for its own students.
+            // Guests never see a course an institution kept for its own students.
             $q->where('visibility', 'all');
         }
         if ($user->tenant_id && ! $user->hasRole('super')) {

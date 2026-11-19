@@ -89,7 +89,7 @@ export function GamesAdminScreen() {
                 <T style={{ fontFamily: fonts.semibold }} numberOfLines={1}>{g.title}</T>
                 <Row gap={6} style={{ flexWrap: 'wrap' }}>
                   <Tag text={MODE_LABEL[g.mode]} tone={g.mode === 'group' ? 'sky' : 'lav'} />
-                  <Tag text={g.audience === 'students' && g.tenant_ids?.length ? `${g.tenant_ids.length} madrasa${g.tenant_ids.length > 1 ? 's' : ''}` : AUDIENCE_LABEL[g.audience ?? 'all']} tone="mint" />
+                  <Tag text={g.audience === 'students' && g.tenant_ids?.length ? `${g.tenant_ids.length} institution${g.tenant_ids.length > 1 ? 's' : ''}` : AUDIENCE_LABEL[g.audience ?? 'all']} tone="mint" />
                   {g.age_group ? <Tag text={`Age ${g.age_group}`} tone="butter" /> : null}
                 </Row>
                 <T v="small" style={{ fontSize: 11 }}>{g.plays} plays · {fileSize(g.html_size)}{g.updated ? ` · ${g.updated}` : ''}</T>
@@ -226,7 +226,7 @@ export function GameFormScreen() {
         <ChoiceChips value={audience} onChange={setAudience} options={(['all', 'students', 'guests'] as GameAudience[]).map((k) => ({ key: k, label: AUDIENCE_LABEL[k] }))} />
         {audience === 'students' ? (
           <View style={{ gap: 8 }}>
-            <T v="small">Madrasas: leave all unselected for every madrasa, or pick some.</T>
+            <T v="small">Institutions: leave all unselected for every institution, or pick some.</T>
             <Row gap={8} style={{ flexWrap: 'wrap' }}>
               {tenants.map((t) => {
                 const on = tenantIds.includes(t.id);
@@ -239,7 +239,7 @@ export function GameFormScreen() {
               })}
             </Row>
           </View>
-        ) : <T v="small">{audience === 'all' ? 'Every student and every guest.' : 'Only guests exploring the free app (not madrasa students).'}</T>}
+        ) : <T v="small">{audience === 'all' ? 'Every student and every guest.' : 'Only guests exploring the free app (not institution students).'}</T>}
       </Panel>
 
       <Panel title="Status" style={{ marginBottom: 100 }}>

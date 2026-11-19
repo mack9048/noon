@@ -155,7 +155,7 @@ export function AttendanceReportScreen() {
               <ListRow key={a.id} left={<Avatar name={a.name} size={40} tint={pastel.pink} />} title={a.name}
                 sub={[a.cls ? `Class ${a.cls}` : null, p === 'today' ? 'Absent today' : `Absent ${a.days} day${a.days > 1 ? 's' : ''}`].filter(Boolean).join(' · ')}
                 right={<SmallButton title="Notify parent" onPress={() => openWhatsApp(a.parent_phone,
-                  `Assalamu alaikum${a.parent ? ` ${a.parent}` : ''}. This is the madrasa office: ${a.name} was absent ${p === 'today' ? 'today' : `${a.days} day${a.days > 1 ? 's' : ''} ${p === 'week' ? 'this week' : 'this month'}`}. Please let us know if everything is all right. Jazakallah khair.`, a.name)} />} />
+                  `Assalamu alaikum${a.parent ? ` ${a.parent}` : ''}. This is the institution office: ${a.name} was absent ${p === 'today' ? 'today' : `${a.days} day${a.days > 1 ? 's' : ''} ${p === 'week' ? 'this week' : 'this month'}`}. Please let us know if everything is all right. Jazakallah khair.`, a.name)} />} />
             )) : <Empty text="No absences. Alhamdulillah!" />)}
           </View>
         </>

@@ -22,9 +22,9 @@ class AuthController extends Controller
     public function __construct(private OtpService $otp) {}
 
     /**
-     * Madrasa users log in with email, phone or admission number + password.
-     * Admission numbers repeat across madrasas: if more than one account matches,
-     * the app is asked to send the madrasa code too (409 tenant_required).
+     * Institution users log in with email, phone or admission number + password.
+     * Admission numbers repeat across institutions: if more than one account matches,
+     * the app is asked to send the institution code too (409 tenant_required).
      */
     public function login(Request $request)
     {
@@ -183,7 +183,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Guest sign-up: pick board/class and/or Noon Courses, no madrasa needed.
+     * Guest sign-up: pick board/class and/or Noon Courses, no institution needed.
      * If the parent phone already has an account, the owner must prove it with an
      * SMS code first (we send one and answer 409 otp_required).
      */
@@ -220,7 +220,7 @@ class AuthController extends Controller
             $existing->forceFill(['phone_verified_at' => $existing->phone_verified_at ?? now()])->save();
         }
 
-        // A verified returning guest keeps their progress; a madrasa account just signs in.
+        // A verified returning guest keeps their progress; an institution account just signs in.
         $user = $existing ?? new User(['role' => 'guest', 'password' => Str::random(40), 'phone' => $phone]);
         if ($user->role === 'guest') {
             $user->fill([
@@ -241,16 +241,16 @@ class AuthController extends Controller
         return $this->signIn(collect([$user->load('tenant')]), 'parent_phone', 'Could not sign in.', $data['device_name'] ?? 'app');
     }
 
-    /** Guest enters a madrasa code → becomes a student of that madrasa. */
+    /** Guest enters an institution code → becomes a student of that institution. */
     public function joinTenant(Request $request)
     {
         $data = $request->validate(['code' => ['required', 'string', 'max:20']]);
         $user = $request->user();
-        abort_unless($user->hasRole('guest'), 422, 'Only guest accounts can join a madrasa.');
+        abort_unless($user->hasRole('guest'), 422, 'Only guest accounts can join an institution.');
 
         $tenant = Tenant::where('code', strtoupper(trim($data['code'])))->where('active', true)->first();
         if (! $tenant) {
-            throw ValidationException::withMessages(['code' => 'This madrasa code is not valid.']);
+            throw ValidationException::withMessages(['code' => 'This institution code is not valid.']);
         }
         $user->update(['tenant_id' => $tenant->id, 'role' => 'student']);
 
@@ -294,7 +294,7 @@ class AuthController extends Controller
         }
         if ($users->count() > 1) {
             return response()->json([
-                'message' => 'Choose your madrasa.',
+                'message' => 'Choose your institution.',
                 'code' => 'tenant_required',
                 'tenants' => $users->map(fn (User $u) => ['code' => $u->tenant?->code, 'name' => $u->tenant?->name ?? 'Noon Learn'])->values(),
             ], 409);
@@ -303,10 +303,10 @@ class AuthController extends Controller
         /** @var User $user */
         $user = $users->first();
         if ($user->blocked) {
-            abort(403, 'This account is blocked. Please contact your madrasa.');
+            abort(403, 'This account is blocked. Please contact your institution.');
         }
         if ($user->tenant && ! $user->tenant->active) {
-            throw ValidationException::withMessages([$field => ['Your madrasa account is not active.']]);
+            throw ValidationException::withMessages([$field => ['Your institution account is not active.']]);
         }
 
         return [

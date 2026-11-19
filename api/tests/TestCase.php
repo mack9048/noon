@@ -25,7 +25,7 @@ abstract class TestCase extends BaseTestCase
 
     protected function madrasa(string $code = 'NOON01', array $attrs = []): Tenant
     {
-        return Tenant::create($attrs + ['name' => "Madrasa {$code}", 'code' => $code, 'plan' => 'pro']);
+        return Tenant::create($attrs + ['name' => "Institution {$code}", 'code' => $code, 'plan' => 'pro']);
     }
 
     protected function member(Tenant $tenant, string $role = 'student', array $attrs = []): User

@@ -42,7 +42,7 @@ class AppServiceProvider extends ServiceProvider
             ];
         });
 
-        // Madrasa codes are short, so slow down guessing.
+        // Institution codes are short, so slow down guessing.
         RateLimiter::for('join', fn (Request $request) => Limit::perMinute(5)->by('join:'.($request->user()?->id ?? $request->ip())));
     }
 }

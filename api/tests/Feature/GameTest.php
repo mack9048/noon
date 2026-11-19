@@ -64,7 +64,7 @@ class GameTest extends TestCase
         $all = $mk('For all', ['audience' => 'all']);
         $mk('Guests only', ['audience' => 'guests']);
         $mk('Students only', ['audience' => 'students']);
-        $mk('Only madrasa 2', ['audience' => 'students', 'tenant_ids' => (string) $t2->id]);
+        $mk('Only institution 2', ['audience' => 'students', 'tenant_ids' => (string) $t2->id]);
         $mk('Draft', ['audience' => 'all', 'status' => 'draft']);
 
         $student = $this->member($t1, 'student');

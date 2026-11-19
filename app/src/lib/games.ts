@@ -12,7 +12,7 @@ export type HtmlGame = {
 export type Picked = { uri: string; name?: string; mimeType?: string; size?: number; file?: File };
 
 export const MODE_LABEL: Record<GameMode, string> = { solo: 'Solo', group: 'Group' };
-export const AUDIENCE_LABEL: Record<GameAudience, string> = { all: 'Everyone', students: 'Madrasa students', guests: 'Guests only' };
+export const AUDIENCE_LABEL: Record<GameAudience, string> = { all: 'Everyone', students: 'Institution students', guests: 'Guests only' };
 export const AGE_GROUPS = ['All ages', '4–6', '6–9', '9–12', '12+'] as const;
 
 const append = (fd: FormData, key: string, f: Picked) => {

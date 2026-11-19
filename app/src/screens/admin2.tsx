@@ -37,7 +37,7 @@ export function AdmissionsScreen() {
   const copy = async () => {
     try { await (globalThis as any).navigator?.clipboard?.writeText(`https://${link}`); demoNote('Link copied.'); } catch { demoNote(`Copy this link: https://${link}`); }
   };
-  const share = () => Linking.openURL(`https://wa.me/?text=${encodeURIComponent(`Assalamu alaikum! Apply for Noon Madrasa 2026–27 here: https://${link}`)}`);
+  const share = () => Linking.openURL(`https://wa.me/?text=${encodeURIComponent(`Assalamu alaikum! Apply for Noon Class 2026–27 here: https://${link}`)}`);
   const list = apps.filter((a) => a.status === tab);
   return (
     <Screen>
@@ -120,7 +120,7 @@ export function AdmissionDetailScreen() {
         </Row>
       </Panel>
       <Panel title="STUDY DETAILS">
-        {[['Board', a.board === 'AP' ? 'Sunni Vidyabhyasa Board (AP)' : a.board === 'EK' ? 'Sunni Board (EK)' : 'General'], ['Class', a.cls], ['Previous madrasa', a.prevMadrasa ?? '—'], ['Preferred time', a.time ?? '—']].map(([k, v]) => <Row key={k} style={{ justifyContent: 'space-between' }}><T v="small">{k}</T><T style={{ fontFamily: fonts.medium, flexShrink: 1, textAlign: 'right' }}>{v}</T></Row>)}
+        {[['Board', a.board === 'AP' ? 'Sunni Vidyabhyasa Board (AP)' : a.board === 'EK' ? 'Sunni Board (EK)' : 'General'], ['Class', a.cls], ['Previous institution', a.prevMadrasa ?? '—'], ['Preferred time', a.time ?? '—']].map(([k, v]) => <Row key={k} style={{ justifyContent: 'space-between' }}><T v="small">{k}</T><T style={{ fontFamily: fonts.medium, flexShrink: 1, textAlign: 'right' }}>{v}</T></Row>)}
       </Panel>
       <Panel title="DOCUMENTS">
         {([['Birth certificate', a.docs.birth], ['Previous class TC', a.docs.tc], ['Student photo', a.docs.photo]] as const).map(([k, ok]) => (
@@ -258,7 +258,7 @@ type Person = { id: number; name: string };
 
 export function BatchNewScreen() {
   const [step, setStep] = useState(0);
-  const [name, setName] = useState('Madrasa 5 · Evening');
+  const [name, setName] = useState('Class 5 · Evening');
   const [board, setBoard] = useState('AP board');
   const [cls, setCls] = useState('5');
   const [days, setDays] = useState(['Mo', 'Tu', 'We', 'Th']);
@@ -300,7 +300,7 @@ export function BatchNewScreen() {
         </Panel>
       ) : step === 1 ? (
         <Panel title={`Students · ${students.length} of ${seats}`} right={<Pressable accessibilityRole="button" onPress={() => setStudents(students.length ? [] : allStudents.slice(0, Number(seats) || 30).map((x) => x.id))}><T style={{ color: colors.teal, fontFamily: fonts.semibold }}>{students.length ? 'Clear' : 'Select all'}</T></Pressable>}>
-          {!allStudents.length ? <T v="small">No students in your madrasa yet. Add them with Bulk add or Admissions.</T> : null}
+          {!allStudents.length ? <T v="small">No students in your institution yet. Add them with Bulk add or Admissions.</T> : null}
           {allStudents.map(({ id: sid, name: s }, i) => {
             const on = students.includes(sid);
             return (
@@ -397,9 +397,9 @@ export function CourseEditorScreen({ mode, id }: { mode: 'admin' | 'super'; id?:
   const [title, setTitle] = useState(editing ? '' : 'Arabic for Beginners');
   const [desc, setDesc] = useState(editing ? '' : 'Read and write the Arabic letters with harakath.');
   const [cat, setCat] = useState(editing ? '' : 'Arabic');
-  const [visible, setVisible] = useState(mode === 'admin' ? 'My madrasa only' : 'All madrasas');
+  const [visible, setVisible] = useState(mode === 'admin' ? 'My institution only' : 'All institutions');
   const [level, setLevel] = useState('Beginner');
-  // Super admin: which madrasas (tenants) get the course.
+  // Super admin: which institutions (tenants) get the course.
   const tenants = useApi<{ id: number; name: string }[]>(mode === 'super' ? '/super/tenants' : null).data ?? [];
   const [tenantIds, setTenantIds] = useState<number[]>([]);
   const toggleTenant = (tid: number) => setTenantIds((l) => (l.includes(tid) ? l.filter((x) => x !== tid) : [...l, tid]));
@@ -419,7 +419,7 @@ export function CourseEditorScreen({ mode, id }: { mode: 'admin' | 'super'; id?:
   const [offer, setOffer] = useState('999');
   const [trial, setTrial] = useState('7 days');
   const [freeForSubs, setFreeForSubs] = useState(true);
-  // Madrasa admins list lesson titles; they become the course's lessons once approved.
+  // Institution admins list lesson titles; they become the course's lessons once approved.
   const [lessons, setLessons] = useState<string[]>(['Welcome & the alphabet', 'Letters ا to ح', 'Harakath: fatha, kasra, damma']);
   const [busy, setBusy] = useState(false);
   const move = (i: number, d: -1 | 1) => { const j = i + d; if (j < 0 || j >= lessons.length) return; const l = [...lessons]; [l[i], l[j]] = [l[j], l[i]]; setLessons(l); };
@@ -431,7 +431,7 @@ export function CourseEditorScreen({ mode, id }: { mode: 'admin' | 'super'; id?:
     setCourse(c);
     setTitle(c.title); setDesc(c.description ?? ''); setCat(c.category); setLevel(c.level);
     setColour(COURSE_COLOURS.includes(c.cover) ? c.cover : COURSE_COLOURS[0]); setLogo(c.logo_url ?? null);
-    setVisible(c.audience === 'selected' ? 'Selected madrasas' : c.audience === 'guests' ? 'Guests only' : 'All madrasas'); setTenantIds(c.tenant_ids);
+    setVisible(c.audience === 'selected' ? 'Selected institutions' : c.audience === 'guests' ? 'Guests only' : 'All institutions'); setTenantIds(c.tenant_ids);
     setPricing(c.is_free ? 'free' : c.price_period === 'monthly' ? 'monthly' : 'once');
     setPrice(c.price != null ? String(c.price) : ''); setOffer(c.offer_price != null ? String(c.offer_price) : '');
     setTrial(!c.trial_days ? 'None' : `${c.trial_days} days`); setFreeForSubs(c.free_for_subscribers ?? true);
@@ -443,13 +443,13 @@ export function CourseEditorScreen({ mode, id }: { mode: 'admin' | 'super'; id?:
     return {
       title: title.trim(), description: desc.trim() || null, category: cat, level, cover: colour, is_free: pricing === 'free', price: priceN, offer_price: offerN,
       price_period: pricing === 'monthly' ? 'monthly' : 'once', trial_days: trial === 'None' ? 0 : parseInt(trial, 10), free_for_subscribers: freeForSubs,
-      audience: visible === 'Selected madrasas' ? 'selected' : visible === 'Guests only' ? 'guests' : 'all', tenant_ids: visible === 'Selected madrasas' ? tenantIds : [],
+      audience: visible === 'Selected institutions' ? 'selected' : visible === 'Guests only' ? 'guests' : 'all', tenant_ids: visible === 'Selected institutions' ? tenantIds : [],
     };
   };
   const check = () => {
     if (!title.trim()) return 'Give the course a name.';
     if (!cat) return 'Choose a category.';
-    if (mode === 'super' && visible === 'Selected madrasas' && !tenantIds.length) return 'Pick at least one madrasa for this course.';
+    if (mode === 'super' && visible === 'Selected institutions' && !tenantIds.length) return 'Pick at least one institution for this course.';
     return null;
   };
 
@@ -460,7 +460,7 @@ export function CourseEditorScreen({ mode, id }: { mode: 'admin' | 'super'; id?:
     try {
       if (mode === 'admin') {
         const d = details();
-        const row = await requestApproval({ title: d.title, description: d.description ?? undefined, category: cat, level, cover: colour, visibility: visible === 'My madrasa only' ? 'madrasa' : 'all',
+        const row = await requestApproval({ title: d.title, description: d.description ?? undefined, category: cat, level, cover: colour, visibility: visible === 'My institution only' ? 'madrasa' : 'all',
           is_free: d.is_free, price: d.price, offer_price: d.offer_price, lessons: lessons.map((l) => l.trim()).filter(Boolean), logo_url: logo });
         if (logoFile) await uploadLogo(`/admin/courses/${row.id}/logo`, logoFile);
         demoNote('Sent to Noon Learn for approval. Students see it once it is approved.');
@@ -526,10 +526,10 @@ export function CourseEditorScreen({ mode, id }: { mode: 'admin' | 'super'; id?:
       <Panel title="Course details">
         <Input label="Course name" value={title} onChangeText={setTitle} />
         <Input label="Short description" value={desc} onChangeText={setDesc} multiline />
-        <Row gap={10} style={{ alignItems: 'flex-start' }}><CategoryField value={cat} onChange={setCat} manage={mode === 'super'} /><Select label="Visible to" value={visible} options={mode === 'admin' ? ['My madrasa only', 'All Noon Learn'] : ['All madrasas', 'Selected madrasas', 'Guests only']} onChange={setVisible} /></Row>
-        {mode === 'super' ? (visible === 'Selected madrasas' ? (
+        <Row gap={10} style={{ alignItems: 'flex-start' }}><CategoryField value={cat} onChange={setCat} manage={mode === 'super'} /><Select label="Visible to" value={visible} options={mode === 'admin' ? ['My institution only', 'All Noon Learn'] : ['All institutions', 'Selected institutions', 'Guests only']} onChange={setVisible} /></Row>
+        {mode === 'super' ? (visible === 'Selected institutions' ? (
           <View style={{ gap: 8 }}>
-            <T v="small" style={{ fontFamily: fonts.medium }}>Madrasas · {tenantIds.length ? `${tenantIds.length} picked` : 'pick one or more'}</T>
+            <T v="small" style={{ fontFamily: fonts.medium }}>Institutions · {tenantIds.length ? `${tenantIds.length} picked` : 'pick one or more'}</T>
             <Row gap={8} style={{ flexWrap: 'wrap' }}>
               {tenants.map((t) => {
                 const on = tenantIds.includes(t.id);
@@ -540,11 +540,11 @@ export function CourseEditorScreen({ mode, id }: { mode: 'admin' | 'super'; id?:
                   </Pressable>
                 );
               })}
-              {!tenants.length ? <T v="small">No madrasas yet.</T> : null}
+              {!tenants.length ? <T v="small">No institutions yet.</T> : null}
             </Row>
-            <T v="small">Only students of these madrasas see the course. It is switched on for them straight away.</T>
+            <T v="small">Only students of these institutions see the course. It is switched on for them straight away.</T>
           </View>
-        ) : <T v="small">{visible === 'Guests only' ? 'Only guests exploring the free app. Madrasa students do not see it.' : 'Switched on for every madrasa, and guests can see it too.'}</T>) : null}
+        ) : <T v="small">{visible === 'Guests only' ? 'Only guests exploring the free app. Institution students do not see it.' : 'Switched on for every institution, and guests can see it too.'}</T>) : null}
         <T v="small" style={{ fontFamily: fonts.medium }}>Level</T>
         <ChoiceChips value={level} onChange={setLevel} options={['Beginner', 'Middle', 'Advanced'].map((k) => ({ key: k, label: k }))} />
       </Panel>
@@ -581,10 +581,10 @@ export function CourseEditorScreen({ mode, id }: { mode: 'admin' | 'super'; id?:
         {pricing !== 'free' ? <Row gap={10}><Input label="Course price (₹)" value={price} onChangeText={setPrice} keyboardType="number-pad" /><Input label="Offer price (optional)" value={offer} onChangeText={setOffer} keyboardType="number-pad" /></Row> : null}
         <Select label="Free trial" value={trial} options={['None', '3 days', '7 days', '14 days']} onChange={setTrial} />
         {mode === 'super' ? <T v="small">Free lessons: switch on “Free preview” inside a lesson.</T> : null}
-        <Row style={{ justifyContent: 'space-between' }}><T style={{ flex: 1, fontSize: 14 }}>Free for students of subscribed madrasas</T>
+        <Row style={{ justifyContent: 'space-between' }}><T style={{ flex: 1, fontSize: 14 }}>Free for students of subscribed institutions</T>
           <Pressable accessibilityRole="switch" accessibilityState={{ checked: freeForSubs }} onPress={() => setFreeForSubs(!freeForSubs)} style={{ width: 50, height: 30, borderRadius: 15, backgroundColor: freeForSubs ? colors.green : '#D2E1E5', padding: 3, alignItems: freeForSubs ? 'flex-end' : 'flex-start' }}><View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: '#FFF' }} /></Pressable>
         </Row>
-        <T v="small">Students pay in the app (UPI / card). {mode === 'admin' ? 'Revenue share: 70% madrasa · 30% Noon Learn.' : 'Payments go to Noon Learn.'}</T>
+        <T v="small">Students pay in the app (UPI / card). {mode === 'admin' ? 'Revenue share: 70% institution · 30% Noon Learn.' : 'Payments go to Noon Learn.'}</T>
       </Panel>
       {mode === 'super' ? (
         course ? <CourseStructure course={course} onChange={setCourse} /> : (
@@ -630,9 +630,9 @@ export function AdminProfileScreen() {
       chips={[{ text: user?.tenant_name ?? 'My institution', tint: colors.lav }, ...(user?.tenant_code ? [{ text: `Code ${user.tenant_code}`, tint: colors.sky }] : []), { text: 'Admissions · Live classes', tint: colors.mint }]}
       rows={profileRows(user)}
       tiles={[
-        { label: 'Madrasa info', icon: 'business-outline', tint: colors.lav, href: '/admin/settings' },
+        { label: 'Institution info', icon: 'business-outline', tint: colors.lav, href: '/admin/settings' },
         { label: 'Batches', icon: 'people-outline', tint: colors.sky, href: '/admin/batches' },
-        { label: 'Subscription', icon: 'card-outline', tint: colors.butter, note: 'Coming soon: your Madrasa Pro plan and invoices show here.' },
+        { label: 'Subscription', icon: 'card-outline', tint: colors.butter, note: 'Coming soon: your Institution Pro plan and invoices show here.' },
         { label: 'Settings', icon: 'settings-outline', tint: colors.mint, href: '/admin/settings' },
       ]} settingsHref="/admin/settings" />
   );

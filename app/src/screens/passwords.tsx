@@ -104,7 +104,7 @@ export function SetPasswordModal({ person, scope, onClose }: { person: { id: num
   );
 }
 
-/* ---------- Admin: everyone in my madrasa, with "Set password" ---------- */
+/* ---------- Admin: everyone in my institution, with "Set password" ---------- */
 interface PersonRow { id: number; name: string; role: 'admin' | 'teacher' | 'parent' | 'student'; login: string | null; blocked: boolean; parent?: { name: string; phone: string | null } | null }
 const ROLE_LABEL = { admin: 'Admin', teacher: 'Teacher', parent: 'Parent', student: 'Student' } as const;
 
@@ -118,7 +118,7 @@ export function AdminPeopleScreen() {
   const tints = [pastel.lav, pastel.sky, pastel.mint, pastel.pink];
   return (
     <Screen>
-      <Header title="People" subtitle="Everyone in your madrasa. Set a new password for anyone who forgot theirs." />
+      <Header title="People" subtitle="Everyone in your institution. Set a new password for anyone who forgot theirs." />
       <Segmented value={group} onChange={setGroup} activeColor={colors.violet} options={[{ key: 'staff', label: 'Staff' }, { key: 'students', label: 'Students' }]} />
       <View style={{ height: 10 }} />
       <Row style={{ backgroundColor: '#FFF', borderRadius: 24, borderWidth: 1.5, borderColor: colors.line, paddingHorizontal: 14, height: 48 }}>

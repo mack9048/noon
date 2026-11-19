@@ -76,8 +76,8 @@ export function AdminDashboardScreen() {
 
 /* ---------- Students ---------- */
 const STUDENTS = [
-  ['Ayisha Abdulla', 'Madrasa 5', 1, 'paid'], ['Fathima Rahman', 'Madrasa 5', 2, 'paid'], ['Muhammed Shafi', 'Madrasa 5', 3, 'due'], ['Rayan Ashraf', 'Madrasa 3', 7, 'over'],
-  ['Nida Fathima', 'Madrasa 3', 9, 'paid'], ['Hiba Nasar', 'Madrasa 7', 4, 'due'], ['Adil Musthafa', 'Madrasa 7', 11, 'paid'],
+  ['Ayisha Abdulla', 'Class 5', 1, 'paid'], ['Fathima Rahman', 'Class 5', 2, 'paid'], ['Muhammed Shafi', 'Class 5', 3, 'due'], ['Rayan Ashraf', 'Class 3', 7, 'over'],
+  ['Nida Fathima', 'Class 3', 9, 'paid'], ['Hiba Nasar', 'Class 7', 4, 'due'], ['Adil Musthafa', 'Class 7', 11, 'paid'],
 ] as const;
 const FEE_TAG = { paid: ['Fee paid', 'mint'], due: ['Fee due', 'butter'], over: ['Overdue', 'pink'] } as const;
 
@@ -92,7 +92,7 @@ export function AdminStudentsScreen() {
         <RoundAdd label="Bulk add" onPress={() => router.push('/admin/bulk' as any)} />
       </Row>
       <Search value={q} onChange={setQ} placeholder="Search by name or roll" />
-      <Chips value={cls} onChange={setCls} options={[{ key: 'all', label: 'All' }, { key: 'Madrasa 3', label: 'Madrasa 3' }, { key: 'Madrasa 5', label: 'Madrasa 5' }, { key: 'Madrasa 7', label: 'Madrasa 7' }]} />
+      <Chips value={cls} onChange={setCls} options={[{ key: 'all', label: 'All' }, { key: 'Class 3', label: 'Class 3' }, { key: 'Class 5', label: 'Class 5' }, { key: 'Class 7', label: 'Class 7' }]} />
       <View style={{ gap: 8 }}>
         {rows.map(([n, c, roll, fee], i) => (
           <ListRow key={n} left={<Avatar name={n} size={40} tint={[pastel.pink, pastel.lav, pastel.mint, pastel.sky][i % 4]} />} title={n} sub={`${c} · Roll ${roll}`}
@@ -106,7 +106,7 @@ export function AdminStudentsScreen() {
 
 /* ---------- Teachers & classes ---------- */
 const TEACHERS = [['Ustad Ahmed', 'Arabic, Akhlaq · 4 classes', 'Active'], ['Ayisha Miss', 'Fiqh, Quran · 5 classes', 'Active'], ['Safwan Usthad', 'Thajweed · 6 classes', 'Active'], ['Noushad K', 'Fiqh · 2 classes', 'On leave']] as const;
-const CLASSES = [['Madrasa 5', 'Arabic · 28 students · Ustad Ahmed', 'Full'], ['Madrasa 3', 'Akhlaq · 22 students · Ayisha Miss', 'Full'], ['Madrasa 2', 'Fiqh · 19 students · no teacher from Wed', 'Assign'], ['Madrasa 7', 'Fiqh · 25 students · no teacher from Wed', 'Assign']] as const;
+const CLASSES = [['Class 5', 'Arabic · 28 students · Ustad Ahmed', 'Full'], ['Class 3', 'Akhlaq · 22 students · Ayisha Miss', 'Full'], ['Class 2', 'Fiqh · 19 students · no teacher from Wed', 'Assign'], ['Class 7', 'Fiqh · 25 students · no teacher from Wed', 'Assign']] as const;
 
 export function AdminTeachersScreen() {
   const [tab, setTab] = useState<'teachers' | 'classes'>('teachers');
@@ -126,7 +126,7 @@ export function AdminTeachersScreen() {
         {tab === 'teachers' ? TEACHERS.map(([n, s, tag], i) => (
           <ListRow key={n} left={<Avatar name={n} size={40} tint={[pastel.lav, pastel.sky, pastel.pink, pastel.mint][i]} />} title={n} sub={s} right={<Tag text={tag} tone={tag === 'Active' ? 'mint' : 'butter'} />} />
         )) : CLASSES.map(([n, s, tag]) => (
-          <ListRow key={n} left={<Avatar name={n.replace('Madrasa ', 'M ')} size={40} tint={pastel.sky} />} title={n} sub={assigned.includes(n) ? s.replace('no teacher from Wed', 'Ayisha Miss (cover)') : s}
+          <ListRow key={n} left={<Avatar name={n.replace('Class ', 'C ')} size={40} tint={pastel.sky} />} title={n} sub={assigned.includes(n) ? s.replace('no teacher from Wed', 'Ayisha Miss (cover)') : s}
             right={tag === 'Assign' && !assigned.includes(n) ? <SmallButton title="Assign" filled tint={colors.ink} onPress={() => setAssigned([...assigned, n])} /> : <Tag text="Full" tone="mint" />} />
         ))}
       </View>
@@ -136,7 +136,7 @@ export function AdminTeachersScreen() {
 
 /* ---------- Bulk add ---------- */
 const BULK = {
-  students: ['students_madrasa5.xlsx', ['Name', 'Class', 'Roll no', 'Date of birth', 'Parent name', 'Parent phone'], [['12', 'Class “Madrasa 9” does not exist'], ['30', 'Parent phone is missing']], 'Send login details to parents by SMS', 'students', 48],
+  students: ['students_madrasa5.xlsx', ['Name', 'Class', 'Roll no', 'Date of birth', 'Parent name', 'Parent phone'], [['12', 'Class “9” does not exist'], ['30', 'Parent phone is missing']], 'Send login details to parents by SMS', 'students', 48],
   teachers: ['teachers_2026.xlsx', ['Name', 'Phone', 'Email', 'Subjects', 'Classes'], [['4', 'Email is already used']], 'Send login details to teachers by SMS', 'teachers', 12],
   parents: ['parents_list.csv', ['Name', 'Phone', 'Student roll no', 'Relation'], [['7', 'Student roll no not found'], ['19', 'Phone number is not valid']], 'Send app invite to parents by SMS', 'parents', 60],
   classes: ['classes_timetable.xlsx', ['Class name', 'Subject', 'Teacher', 'Days', 'Time'], [] as string[][], 'Tell teachers about their new classes', 'classes', 24],

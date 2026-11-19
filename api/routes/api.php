@@ -58,7 +58,7 @@ Route::get('/site/content', [SiteController::class, 'content']);
 Route::get('/games/{id}/file', [GameController::class, 'file'])->whereNumber('id')->name('games.file')->middleware('signed:relative');
 // HTML lesson content; only through the short-lived signed link from /course-items/{item}/open.
 Route::get('/course-items/{id}/html', [CourseBuilderController::class, 'html'])->whereNumber('id')->name('course-items.html')->middleware('signed:relative');
-// Public admission form (from the link the madrasa shares)
+// Public admission form (from the link the institution shares)
 Route::post('/apply/{code}', [AdmissionController::class, 'apply'])->middleware('throttle:join');
 Route::get('/portal/{code}', [AdmissionController::class, 'portal'])->middleware('throttle:60,1');
 Route::post('/portal/{code}/enquire', [AdmissionController::class, 'enquire'])->middleware('throttle:join');
@@ -92,7 +92,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::get('/study-tools', [StudyToolController::class, 'index']);
     Route::post('/study-tools/{tool}/open', [StudyToolController::class, 'open']);
 
-    // Madrasa members only. `tenant` limits every query to the user's own madrasa.
+    // Institution members only. `tenant` limits every query to the user's own institution.
     Route::middleware(['role:student,parent,teacher,admin', 'tenant'])->group(function () {
         Route::get('/fees', [FeeController::class, 'mine']);
         Route::get('/attendance', [AttendanceController::class, 'mine']);

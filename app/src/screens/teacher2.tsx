@@ -18,9 +18,9 @@ import { colors, fonts } from '@/theme/tokens';
 
 const SUBJ: Record<string, readonly [string, string]> = { Arabic: colors.lav, Fiqh: colors.sky, Thajweed: colors.mint, Quran: colors.pink };
 const CLASSES = [
-  { id: '5', n: '5', batch: 'Madrasa 5 · Morning', board: 'AP board', students: 28, subjects: ['Arabic', 'Fiqh'], ct: true, next: 'Today 4:30 PM · Arabic', att: '92%', g: ['#5B43E0', '#9B7BE8'] },
-  { id: '3', n: '3', batch: 'Madrasa 3 · Evening', board: 'AP board', students: 22, subjects: ['Arabic'], ct: false, next: 'Today 6:00 PM · Arabic', att: '88%', g: ['#0B5166', '#1F8AA8'] },
-  { id: '7', n: '7', batch: 'Madrasa 7', board: 'EK board', students: 25, subjects: ['Thajweed', 'Quran'], ct: false, next: 'Tomorrow 5:00 PM · Thajweed', att: '95%', g: ['#14945A', '#4ED68A'] },
+  { id: '5', n: '5', batch: 'Class 5 · Morning', board: 'AP board', students: 28, subjects: ['Arabic', 'Fiqh'], ct: true, next: 'Today 4:30 PM · Arabic', att: '92%', g: ['#5B43E0', '#9B7BE8'] },
+  { id: '3', n: '3', batch: 'Class 3 · Evening', board: 'AP board', students: 22, subjects: ['Arabic'], ct: false, next: 'Today 6:00 PM · Arabic', att: '88%', g: ['#0B5166', '#1F8AA8'] },
+  { id: '7', n: '7', batch: 'Class 7', board: 'EK board', students: 25, subjects: ['Thajweed', 'Quran'], ct: false, next: 'Tomorrow 5:00 PM · Thajweed', att: '95%', g: ['#14945A', '#4ED68A'] },
   { id: 'p1', n: '+1', batch: 'Plus One · Girls', board: 'General', students: 14, subjects: ['Fiqh'], ct: false, next: 'Sat 10:00 AM · Fiqh', att: '90%', g: ['#FF9A3D', '#FF5E7E'] },
 ] as const;
 const back = (to: string) => () => (router.canGoBack() ? router.back() : router.replace(to as any));
@@ -283,7 +283,7 @@ export function ExamNewScreen() {
   const [name, setName] = useState('Half-yearly exam 2026');
   const [type, setType] = useState('Half-yearly');
   const [subject, setSubject] = useState('Arabic');
-  const [batches, setBatches] = useState(['Madrasa 5 · Morning']);
+  const [batches, setBatches] = useState(['Class 5 · Morning']);
   const [date, setDate] = useState('2026-12-15');
   const [start, setStart] = useState('16:30');
   const [duration, setDuration] = useState('1 h 30 min');
@@ -330,7 +330,7 @@ export function ExamNewScreen() {
           <Input label="Exam name" value={name} onChangeText={setName} />
           <Row gap={10}><Select label="Type" value={type} options={['Term', 'Half-yearly', 'Annual', 'Unit test']} onChange={setType} /><Select label="Subject" value={subject} options={['Arabic', 'Fiqh', 'Quran', 'Thajweed', 'Akhlaq']} onChange={setSubject} /></Row>
           <T v="small" style={{ fontFamily: fonts.medium }}>Classes / batches</T>
-          <ToggleChips options={['Madrasa 5 · Morning', 'Madrasa 5 · Evening', 'Madrasa 3']} value={batches} onChange={setBatches} />
+          <ToggleChips options={['Class 5 · Morning', 'Class 5 · Evening', 'Class 3']} value={batches} onChange={setBatches} />
           <Row gap={10}><DateInput label="Date" value={date} onChange={setDate} min={new Date().toISOString().slice(0, 10)} /><DateInput label="Start" mode="time" value={start} onChange={setStart} /></Row>
           <Row gap={10}><Select label="Duration" value={duration} options={['30 min', '45 min', '1 h', '1 h 30 min', '2 h']} onChange={setDuration} /><Input label="Pass mark" value={pass} onChangeText={setPass} keyboardType="number-pad" /></Row>
           <Input label="Instructions for students" value={notes} onChangeText={setNotes} multiline />
@@ -425,7 +425,7 @@ export function TeacherProfileScreen() {
 
 export function TeacherSettingsScreen() {
   return (
-    <RoleSettingsScreen roleLine="Teacher · Noon Madrasa" profileHref="/teacher/profile" footer="Noon Learn for teachers · v1.0" groups={[
+    <RoleSettingsScreen roleLine="Teacher · Noon Institution" profileHref="/teacher/profile" footer="Noon Learn for teachers · v1.0" groups={[
       { title: 'Classes', rows: [
         { icon: 'alarm-outline', tint: T_.sky, label: 'Class reminders', sub: '15 min before each class', toggle: true },
         { icon: 'videocam-outline', tint: T_.pink, label: 'Auto-record live classes', sub: 'Recordings go to Done lessons', toggle: false },

@@ -21,7 +21,7 @@ export async function refreshApplications() {
   try { apps = await api.get<Application[]>('/admin/admissions'); loaded = true; emit(); } catch { /* shown as empty */ }
 }
 
-/** All applications of this madrasa (loads once, then stays in sync). */
+/** All applications of this institution (loads once, then stays in sync). */
 export function useApplications() {
   useEffect(() => { if (!loaded) refreshApplications(); }, []);
   return useSyncExternalStore(subscribe, () => apps, () => apps);

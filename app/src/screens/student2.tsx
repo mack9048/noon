@@ -189,7 +189,7 @@ export function ClassDoneScreen() {
       </Row>
       <T style={{ color: colors.violet, fontFamily: fonts.semibold }}>{subject?.title ?? 'Fiqh'} · Lesson {pad(lesson?.position ?? 4)}</T>
       <T v="h1">{lesson?.title ?? 'Thahur'}</T>
-      <T v="small">{CLASSROOM_INFO.live.teacher} · 45 min · {subject?.subtitle ?? 'Madrasa 5'}</T>
+      <T v="small">{CLASSROOM_INFO.live.teacher} · 45 min · {subject?.subtitle ?? 'Class 5'}</T>
 
       <View style={{ marginTop: 14 }}><ClassTiles space={subject} lesson={lesson?.position} /></View>
 
@@ -323,7 +323,7 @@ export function BioScreen() {
       <View style={{ position: 'absolute', left: -40, right: -40, top: -12, height: 230, backgroundColor: colors.pink[0], borderBottomLeftRadius: 60, borderBottomRightRadius: 60 }} />
       <Row style={{ justifyContent: 'space-between', height: 56 }}>
         <IconButton name="chevron-back" label="Back" size={52} onPress={() => (router.canGoBack() ? router.back() : router.replace('/student/profile' as any))} />
-        <Pressable accessibilityRole="button" accessibilityLabel="Edit profile" onPress={() => demoNote('To change these details, please ask your madrasa office.')}
+        <Pressable accessibilityRole="button" accessibilityLabel="Edit profile" onPress={() => demoNote('To change these details, please ask your institution office.')}
           style={{ height: 46, paddingHorizontal: 18, borderRadius: 23, backgroundColor: '#FFF', flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <Ionicons name="pencil" size={15} color={colors.ink} /><T style={{ fontFamily: fonts.medium }}>Edit</T>
         </Pressable>

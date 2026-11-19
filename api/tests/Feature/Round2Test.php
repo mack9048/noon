@@ -26,7 +26,7 @@ class Round2Test extends TestCase
         $this->as($admin)->getJson('/api/admin/admissions')->assertOk()->assertJsonCount(1)->assertJsonPath('0.name', 'Rayan Ahmed')->assertJsonPath('0.docs.birth', true);
         $this->as($admin)->patchJson("/api/admin/admissions/{$ref}", ['status' => 'admitted'])->assertOk()->assertJsonPath('status', 'admitted')->assertJsonCount(2, 'timeline');
 
-        // Another madrasa's admin can't see or change it.
+        // Another institution's admin can't see or change it.
         $otherAdmin = $this->member($other, 'admin');
         $this->as($otherAdmin)->getJson('/api/admin/admissions')->assertOk()->assertJsonCount(0);
         $this->as($otherAdmin)->patchJson("/api/admin/admissions/{$ref}", ['status' => 'rejected'])->assertNotFound();
@@ -42,7 +42,7 @@ class Round2Test extends TestCase
         $teacher = $this->member($t, 'teacher');
         $foreign = $this->member($other, 'teacher');
         $s1 = $this->member($t, 'student');
-        $base = ['name' => 'Madrasa 5 · Evening', 'board' => 'AP', 'cls' => '5', 'days' => ['Mo', 'We'], 'start_time' => '6:00 PM', 'seats' => 30];
+        $base = ['name' => 'Class 5 · Evening', 'board' => 'AP', 'cls' => '5', 'days' => ['Mo', 'We'], 'start_time' => '6:00 PM', 'seats' => 30];
 
         $this->as($admin)->postJson('/api/admin/batches', $base + ['class_teacher_id' => $foreign->id])->assertUnprocessable();
         $this->as($admin)->postJson('/api/admin/batches', $base + ['class_teacher_id' => $teacher->id, 'subject_teachers' => ['Arabic' => $teacher->id], 'student_ids' => [$s1->id]])
@@ -67,7 +67,7 @@ class Round2Test extends TestCase
         $this->as($super)->patchJson("/api/super/approvals/{$id}", ['status' => 'approved'])->assertOk()->assertJsonPath('status', 'approved');
 
         $this->as($student)->getJson('/api/courses')->assertOk()->assertJsonCount(1)->assertJsonPath('0.title', 'Malayalam Duas');
-        $this->as($guest)->getJson('/api/courses')->assertOk()->assertJsonCount(0); // madrasa-only
+        $this->as($guest)->getJson('/api/courses')->assertOk()->assertJsonCount(0); // institution-only
         $this->as($this->member($other, 'student'))->getJson('/api/courses')->assertOk()->assertJsonCount(0);
         $this->as($admin)->patchJson("/api/super/approvals/{$id}", ['status' => 'approved'])->assertForbidden();
     }
@@ -81,7 +81,7 @@ class Round2Test extends TestCase
         $this->as($super)->post("/api/super/courses/{$course->id}/logo", ['logo' => UploadedFile::fake()->image('logo.png', 512, 512)], ['Accept' => 'application/json'])
             ->assertOk()->assertJsonStructure(['logo_url']);
         $this->as($super)->post("/api/super/courses/{$course->id}/logo", ['logo' => UploadedFile::fake()->create('x.php', 10, 'text/x-php')], ['Accept' => 'application/json'])->assertUnprocessable();
-        // A madrasa admin can only change logos of their own madrasa's courses.
+        // An institution admin can only change logos of their own institution's courses.
         $this->as($this->member($t, 'admin'))->post("/api/admin/courses/{$course->id}/logo", ['logo' => UploadedFile::fake()->image('l.png', 512, 512)], ['Accept' => 'application/json'])->assertForbidden();
         $this->assertNotNull($course->fresh()->logo_url);
     }

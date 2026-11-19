@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Route;
 use LogicException;
 use Tests\TestCase;
 
-/** A madrasa must never reach another madrasa's data. */
+/** An institution must never reach another institution's data. */
 class TenantIsolationTest extends TestCase
 {
     private function leaveIn($tenant, $student): LeaveRequest
@@ -44,7 +44,7 @@ class TenantIsolationTest extends TestCase
         $b = $this->madrasa('BBB222');
         $outsider = $this->member($a);
         $chat = Conversation::create(['tenant_id' => $b->id, 'kind' => 'group', 'title' => 'Class 5']);
-        // Even if someone was wrongly added to it, a chat from another madrasa stays hidden.
+        // Even if someone was wrongly added to it, a chat from another institution stays hidden.
         $chat->users()->attach($outsider->id);
 
         $this->as($outsider);
@@ -94,7 +94,7 @@ class TenantIsolationTest extends TestCase
         app(TenantContext::class)->runAs($a, fn () => Conversation::create(['tenant_id' => $b->id, 'kind' => 'group']));
     }
 
-    /** Guard rail: madrasa routes must resolve the madrasa; super routes must be super-only. */
+    /** Guard rail: institution routes must resolve the institution; super routes must be super-only. */
     public function test_every_member_route_runs_inside_a_madrasa(): void
     {
         foreach (Route::getRoutes() as $route) {

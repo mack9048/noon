@@ -17,7 +17,7 @@ class Assessment extends Model
         return $this->hasMany(AssessmentResult::class);
     }
 
-    /** Noon-made ones plus the ones the user's own madrasa made. */
+    /** Noon-made ones plus the ones the user's own institution made. */
     public function scopeVisibleTo(Builder $q, User $user): Builder
     {
         return $q->where(fn ($w) => $w->whereNull('tenant_id')->when($user->tenant_id, fn ($o) => $o->orWhere('tenant_id', $user->tenant_id)));

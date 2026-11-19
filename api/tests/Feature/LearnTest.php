@@ -110,12 +110,12 @@ class LearnTest extends TestCase
         $outsider = $this->student($other);
         $a = Assessment::create(['tenant_id' => $t->id, 'subject_id' => $this->subject->id, 'type' => 'assessment', 'title' => 'Test', 'max_marks' => 20]);
 
-        // Over the max, and students from another madrasa, are refused.
+        // Over the max, and students from another institution, are refused.
         $s = $this->student($t);
         $this->as($teacher)->postJson("/api/staff/assessments/{$a->id}/results", ['results' => [['student_id' => $s->id, 'marks' => 21]]])->assertUnprocessable();
         $this->as($teacher)->postJson("/api/staff/assessments/{$a->id}/results", ['results' => [['student_id' => $outsider->id, 'marks' => 10]]])->assertUnprocessable();
 
-        // Teachers of another madrasa can't mark it, and students can't mark at all.
+        // Teachers of another institution can't mark it, and students can't mark at all.
         $this->as($this->member($other, 'teacher'))->postJson("/api/staff/assessments/{$a->id}/results", ['results' => [['student_id' => $s->id, 'marks' => 10]]])->assertForbidden();
         $this->as($s)->postJson("/api/staff/assessments/{$a->id}/results", ['results' => [['student_id' => $s->id, 'marks' => 20]]])->assertForbidden();
     }

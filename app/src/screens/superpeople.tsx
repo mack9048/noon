@@ -1,4 +1,4 @@
-// Super admin: tenants (madrasas), every user, and "Log in as" any user.
+// Super admin: tenants (institutions), every user, and "Log in as" any user.
 import React, { useState } from 'react';
 import { Alert, Platform, Pressable, Switch, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -255,9 +255,9 @@ export function SuperTenantFormScreen() {
 
   return (
     <Screen>
-      <Header title={editing ? 'Edit tenant' : 'New tenant'} subtitle={editing ? `Code ${t?.code}` : 'Creates the madrasa and its first admin login'} />
+      <Header title={editing ? 'Edit tenant' : 'New tenant'} subtitle={editing ? `Code ${t?.code}` : 'Creates the institution and its first admin login'} />
       <Card style={{ gap: 14 }}>
-        {field('Tenant name', 'name', { placeholder: 'e.g. Al Noor Madrasa' })}
+        {field('Tenant name', 'name', { placeholder: 'e.g. Al Noor Institution' })}
         <View style={{ gap: 6 }}>
           <T v="small" style={{ fontFamily: fonts.medium }}>Plan</T>
           <Chips value={f.plan} onChange={(p) => setF({ ...f, plan: p })} options={PLANS} />

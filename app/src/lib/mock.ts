@@ -43,7 +43,7 @@ let tools: StudyTool[] = [
   ...['ഉപ പാഠപുസ്തകം മാർക്ക് ലിസ്റ്റ്', 'എഴുത്ത് പരിശീലനം', 'നിറം നൽകാം (1)', 'നിറം നൽകാം (2)'].map((t, i) => ({ id: 100 + i, type: 'chart' as const, title: t, is_new: i === 0, status: 'live' as const, views: 120 + i * 30 })),
   ...['നിസ്കാരം', 'അസ്മാഉൽ ഹുസ്ന', 'ഉറങ്ങുന്നതിനു മുൻപ്', 'ഓരോ വക്തിനും ശേഷമുള്ള ദുആ', 'ദൈനംദിന ദിക്റുകൾ'].map((t, i) => ({ id: 200 + i, type: 'adkar' as const, title: t, is_new: false, status: 'live' as const, views: 90 + i * 12 })),
   ...['ضَمَائِرُ الْمُنْفَصِلَةِ', 'طَلَعَ الْبَدْرُ', 'അറബി അക്ഷരമാല', 'ചോദ്യ പദങ്ങൾ'].map((t, i) => ({ id: 300 + i, type: 'slide' as const, title: t, is_new: false, status: 'live' as const, views: 60 + i * 9 })),
-  ...['MSR പരിശ്കരണ ഫോം', 'ജോയിൻ ലെറ്റർ', 'മദ്റസയിൽ ചേർക്കാനുള്ള അപേക്ഷാ ഫോറം'].map((t, i) => ({ id: 400 + i, type: 'form' as const, title: t, is_new: i === 0, status: 'live' as const, views: 40 + i * 7 })),
+  ...['MSR പരിശ്കരണ ഫോം', 'ജോയിൻ ലെറ്റർ', 'സ്ഥാപനത്തിൽ ചേർക്കാനുള്ള അപേക്ഷാ ഫോറം'].map((t, i) => ({ id: 400 + i, type: 'form' as const, title: t, is_new: i === 0, status: 'live' as const, views: 40 + i * 7 })),
 ];
 
 const leave: LeaveSummary = {
@@ -56,7 +56,7 @@ const leave: LeaveSummary = {
 
 const conversations: Conversation[] = [
   { id: 1, title: 'Ustad Ahmed', kind: 'direct', role_label: 'Teacher', last_message: 'Fatha — the mark is on top.', last_at: '4:23 PM', unread: 2 },
-  { id: 2, title: 'Madrasa 5 · Class group', kind: 'group', role_label: 'Group', last_message: 'Fathima: Who has the Fiqh notes?', last_at: '4:12 PM', unread: 5 },
+  { id: 2, title: 'Class 5 · Class group', kind: 'group', role_label: 'Group', last_message: 'Fathima: Who has the Fiqh notes?', last_at: '4:12 PM', unread: 5 },
   { id: 3, title: 'Noon Learn office', kind: 'office', role_label: 'Admin', last_message: 'Classes are off on Friday.', last_at: '3:58 PM', unread: 0 },
 ];
 const messages: Message[] = [
@@ -69,7 +69,7 @@ const messages: Message[] = [
 function demoUser(role: Role, name: string): User {
   const inSchool = role !== 'guest' && role !== 'super';
   const login = ({ student: null, parent: 'parent1@demo.noonlearn.com', teacher: 'teacher1@demo.noonlearn.com', admin: 'admin@demo.noonlearn.com', super: 'super@noonlearn.com' } as Record<string, string | null>)[role] ?? null;
-  return { id: 1, name, role, tenant_id: inSchool ? 1 : null, tenant_name: inSchool ? 'Noon Demo Madrasa' : null, tenant_code: inSchool ? 'DEMO01' : null, board_id: 1, class_id: 105, avatar_initial: name[0],
+  return { id: 1, name, role, tenant_id: inSchool ? 1 : null, tenant_name: inSchool ? 'Noon Demo Institution' : null, tenant_code: inSchool ? 'DEMO01' : null, board_id: 1, class_id: 105, avatar_initial: name[0],
     email: login, phone: role === 'parent' ? '+97336800100' : null, admission_no: role === 'student' ? 'DEMO-001' : null,
     board_name: role === 'student' ? 'Sunni Vidyabhyasa Board' : null, class_label: role === 'student' ? '5' : null,
     parent: role === 'student' ? { name: 'Muhammed Ali', phone: '+97336800100' } : null, joined: 'Jun 2026' };
@@ -79,17 +79,17 @@ function demoUser(role: Role, name: string): User {
 const BATCH_TEACHERS = [{ id: 2, name: 'Ustad Ahmed' }, { id: 3, name: 'Ayisha Miss' }, { id: 4, name: 'Safwan Usthad' }, { id: 5, name: 'Noushad K' }];
 const BATCH_STUDENTS = ['Ayisha Rahman', 'Fathima Nasrin', 'Hamdan P', 'Muhammed Adil', 'Nihal T', 'Rayan Ahmed', 'Shifa K', 'Zayan M', 'Amna Sherin', 'Bilal K'].map((name, i) => ({ id: 100 + i, name }));
 let batchRows = [
-  { id: 1, cls: '5', name: 'Madrasa 5 · Morning', board: 'AP', when: 'Mo–Th 4:30 PM', students: 28, teachers: 3, subjects: 8, ct: 'Ustad Ahmed' },
-  { id: 2, cls: '3', name: 'Madrasa 3 · Evening', board: 'AP', when: 'Mo–Th 6:00 PM', students: 22, teachers: 3, subjects: 7, ct: 'Ayisha Miss' },
-  { id: 3, cls: '7', name: 'Madrasa 7', board: 'EK', when: 'Tu–Fr 5:00 PM', students: 25, teachers: 4, subjects: 8, ct: 'Safwan Usthad' },
+  { id: 1, cls: '5', name: 'Class 5 · Morning', board: 'AP', when: 'Mo–Th 4:30 PM', students: 28, teachers: 3, subjects: 8, ct: 'Ustad Ahmed' },
+  { id: 2, cls: '3', name: 'Class 3 · Evening', board: 'AP', when: 'Mo–Th 6:00 PM', students: 22, teachers: 3, subjects: 7, ct: 'Ayisha Miss' },
+  { id: 3, cls: '7', name: 'Class 7', board: 'EK', when: 'Tu–Fr 5:00 PM', students: 25, teachers: 4, subjects: 8, ct: 'Safwan Usthad' },
   { id: 4, cls: '+1', name: 'Plus One · Girls', board: 'GEN', when: 'Sa–Su 10:00 AM', students: 14, teachers: 2, subjects: 6, ct: 'Ayisha Miss' },
 ];
 
-// ---- Course approvals (madrasa-made courses) ----
+// ---- Course approvals (institution-made courses) ----
 let courseRequests: { id: number; title: string; category: string; madrasa: string; when: string; tags: string[]; status: string; logo_url?: string | null }[] = [
-  { id: 901, title: 'Malayalam Duas for Kids', category: 'Duas', madrasa: 'Noon Madrasa', when: 'Just now', tags: ['Duas & Adkar', '3 items', 'Ayisha Miss', 'My madrasa only'], status: 'waiting' },
-  { id: 902, title: 'Thajweed for Girls', category: 'Quran', madrasa: 'Al Noor Madrasa', when: '3h ago', tags: ['Quran', '12 items', 'Live weekly', 'All Noon Learn'], status: 'waiting' },
-  { id: 903, title: 'Fiqh Q&A Live', category: 'Fiqh', madrasa: 'Darul Huda Online', when: 'Yesterday', tags: ['Fiqh', '6 items', 'Live monthly', 'My madrasa only'], status: 'waiting' },
+  { id: 901, title: 'Malayalam Duas for Kids', category: 'Duas', madrasa: 'Noon Institution', when: 'Just now', tags: ['Duas & Adkar', '3 items', 'Ayisha Miss', 'My institution only'], status: 'waiting' },
+  { id: 902, title: 'Thajweed for Girls', category: 'Quran', madrasa: 'Al Noor Institution', when: '3h ago', tags: ['Quran', '12 items', 'Live weekly', 'All Noon Learn'], status: 'waiting' },
+  { id: 903, title: 'Fiqh Q&A Live', category: 'Fiqh', madrasa: 'Darul Huda Online', when: 'Yesterday', tags: ['Fiqh', '6 items', 'Live monthly', 'My institution only'], status: 'waiting' },
 ];
 
 // ---- Admissions (public form + admin list) ----
@@ -158,8 +158,8 @@ function learnDetail(type: string, id: number): LearnDetail {
   };
 }
 
-// ---- Super admin: madrasas, users and "Log in as" ----
-let mockTenants = [{ id: 1, name: 'Noon Demo Madrasa', code: 'DEMO01', plan: 'pro', active: true, students_count: 6, teachers_count: 3 }];
+// ---- Super admin: institutions, users and "Log in as" ----
+let mockTenants = [{ id: 1, name: 'Noon Demo Institution', code: 'DEMO01', plan: 'pro', active: true, students_count: 6, teachers_count: 3 }];
 const mockPeople: [string, Role, string, string | null][] = [
   ['Demo Office Admin', 'admin', 'admin@demo.noonlearn.com', null],
   ['Ustad Ahmed', 'teacher', 'teacher1@demo.noonlearn.com', null], ['Ayisha Miss', 'teacher', 'teacher2@demo.noonlearn.com', null], ['Safwan Usthad', 'teacher', 'teacher3@demo.noonlearn.com', null],
@@ -167,11 +167,11 @@ const mockPeople: [string, Role, string, string | null][] = [
   ['Ayisha', 'student', 'DEMO-001', 'DEMO-001'], ['Rayan Ahmed', 'student', 'DEMO-002', 'DEMO-002'], ['Fathima Nasrin', 'student', 'DEMO-003', 'DEMO-003'],
   ['Hana Fathima', 'student', 'DEMO-004', 'DEMO-004'], ['Shifa K', 'student', 'DEMO-005', 'DEMO-005'], ['Muhammed Zayan', 'student', 'DEMO-006', 'DEMO-006'],
 ];
-const mockUsers = mockPeople.map(([name, role, login, adm], i) => ({ id: 500 + i, name, role, login, admission_no: adm, tenant_id: 1, tenant_name: 'Noon Demo Madrasa', tenant_code: 'DEMO01', blocked: false }));
+const mockUsers = mockPeople.map(([name, role, login, adm], i) => ({ id: 500 + i, name, role, login, admission_no: adm, tenant_id: 1, tenant_name: 'Noon Demo Institution', tenant_code: 'DEMO01', blocked: false }));
 let superMe: User | null = null;
 
 // ---- Sample data for live classes, students, teachers, campaigns and leads ----
-const STAFF_BATCHES = [{ id: 1, name: 'Madrasa 5 · Evening' }, { id: 2, name: 'Madrasa 3 · Morning' }];
+const STAFF_BATCHES = [{ id: 1, name: 'Class 5 · Evening' }, { id: 2, name: 'Class 3 · Morning' }];
 type MockLive = { id: number; title: string; kind: 'class' | 'meeting'; starts_at: string; duration_min: number; meet_url: string; notes: string | null; batch: { id: number; name: string } | null; host: string | null };
 const inMinutes = (min: number) => new Date(Date.now() + min * 60000).toISOString();
 let liveSessions: MockLive[] = [
@@ -253,7 +253,7 @@ let mockSitePublish: any = null;
 const siteChanged = (p: { draft: any; published: any }) => JSON.stringify(p.draft ?? {}) !== JSON.stringify(p.published ?? {});
 
 // ---- Institution settings & attendance ----
-let mockInstitution = { id: 1, name: 'Noon Demo Madrasa', code: 'DEMO01', plan: 'pro', active: true, phone: '+91 95626 51864', address: 'Kozhikode, Kerala', academic_year: '2026–27', default_fee: 800 as number | null };
+let mockInstitution = { id: 1, name: 'Noon Demo Institution', code: 'DEMO01', plan: 'pro', active: true, phone: '+91 95626 51864', address: 'Kozhikode, Kerala', academic_year: '2026–27', default_fee: 800 as number | null };
 let mockAttendance: { student_id: number; date: string; status: string; batch_id: number }[] = [];
 
 type Handler = (m: RegExpMatchArray, body: any) => unknown;
@@ -283,8 +283,8 @@ const routes: [string, RegExp, Handler][] = [
   }],
   ['POST', /^\/auth\/password\/reset$/, (_, b) => { if (b?.otp !== '123456') throw new Error('The code is not correct.'); return { message: 'Your password has been changed.' }; }],
   ['POST', /^\/auth\/join-tenant$/, (_, b) => {
-    if (String(b?.code ?? '').trim().toUpperCase() !== 'NOON01') throw new Error('This madrasa code is not valid.');
-    me = { ...(me ?? demoUser('student', 'Guest')), role: 'student', tenant_id: 1, tenant_name: 'Noon Madrasa' };
+    if (String(b?.code ?? '').trim().toUpperCase() !== 'NOON01') throw new Error('This institution code is not valid.');
+    me = { ...(me ?? demoUser('student', 'Guest')), role: 'student', tenant_id: 1, tenant_name: 'Noon Institution' };
     return me;
   }],
   ['POST', /^\/auth\/logout$/, () => { me = superMe; superMe = null; return {}; }],
@@ -347,7 +347,7 @@ const routes: [string, RegExp, Handler][] = [
     return c;
   }],
   ['POST', /^\/admin\/courses$/, (_, b) => {
-    const row = { id: nextId++, title: b.title, category: b.category, madrasa: 'Noon Madrasa', when: 'Just now', tags: [b.category, `${(b.lessons ?? []).length} items`, b.level, b.visibility === 'madrasa' ? 'My madrasa only' : 'All Noon Learn'], status: 'waiting', logo_url: b.logo_url ?? null };
+    const row = { id: nextId++, title: b.title, category: b.category, madrasa: 'Noon Institution', when: 'Just now', tags: [b.category, `${(b.lessons ?? []).length} items`, b.level, b.visibility === 'madrasa' ? 'My institution only' : 'All Noon Learn'], status: 'waiting', logo_url: b.logo_url ?? null };
     courseRequests = [row, ...courseRequests];
     return row;
   }],
@@ -363,7 +363,7 @@ const routes: [string, RegExp, Handler][] = [
     const id = `APL-2026-${String(nextId++).slice(-4)}`;
     const age = b.dob ? Math.max(3, new Date().getFullYear() - new Date(b.dob).getFullYear()) : 0;
     admissionRows = [{ id, name: b.name, gender: b.gender, dob: b.dob ?? '—', age, board: b.board, cls: b.cls, parent: b.parent, relation: 'Parent', phone: b.phone, city: '—', docs: { birth: false, tc: false, photo: false, ...(b.docs ?? {}) }, status: 'new', when: 'Just now', timeline: [['Form submitted via the online form', nowStr()]] }, ...admissionRows];
-    return { id, madrasa: 'Noon Madrasa' };
+    return { id, madrasa: 'Noon Institution' };
   }],
   ['GET', /^\/learn$/, () => learnSpaces()],
   ['GET', /^\/learn\/(subject|course)\/(\d+)$/, (m) => learnDetail(m[1], +m[2])],
@@ -425,14 +425,14 @@ const routes: [string, RegExp, Handler][] = [
   ['GET', /^\/admin\/students(\?q=(.*))?$/, (m) => { const q = decodeURIComponent(m[2] ?? '').toLowerCase(); return studentRows.filter((s) => !q || `${s.name} ${s.admission_no} ${s.parent}`.toLowerCase().includes(q)); }],
   ['GET', /^\/admin\/students\/(\d+)$/, (m) => {
     const s = studentRows.find((x) => x.id === +m[1]); if (!s) throw new Error('This student was not found.');
-    return { ...s, email: null, batches: [{ id: 1, name: 'Madrasa 5 · Evening' }], courses: [{ id: 1, title: 'Arabic for Beginners', progress: 40 }], joined: 'Jun 2026' };
+    return { ...s, email: null, batches: [{ id: 1, name: 'Class 5 · Evening' }], courses: [{ id: 1, title: 'Arabic for Beginners', progress: 40 }], joined: 'Jun 2026' };
   }],
   ['PUT', /^\/admin\/students\/(\d+)$/, (m, b) => {
     const s0 = studentRows.find((x) => x.id === +m[1]); if (!s0) throw new Error('This student was not found.');
     const upd = { ...s0, name: b.name ?? s0.name, admission_no: b.admission_no ?? s0.admission_no, cls: b.cls ?? s0.cls, board: b.board ?? s0.board,
       parent: b.parent_name ?? s0.parent, parent_phone: b.parent_phone ? String(b.parent_phone).replace(/\D/g, '') : s0.parent_phone, blocked: b.blocked ?? s0.blocked };
     studentRows = studentRows.map((x) => (x.id === s0.id ? upd : x));
-    return { ...upd, email: b.email ?? null, batch_ids: b.batch_ids ?? [1], batches: [{ id: 1, name: 'Madrasa 5 · Evening' }], courses: [], joined: 'Jun 2026' };
+    return { ...upd, email: b.email ?? null, batch_ids: b.batch_ids ?? [1], batches: [{ id: 1, name: 'Class 5 · Evening' }], courses: [], joined: 'Jun 2026' };
   }],
   ['POST', /^\/admin\/students$/, (_, b) => {
     const rows = Array.isArray(b?.students) ? b.students : [b];
@@ -503,14 +503,14 @@ const routes: [string, RegExp, Handler][] = [
     const c = campaigns.find((x) => x.code === code);
     if (!c && code !== 'DEMO01' && code !== 'NOON01') throw new Error('This admission link is not valid.');
     const pub = (x: typeof c) => x && { code: x.code, title: x.title, year: x.year, classes: x.classes, closes_on: x.closes_on, description: x.description, fee_note: x.fee_note, is_open: x.status === 'open', seats_left: x.seats };
-    return { institution: { name: 'Noon Demo Madrasa', code: 'DEMO01' }, campaign: pub(c) ?? null, campaigns: campaigns.filter((x) => x.status === 'open').map(pub) };
+    return { institution: { name: 'Noon Demo Institution', code: 'DEMO01' }, campaign: pub(c) ?? null, campaigns: campaigns.filter((x) => x.status === 'open').map(pub) };
   }],
   ['POST', /^\/portal\/([^/?]+)\/enquire$/, (m, b) => {
     if (!b?.student || String(b?.phone ?? '').replace(/\D/g, '').length < 7) throw new Error('Enter the student\'s name and a phone number.');
     const c = campaigns.find((x) => x.code === decodeURIComponent(m[1]).toUpperCase());
     leads = [{ id: nextId++, student: b.student, parent: b.parent ?? null, phone: b.phone, email: b.email ?? null, cls: b.cls ?? null, source: 'online', status: 'new', follow_up_on: null, overdue: false,
       notes: b.message ? [{ text: b.message, by: null, at: nowStr() }] : [], campaign: c ? { id: c.id, title: c.title } : null, admission: null, when: 'Just now' }, ...leads];
-    return { ok: true, institution: 'Noon Demo Madrasa' };
+    return { ok: true, institution: 'Noon Demo Institution' };
   }],
   // ---- Uploaded HTML games ----
   ['GET', /^\/games$/, () => htmlGames.filter((g) => g.status === 'live' && (me?.tenant_id ? g.audience !== 'guests' : g.audience !== 'students')).sort((a, b) => a.position - b.position).map(gamePublic)],

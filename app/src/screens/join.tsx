@@ -12,7 +12,7 @@ import { colors, fonts } from '@/theme/tokens';
 
 /**
  * Guest onboarding in one screen with two steps:
- *  1. name / age / parent phone + choose Madrasa Support and/or Noon Courses
+ *  1. name / age / parent phone + choose Institution Support and/or Noon Courses
  *  2. pick board + class and/or courses → creates a guest account
  */
 export function JoinScreen() {
@@ -49,7 +49,7 @@ export function JoinScreen() {
         board_id: wantMadrasa ? boardId : null, class_id: wantMadrasa ? classId : null,
         course_ids: wantCourses ? picked : [],
       });
-      // A verified number may belong to a madrasa account: open that app.
+      // A verified number may belong to an institution account: open that app.
       router.replace(homeFor(u.role) as any);
     } catch (e: any) {
       if (e instanceof ApiError && e.code === 'otp_required') {
@@ -74,7 +74,7 @@ export function JoinScreen() {
             </Row>
           </Card>
           <T v="label">CHOOSE ONE OR BOTH</T>
-          <PathCard emoji="🕌" title="Madrasa Support" desc="Textbooks, video & audio classes for your board and class" on={wantMadrasa} onPress={() => setWantMadrasa(!wantMadrasa)} pastel={colors.sky} accent={colors.teal} />
+          <PathCard emoji="🕌" title="Institution Support" desc="Textbooks, video & audio classes for your board and class" on={wantMadrasa} onPress={() => setWantMadrasa(!wantMadrasa)} pastel={colors.sky} accent={colors.teal} />
           <PathCard emoji="🎓" title="Noon Courses" desc="Arabic, Thajweed, Fiqh and more with live classes" on={wantCourses} onPress={() => setWantCourses(!wantCourses)} pastel={colors.lav} accent={colors.violet} />
           <Button title="Next" icon="arrow-forward" disabled={!wantMadrasa && !wantCourses} onPress={() => setStep(2)} />
         </View>
@@ -89,7 +89,7 @@ export function JoinScreen() {
       <View style={{ maxWidth: 760, width: '100%', alignSelf: 'center', gap: 14 }}>
         <Header title="Pick your learning" subtitle="Step 2 of 2" />
         {wantMadrasa && wantCourses ? (
-          <Segmented value={tab} onChange={setTab} options={[{ key: 'madrasa', label: 'Madrasa Support' }, { key: 'course', label: 'Noon Courses' }]} />
+          <Segmented value={tab} onChange={setTab} options={[{ key: 'madrasa', label: 'Institution Support' }, { key: 'course', label: 'Noon Courses' }]} />
         ) : null}
 
         {tab === 'madrasa' && wantMadrasa ? (

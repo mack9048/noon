@@ -18,7 +18,7 @@ class AttendanceTest extends TestCase
         $parent = $this->member($t, 'parent', ['phone' => '919562651864']);
         $a = $this->member($t, 'student', ['name' => 'Ayisha', 'parent_id' => $parent->id]);
         $b = $this->member($t, 'student', ['name' => 'Rayan']);
-        $batch = Batch::create(['tenant_id' => $t->id, 'name' => 'Madrasa 5', 'board' => 'AP', 'class_label' => '5', 'days' => ['Mo'], 'start_time' => '16:30', 'class_teacher_id' => $teacher->id]);
+        $batch = Batch::create(['tenant_id' => $t->id, 'name' => 'Class 5', 'board' => 'AP', 'class_label' => '5', 'days' => ['Mo'], 'start_time' => '16:30', 'class_teacher_id' => $teacher->id]);
         $batch->students()->attach([$a->id, $b->id]);
 
         // New school: empty report

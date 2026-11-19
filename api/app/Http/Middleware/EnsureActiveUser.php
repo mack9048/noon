@@ -6,7 +6,7 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-/** Blocked users and users of a switched-off madrasa lose access at once, even with a valid token. */
+/** Blocked users and users of a switched-off institution lose access at once, even with a valid token. */
 class EnsureActiveUser
 {
     public function handle(Request $request, Closure $next): Response
@@ -16,8 +16,8 @@ class EnsureActiveUser
             $user->currentAccessToken()?->delete();
 
             return response()->json(['message' => $user->blocked
-                ? 'This account is blocked. Please contact your madrasa.'
-                : 'Your madrasa account is not active.'], 403);
+                ? 'This account is blocked. Please contact your institution.'
+                : 'Your institution account is not active.'], 403);
         }
 
         return $next($request);

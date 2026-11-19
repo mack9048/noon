@@ -1,4 +1,4 @@
-// Courses made by madrasa admins wait for super-admin approval.
+// Courses made by institution admins wait for super-admin approval.
 // Admin: POST /admin/courses (+ logo). Super admin: GET/PATCH /super/approvals.
 import { useEffect, useSyncExternalStore } from 'react';
 import { Platform } from 'react-native';

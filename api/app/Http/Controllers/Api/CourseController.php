@@ -15,14 +15,14 @@ use Illuminate\Validation\Rule;
  * Noon Courses for all roles:
  *  - students/guests: list, detail, enrol
  *  - teachers: add content to courses they teach
- *  - institute admin: switch courses on/off for the madrasa
+ *  - institute admin: switch courses on/off for the institution
  *  - super admin: full CRUD (see super* methods)
  */
 class CourseController extends Controller
 {
     private const WITH = ['items', 'teacher', 'students', 'lessons'];
 
-    /** Public catalogue for the sign-up page: published courses open to everyone (no madrasa-only ones). */
+    /** Public catalogue for the sign-up page: published courses open to everyone (no institution-only ones). */
     public function catalog()
     {
         return Course::where('status', 'published')->where('visibility', 'all')->with(self::WITH)->latest()->get()
@@ -127,13 +127,13 @@ class CourseController extends Controller
         $tenant = $request->user()->tenant;
         $data = $request->validate([
             'enabled' => ['required', 'boolean'],
-            // Only a teacher of this madrasa can be put on the course.
+            // Only a teacher of this institution can be put on the course.
             'teacher_id' => ['nullable', 'integer', Rule::exists('users', 'id')->where('tenant_id', $tenant?->id)->where('role', 'teacher')],
             'class_ids' => ['nullable', 'array', 'max:50'],
             'class_ids.*' => ['integer'],
         ]);
         abort_unless($tenant && $course->status === 'published', 422);
-        // A course kept for chosen madrasas can only be switched on by those madrasas (or its owner).
+        // A course kept for chosen institutions can only be switched on by those institutions (or its owner).
         abort_unless($course->visibility === 'all' || $course->tenant_id === $tenant->id
             || $course->tenants()->where('tenants.id', $tenant->id)->exists(), 404);
         $tenant->courses()->syncWithoutDetaching([$course->id => [
@@ -169,9 +169,9 @@ class CourseController extends Controller
     }
 
     /**
-     * Which madrasas a course is for:
-     *  - all: every madrasa gets it switched on, guests see it too
-     *  - selected: only the chosen madrasas (guests do not see it)
+     * Which institutions a course is for:
+     *  - all: every institution gets it switched on, guests see it too
+     *  - selected: only the chosen institutions (guests do not see it)
      *  - guests: only guests exploring the free app
      */
     private function assignTenants(Request $request, Course $course): void
@@ -190,7 +190,7 @@ class CourseController extends Controller
             'guests' => [],
         };
         $course->update(['visibility' => $data['audience'] === 'selected' ? 'madrasa' : 'all']);
-        // Keep each madrasa's own teacher/class choices; add the new ones switched on.
+        // Keep each institution's own teacher/class choices; add the new ones switched on.
         $keep = $course->tenants()->whereIn('tenants.id', $ids)->pluck('tenants.id')->all();
         $course->tenants()->detach(array_diff($course->tenants()->pluck('tenants.id')->all(), $ids));
         $course->tenants()->attach(array_fill_keys(array_diff($ids, $keep), ['enabled' => true]));

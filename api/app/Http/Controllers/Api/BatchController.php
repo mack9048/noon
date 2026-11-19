@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
-/** Batches for the institute admin (always inside their own madrasa). */
+/** Batches for the institute admin (always inside their own institution). */
 class BatchController extends Controller
 {
     public function index()
@@ -17,7 +17,7 @@ class BatchController extends Controller
         return Batch::with('classTeacher')->withCount('students')->orderBy('class_label')->get()->map(fn (Batch $b) => $b->toApp());
     }
 
-    /** Teachers and students of this madrasa, for the Create batch form. */
+    /** Teachers and students of this institution, for the Create batch form. */
     public function people(Request $request)
     {
         $tenant = $request->user()->tenant_id;
@@ -46,17 +46,17 @@ class BatchController extends Controller
             'student_ids.*' => ['integer', 'distinct'],
         ]);
 
-        // Only this madrasa's own teachers and students.
+        // Only this institution's own teachers and students.
         $teacherIds = collect($data['subject_teachers'] ?? [])->values()->push($data['class_teacher_id'] ?? null)->filter()->unique();
         if ($teacherIds->isNotEmpty() && User::whereIn('id', $teacherIds)->where('tenant_id', $tenant)->where('role', 'teacher')->count() !== $teacherIds->count()) {
-            throw ValidationException::withMessages(['class_teacher_id' => 'Pick teachers from your madrasa.']);
+            throw ValidationException::withMessages(['class_teacher_id' => 'Pick teachers from your institution.']);
         }
         $students = collect($data['student_ids'] ?? []);
         if ($students->count() > $data['seats']) {
             throw ValidationException::withMessages(['student_ids' => 'More students than seats.']);
         }
         if ($students->isNotEmpty() && User::whereIn('id', $students)->where('tenant_id', $tenant)->where('role', 'student')->count() !== $students->count()) {
-            throw ValidationException::withMessages(['student_ids' => 'Some students are not in your madrasa.']);
+            throw ValidationException::withMessages(['student_ids' => 'Some students are not in your institution.']);
         }
 
         $batch = Batch::create([

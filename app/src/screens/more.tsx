@@ -13,11 +13,11 @@ import { colors } from '@/theme/tokens';
 const links: [string, string, keyof typeof Ionicons.glyphMap, readonly [string, string]][] = [
   ['Quran & Hifz', '/guest/quran', 'book', colors.mint],
   ['Study tools', '/guest/tools/chart', 'document-text', colors.butter],
-  ['Madrasa Support', '/guest/support', 'library', colors.sky],
+  ['Institution Support', '/guest/support', 'library', colors.sky],
   ['Change my class', '/join', 'swap-horizontal', colors.lav],
 ];
 
-/** Guest "More" tab: join a madrasa with its code, other sections, log out. */
+/** Guest "More" tab: join an institution with its code, other sections, log out. */
 export function GuestMoreScreen() {
   const { user, logout, refresh } = useAuth();
   const [code, setCode] = useState('');
@@ -45,14 +45,14 @@ export function GuestMoreScreen() {
             <Ionicons name="school" size={22} color={colors.sky[1]} />
           </View>
           <View style={{ flex: 1 }}>
-            <T v="h3">Join your madrasa</T>
+            <T v="h3">Join your institution</T>
             <T v="small">Unlock class chat, attendance, fees, leave and report cards.</T>
           </View>
         </View>
-        <Field label="Madrasa code" value={code} onChangeText={(v) => setCode(v.toUpperCase())} autoCapitalize="characters" placeholder="e.g. NOON01" maxLength={20} />
+        <Field label="Institution code" value={code} onChangeText={(v) => setCode(v.toUpperCase())} autoCapitalize="characters" placeholder="e.g. NOON01" maxLength={20} />
         {err ? <T style={{ color: colors.red }}>{err}</T> : null}
-        <Button title="Join madrasa" icon="arrow-forward" onPress={join} loading={busy} disabled={code.trim().length < 4} />
-        <T v="small">Ask your madrasa office for the code.</T>
+        <Button title="Join institution" icon="arrow-forward" onPress={join} loading={busy} disabled={code.trim().length < 4} />
+        <T v="small">Ask your institution office for the code.</T>
       </Card>
 
       <Grid cols={{ phone: 2, tablet: 3, desktop: 4 }}>
@@ -137,7 +137,7 @@ export function MoreMenu({ links, onNavigate, profileHref, logout: withLogout }:
     rows.push(row);
   }
   const name = user?.name ?? 'Me';
-  const sub = user?.role === 'student' || user?.role === 'parent' ? `Madrasa 5 · ${roleName[user.role]}` : roleName[user?.role ?? ''] ?? '';
+  const sub = user?.role === 'student' || user?.role === 'parent' ? `Class 5 · ${roleName[user.role]}` : roleName[user?.role ?? ''] ?? '';
   return (
     <View style={{ gap: 12 }}>
       <Card onPress={profileHref ? () => go(profileHref) : undefined} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, minHeight: 72 }}>

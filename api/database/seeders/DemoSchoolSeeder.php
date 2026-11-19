@@ -15,7 +15,7 @@ use App\Models\User;
 use Illuminate\Database\Seeder;
 
 /**
- * One demo madrasa to show the app: an office admin, teachers, parents and students
+ * One demo institution to show the app: an office admin, teachers, parents and students
  * with batches, enrolled courses, marks, admissions and a chat.
  * Every demo login uses the same password: DEMO_PASSWORD in .env (default "Demo@1234").
  * Runs after CatalogSeeder.
@@ -31,7 +31,7 @@ class DemoSchoolSeeder extends Seeder
         $class5 = $board->classes()->where('label', '5')->firstOrFail();
         $class3 = $board->classes()->where('label', '3')->firstOrFail();
 
-        $tenant = Tenant::create(['name' => 'Noon Demo Madrasa', 'code' => self::CODE, 'plan' => 'pro']);
+        $tenant = Tenant::create(['name' => 'Noon Demo Institution', 'code' => self::CODE, 'plan' => 'pro']);
         $user = fn (array $a) => User::create($a + ['tenant_id' => $tenant->id, 'password' => $pw]);
 
         // ---- Staff ----
@@ -69,16 +69,16 @@ class DemoSchoolSeeder extends Seeder
         $class3Students = $students->filter(fn ($s) => $s->class_id === $class3->id)->values();
 
         // ---- Batches ----
-        $b5 = Batch::create(['tenant_id' => $tenant->id, 'name' => 'Madrasa 5 · Evening', 'board' => 'AP', 'class_label' => '5', 'days' => ['Mo', 'Tu', 'We', 'Th'],
+        $b5 = Batch::create(['tenant_id' => $tenant->id, 'name' => 'Class 5 · Evening', 'board' => 'AP', 'class_label' => '5', 'days' => ['Mo', 'Tu', 'We', 'Th'],
             'start_time' => '5:00 PM', 'seats' => 30, 'class_teacher_id' => $teachers[0]->id,
             'subject_teachers' => ['Quran' => $teachers[2]->id, 'Fiqh' => $teachers[0]->id, 'Arabic' => $teachers[1]->id]]);
         $b5->students()->attach($class5Students->pluck('id'));
-        $b3 = Batch::create(['tenant_id' => $tenant->id, 'name' => 'Madrasa 3 · Morning', 'board' => 'AP', 'class_label' => '3', 'days' => ['Fr', 'Sa'],
+        $b3 = Batch::create(['tenant_id' => $tenant->id, 'name' => 'Class 3 · Morning', 'board' => 'AP', 'class_label' => '3', 'days' => ['Fr', 'Sa'],
             'start_time' => '9:00 AM', 'seats' => 25, 'class_teacher_id' => $teachers[1]->id,
             'subject_teachers' => ['Quran' => $teachers[2]->id, 'Akhlaq' => $teachers[1]->id]]);
         $b3->students()->attach($class3Students->pluck('id'));
 
-        // ---- Noon Courses switched on for this madrasa; students enrolled ----
+        // ---- Noon Courses switched on for this institution; students enrolled ----
         $courses = Course::whereNull('tenant_id')->where('status', 'published')->orderBy('id')->get();
         foreach ($courses as $i => $course) {
             $tenant->courses()->attach($course->id, ['enabled' => $i < 4, 'teacher_id' => $teachers[$i % 3]->id]);
@@ -119,7 +119,7 @@ class DemoSchoolSeeder extends Seeder
         // ---- Admission campaign and leads ----
         $campaign = AdmissionCampaign::create(['tenant_id' => $tenant->id, 'code' => 'ADMDEMO26', 'title' => 'Admissions 2026–27', 'academic_year' => '2026–27',
             'classes' => ['1', '2', '3', '4', '5'], 'seats' => 60, 'opens_on' => now()->subDays(20)->toDateString(), 'closes_on' => now()->addDays(40)->toDateString(),
-            'description' => 'Live online madrasa classes for children in Kerala and the Gulf.', 'fee_note' => '₹299 / month · first week free', 'status' => 'open']);
+            'description' => 'Live online institution classes for children in Kerala and the Gulf.', 'fee_note' => '₹299 / month · first week free', 'status' => 'open']);
         foreach ([
             ['Zainab Ali', 'Ali K', '971501230001', '3', 'portal', 'new', 1],
             ['Ibrahim Faisal', 'Faisal M', '971501230002', '5', 'whatsapp', 'contacted', 2],
@@ -133,7 +133,7 @@ class DemoSchoolSeeder extends Seeder
             $l->save();
         }
 
-        // ---- A course this madrasa made, waiting for Noon's approval ----
+        // ---- A course this institution made, waiting for Noon's approval ----
         $pending = Course::create(['title' => 'Malayalam Duas for Kids', 'category' => 'Duas', 'cover' => '#F7E9BC', 'status' => 'pending',
             'tenant_id' => $tenant->id, 'visibility' => 'madrasa', 'teacher_id' => $teachers[1]->id]);
         $pending->items()->createMany([['kind' => 'video', 'title' => 'Duas before sleeping', 'position' => 1], ['kind' => 'audio', 'title' => 'Dua after eating', 'position' => 2]]);

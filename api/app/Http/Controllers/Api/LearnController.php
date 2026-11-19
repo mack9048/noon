@@ -113,7 +113,7 @@ class LearnController extends Controller
         ];
     }
 
-    /** POST /staff/assessments: a teacher or admin adds an assessment or exam for their madrasa. */
+    /** POST /staff/assessments: a teacher or admin adds an assessment or exam for their institution. */
     public function store(Request $request)
     {
         $user = $request->user();
@@ -128,17 +128,17 @@ class LearnController extends Controller
         ]);
         if (! empty($data['course_id'])) {
             $course = Course::findOrFail($data['course_id']);
-            abort_unless($course->teacher_id === $user->id || Course::visibleTo($user)->whereKey($course->id)->exists(), 403, 'This course is not on in your madrasa.');
+            abort_unless($course->teacher_id === $user->id || Course::visibleTo($user)->whereKey($course->id)->exists(), 403, 'This course is not on in your institution.');
         }
 
         return Assessment::create($data + ['tenant_id' => $user->tenant_id, 'created_by' => $user->id, 'max_marks' => $data['max_marks'] ?? 100]);
     }
 
-    /** POST /staff/assessments/{assessment}/results: enter marks for students of this madrasa. */
+    /** POST /staff/assessments/{assessment}/results: enter marks for students of this institution. */
     public function storeResults(Request $request, Assessment $assessment)
     {
         $user = $request->user();
-        // Madrasa-made: same madrasa only. Noon-made: only the course's own teacher.
+        // Institution-made: same institution only. Noon-made: only the course's own teacher.
         $allowed = $assessment->tenant_id
             ? $assessment->tenant_id === $user->tenant_id
             : $assessment->course_id && Course::whereKey($assessment->course_id)->where('teacher_id', $user->id)->exists();
@@ -153,7 +153,7 @@ class LearnController extends Controller
         $ids = collect($data['results'])->pluck('student_id');
         $valid = User::whereIn('id', $ids)->where('role', 'student')->where('tenant_id', $user->tenant_id)->pluck('id');
         if ($valid->count() !== $ids->count()) {
-            throw ValidationException::withMessages(['results' => 'Some students are not in your madrasa.']);
+            throw ValidationException::withMessages(['results' => 'Some students are not in your institution.']);
         }
 
         foreach ($data['results'] as $r) {

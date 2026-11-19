@@ -7,7 +7,7 @@ export function splitName(name?: string | null) {
   return { first: parts[0] ?? 'Me', last: parts.slice(1).join(' ') };
 }
 
-/** One line under the name, e.g. "Class 5 · Noon Demo Madrasa · Student". */
+/** One line under the name, e.g. "Class 5 · Noon Demo Institution · Student". */
 export function profileLine(u: User | null) {
   const role = u?.role ? u.role[0].toUpperCase() + u.role.slice(1) : '';
   return [u?.class_label ? `Class ${u.class_label}` : null, u?.tenant_name, role].filter(Boolean).join(' · ');

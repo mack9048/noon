@@ -42,7 +42,7 @@ export function GuestHomeScreen() {
 
       <Card tint={colors.butter[0]} style={{ marginTop: 12, flexDirection: 'row', gap: 12, alignItems: 'center' }}>
         <T style={{ fontSize: 30 }}>🎁</T>
-        <T style={{ flex: 1, color: colors.butter[1] }}><T style={{ fontFamily: fonts.semibold, color: colors.butter[1] }}>2 free demo lessons </T>in every subject of every class. Sign up or join your madrasa to unlock all.</T>
+        <T style={{ flex: 1, color: colors.butter[1] }}><T style={{ fontFamily: fonts.semibold, color: colors.butter[1] }}>2 free demo lessons </T>in every subject of every class. Sign up or join your institution to unlock all.</T>
       </Card>
 
       <View style={{ marginTop: 12 }}>
@@ -50,7 +50,7 @@ export function GuestHomeScreen() {
           <Pressable accessibilityRole="button" onPress={() => router.push('/guest/demo-classes' as any)}>
             <LinearGradient colors={gradients.support as unknown as [string, string]} style={{ borderRadius: 30, padding: 18, minHeight: 150, overflow: 'hidden' }}>
               <T style={{ position: 'absolute', right: 16, bottom: 4, fontFamily: fonts.arabic, fontSize: 56, color: 'rgba(255,255,255,0.85)' }}>مدرسة</T>
-              <T style={{ color: '#CFF3F4', fontFamily: fonts.semibold, fontSize: 12 }}>MADRASA CLASSES · DEMO</T>
+              <T style={{ color: '#CFF3F4', fontFamily: fonts.semibold, fontSize: 12 }}>INSTITUTION CLASSES · DEMO</T>
               <T style={{ color: '#FFF', fontFamily: fonts.fun, fontSize: 24 }}>Class 1 to +2</T>
               <T style={{ color: '#D9F2F5' }}>AP · EK · General boards</T>
               <View style={{ marginTop: 12, alignSelf: 'flex-start', backgroundColor: '#FFF', borderRadius: 18, height: 36, paddingHorizontal: 14, justifyContent: 'center' }}><T style={{ color: colors.teal, fontFamily: fonts.semibold }}>▶ Try free lessons</T></View>
@@ -99,7 +99,7 @@ export function GuestHomeScreen() {
       </TileRows>
       <Pressable accessibilityRole="link" onPress={() => router.push('/guest/unlock' as any)} style={{ marginTop: 12, flexDirection: 'row', gap: 6, alignItems: 'center', justifyContent: 'center' }}>
         <Ionicons name="lock-closed-outline" size={13} color={colors.muted} />
-        <T v="small">Chat, attendance, fees and reports open after you join a madrasa</T>
+        <T v="small">Chat, attendance, fees and reports open after you join an institution</T>
       </Pressable>
     </Screen>
   );
@@ -136,7 +136,7 @@ function BandChips<K extends string>({ options, value, onChange, dark }: { optio
   );
 }
 
-/* ---------- Madrasa classes demo ---------- */
+/* ---------- Institution classes demo ---------- */
 const DEMO_SUBJECTS: Record<string, string[]> = {
   Fiqh: ['Thaharah — purity', 'Types of water', 'Najas and cleaning', 'Wudu — steps', 'What breaks wudu', 'Ghusl', 'Tayammum', 'Times of Salah'],
   Quran: ['Surah Al-Fatiha', 'Surah An-Nas', 'Surah Al-Falaq', 'Surah Al-Ikhlas', 'Surah Al-Masad', 'Surah An-Nasr', 'Surah Al-Kafirun', 'Surah Al-Kawthar'],
@@ -168,7 +168,7 @@ export function GuestClassesDemoScreen() {
   return (
     <Screen bar={false}>
       <GuestBand g={['#0B5166', '#1F8AA8']} kicker="Free demo · 2 lessons per subject">
-        <T style={{ color: '#FFF', fontFamily: fonts.fun, fontSize: 28, marginTop: -4 }}>Madrasa classes</T>
+        <T style={{ color: '#FFF', fontFamily: fonts.fun, fontSize: 28, marginTop: -4 }}>Institution classes</T>
         <BandChips value={board} onChange={setBoard} options={[{ key: 'AP', label: 'AP board' }, { key: 'EK', label: 'EK board' }, { key: 'GEN', label: 'General' }]} />
         <Row gap={6} style={{ flexWrap: 'wrap' }}>
           {['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '+1', '+2'].map((c) => (
@@ -264,9 +264,9 @@ export function UnlockScreen() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const options = [
-    ['code', '🕌', colors.sky[0], 'Join my madrasa', 'Enter the code from your madrasa office'],
+    ['code', '🕌', colors.sky[0], 'Join my institution', 'Enter the code from your institution office'],
     ['plan', '⭐', colors.butter[0], 'Subscribe to Noon Learn', 'Learn on your own — all classes and courses'],
-    ['login', '🔑', colors.lav[0], 'I already have an account', 'Log in to your madrasa account'],
+    ['login', '🔑', colors.lav[0], 'I already have an account', 'Log in to your institution account'],
   ] as const;
   const go = async () => {
     setErr(null);
@@ -302,7 +302,7 @@ export function UnlockScreen() {
       <Card style={{ marginTop: 12, gap: 10 }}>
         {opt === 'code' ? (
           <>
-            <Field label="Madrasa code" value={code} onChangeText={(v) => setCode(v.toUpperCase())} autoCapitalize="characters" placeholder="e.g. NOON01" maxLength={20} />
+            <Field label="Institution code" value={code} onChangeText={(v) => setCode(v.toUpperCase())} autoCapitalize="characters" placeholder="e.g. NOON01" maxLength={20} />
             {err ? <T style={{ color: colors.red }}>{err}</T> : null}
           </>
         ) : opt === 'plan' ? (
@@ -316,9 +316,9 @@ export function UnlockScreen() {
             ))}
           </Row>
         ) : (
-          <T v="small">Already a student? Log in with the phone, email or admission number your madrasa gave you.</T>
+          <T v="small">Already a student? Log in with the phone, email or admission number your institution gave you.</T>
         )}
-        <Button title={opt === 'code' ? 'Join madrasa' : opt === 'plan' ? 'Continue to payment' : 'Log in'} kind="yellow" loading={busy}
+        <Button title={opt === 'code' ? 'Join institution' : opt === 'plan' ? 'Continue to payment' : 'Log in'} kind="yellow" loading={busy}
           disabled={opt === 'code' && code.trim().length < 4} onPress={go} />
       </Card>
       <Pressable accessibilityRole="button" onPress={() => logout().then(() => router.replace('/login' as any))} style={{ alignSelf: 'center', marginTop: 16, padding: 10 }}>

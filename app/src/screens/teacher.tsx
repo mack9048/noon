@@ -42,9 +42,9 @@ export function TeacherHomeScreen() {
       </Row>
       <Section title="Today’s classes" action="All classes" onAction={() => router.push('/teacher/classes' as any)} />
       <View style={{ gap: 8 }}>
-        <ListRow left={<Glyph text="ع" tint={pastel.lav} />} title="Arabic · Madrasa 5" sub="4:30 PM · 28 students"
+        <ListRow left={<Glyph text="ع" tint={pastel.lav} />} title="Arabic · Class 5" sub="4:30 PM · 28 students"
           right={<SmallButton title="▶ Start" filled tint={colors.ink} onPress={() => router.push('/teacher/live' as any)} />} />
-        <ListRow left={<Glyph text="أ" tint={pastel.mint} />} title="Akhlaq · Madrasa 3" sub="7:00 PM · 22 students" right={<Tag text="In 3h" tone="white" />} />
+        <ListRow left={<Glyph text="أ" tint={pastel.mint} />} title="Akhlaq · Class 3" sub="7:00 PM · 22 students" right={<Tag text="In 3h" tone="white" />} />
       </View>
       <Section title="Quick actions" />
       <Grid cols={{ phone: 2, tablet: 4, desktop: 4 }} gap={10}>
@@ -73,12 +73,12 @@ export function TeacherClassesScreen() {
   return (
     <Screen>
       <Row style={{ justifyContent: 'space-between', minHeight: 56 }}>
-        <SmallButton title="Madrasa 5 · Arabic ▾" onPress={() => demoNote('Demo: teachers with several classes switch here.')} />
+        <SmallButton title="Class 5 · Arabic ▾" onPress={() => demoNote('Demo: teachers with several classes switch here.')} />
         <Avatar name="Ustad Ahmed" size={48} tint={pastel.white} />
       </Row>
       <T v="h1" style={{ marginTop: 8 }}>My Classes</T>
       <Card style={{ marginTop: 12, gap: 12 }}>
-        <Row gap={12}><Glyph text="ع" tint={pastel.lav} /><View style={{ flex: 1 }}><T v="h3">Arabic · Madrasa 5</T><T v="small">Mon, Wed, Thu · 4:30 PM</T></View><Ionicons name="chevron-forward" size={18} color={colors.ink} /></Row>
+        <Row gap={12}><Glyph text="ع" tint={pastel.lav} /><View style={{ flex: 1 }}><T v="h3">Arabic · Class 5</T><T v="small">Mon, Wed, Thu · 4:30 PM</T></View><Ionicons name="chevron-forward" size={18} color={colors.ink} /></Row>
         <Row style={{ justifyContent: 'space-between' }}>
           {[['Students', '28'], ['Attendance', '92%'], ['Syllabus', '64%']].map(([k, v]) => <View key={k}><T v="small">{k}</T><T v="h3">{v}</T></View>)}
         </Row>

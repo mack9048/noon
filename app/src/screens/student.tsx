@@ -155,7 +155,7 @@ export function ReportPdfScreen() {
         </Row>
         <T v="label">STUDENT ASSESSMENT REPORT</T>
         <View style={{ backgroundColor: colors.bg, borderRadius: 12, padding: 10, flexDirection: 'row', flexWrap: 'wrap', rowGap: 4 }}>
-          {[['Name', 'Ayisha Abdulla'], ['Class', 'Madrasa 5'], ['Month', 'October 2026'], ['Overall', '94% · Excellent']].map(([k, v]) => (
+          {[['Name', 'Ayisha Abdulla'], ['Class', 'Class 5'], ['Month', 'October 2026'], ['Overall', '94% · Excellent']].map(([k, v]) => (
             <T key={k} style={{ width: '50%', fontSize: 12 }}>{k} <T style={{ fontFamily: fonts.semibold, fontSize: 12 }}>{v}</T></T>
           ))}
         </View>
@@ -178,7 +178,7 @@ export function ProfileScreen() {
   return (
     <Screen>
       <Band tint={colors.pink[0]} height={230} />
-      <Header title="" right={<SmallButton title="Edit" onPress={() => demoNote('To change these details, please ask your madrasa office.')} />} />
+      <Header title="" right={<SmallButton title="Edit" onPress={() => demoNote('To change these details, please ask your institution office.')} />} />
       <Row gap={14}>
         <Avatar name={nm.first} size={84} tint={pastel.white} />
         <View style={{ flex: 1 }}>
@@ -300,7 +300,7 @@ export function HelpScreen() {
           </Pressable>
         ))}
       </View>
-      <Section title="Contact the madrasa" />
+      <Section title="Contact the institution" />
       <Grid cols={{ phone: 2, tablet: 2, desktop: 2 }} gap={10}>
         <Tile label="Call office" sub="1726 4002" icon="call-outline" tint={pastel.mint} onPress={() => demoNote('Demo: opens the phone dialler.')} />
         <Tile label="Chat with admin" sub="Replies in a few hours" icon="chatbubble-outline" tint={pastel.sky} href={`${base}/chat`} />

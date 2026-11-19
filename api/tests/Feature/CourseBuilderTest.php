@@ -76,7 +76,7 @@ class CourseBuilderTest extends TestCase
     {
         Storage::fake('local');
         $boss = $this->boss();
-        $t = Tenant::create(['name' => 'Madrasa A', 'code' => 'AAA111']);
+        $t = Tenant::create(['name' => 'Institution A', 'code' => 'AAA111']);
         $s = User::create(['name' => 'S', 'email' => 's@x.test', 'password' => 'secret123', 'role' => 'student', 'tenant_id' => $t->id]);
         $c = $this->as($boss)->postJson('/api/super/courses', ['title' => 'Arabic', 'category' => 'Arabic', 'status' => 'published', 'audience' => 'all'])->json();
         $free = $this->as($boss)->postJson("/api/super/courses/{$c['id']}/lessons", ['title' => 'Free one', 'free_preview' => true])->json();

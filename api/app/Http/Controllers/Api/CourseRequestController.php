@@ -9,12 +9,12 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 /**
- * Courses made by madrasa admins go to Noon Learn (super admin) for approval.
- * Also: course logo upload for super admin and for the madrasa that owns a course.
+ * Courses made by institution admins go to Noon Learn (super admin) for approval.
+ * Also: course logo upload for super admin and for the institution that owns a course.
  */
 class CourseRequestController extends Controller
 {
-    /** POST /admin/courses — a madrasa admin creates a course; it waits for approval. */
+    /** POST /admin/courses — an institution admin creates a course; it waits for approval. */
     public function store(Request $request)
     {
         $user = $request->user();
@@ -39,7 +39,7 @@ class CourseRequestController extends Controller
         return response()->json($this->row($course->load(['items', 'lessons', 'madrasa'])), 201);
     }
 
-    /** GET /super/approvals — courses from madrasas (waiting first). */
+    /** GET /super/approvals — courses from institutions (waiting first). */
     public function index()
     {
         return Course::with(['items', 'lessons', 'madrasa', 'teacher'])->whereNotNull('tenant_id')
@@ -54,7 +54,7 @@ class CourseRequestController extends Controller
         $data = $request->validate(['status' => ['required', Rule::in(['approved', 'changes', 'rejected'])], 'note' => ['nullable', 'string', 'max:500']]);
         $course->update(['status' => $data['status'] === 'approved' ? 'published' : $data['status'], 'review_note' => $data['note'] ?? null]);
         if ($data['status'] === 'approved') {
-            // Switch it on for the madrasa that made it.
+            // Switch it on for the institution that made it.
             $course->tenants()->syncWithoutDetaching([$course->tenant_id => ['enabled' => true]]);
         }
 
@@ -85,7 +85,7 @@ class CourseRequestController extends Controller
             'category' => $c->category,
             'madrasa' => $c->madrasa?->name ?? 'Noon Learn',
             'when' => $c->created_at?->diffForHumans() ?? '',
-            'tags' => array_values(array_filter([$c->category, $c->lessons->count().' lessons', $c->level, $c->visibility === 'madrasa' ? 'My madrasa only' : 'All Noon Learn'])),
+            'tags' => array_values(array_filter([$c->category, $c->lessons->count().' lessons', $c->level, $c->visibility === 'madrasa' ? 'My institution only' : 'All Noon Learn'])),
             'status' => $status,
             'logo_url' => $c->logo_url,
             'note' => $c->review_note,

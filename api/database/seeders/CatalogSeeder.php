@@ -8,14 +8,14 @@ use App\Models\StudyTool;
 use Illuminate\Database\Seeder;
 
 /**
- * Platform content every madrasa shares: boards, classes, subjects and lessons
- * (Madrasa Support), Noon Courses and study tools. No people, no school data.
+ * Platform content every institution shares: boards, classes, subjects and lessons
+ * (Institution Support), Noon Courses and study tools. No people, no school data.
  */
 class CatalogSeeder extends Seeder
 {
     public function run(): void
     {
-        // ---- Madrasa Support catalogue ----
+        // ---- Institution Support catalogue ----
         $subjects = [
             ['Quran', 'قرآن'], ['Thajweed', 'تجويد'], ['Fiqh', 'فقه'], ['Thareekh', 'تاريخ'],
             ['Aqeedah', 'عقيدة'], ['Akhlaq', 'أخلاق'], ['Hadith', 'حديث'], ['Arabic', 'لغة'],
@@ -46,7 +46,7 @@ class CatalogSeeder extends Seeder
             }
         }
 
-        // ---- Noon Courses (made by Noon Learn; madrasas switch them on) ----
+        // ---- Noon Courses (made by Noon Learn; institutions switch them on) ----
         $courses = [
             ['Arabic for Beginners', 'Arabic', '#DAD3F6', 'published', false, 'Read and write Arabic letters with harakath.', 999],
             ['Thajweed Level 1', 'Quran', '#D2F0D4', 'published', false, 'Makharij and the first Thajweed rules.', 799],
@@ -71,7 +71,7 @@ class CatalogSeeder extends Seeder
             'chart' => ['ഉപ പാഠപുസ്തകം മാർക്ക് ലിസ്റ്റ്', 'എഴുത്ത് പരിശീലനം', 'നിറം നൽകാം (1)', 'നിറം നൽകാം (2)'],
             'adkar' => ['നിസ്കാരം', 'അസ്മാഉൽ ഹുസ്ന', 'ഉറങ്ങുന്നതിനു മുൻപ്', 'ഓരോ വക്തിനും ശേഷമുള്ള ദുആ', 'ഖുർആനിലെ അടയാളങ്ങൾ', 'ദൈനംദിന ദിക്റുകൾ', 'നിത്യജീവിതത്തിലെ ദുആകളും ദിക്റുകളും'],
             'slide' => ['ضَمَائِرُ الْمُنْفَصِلَةِ', 'طَلَعَ الْبَدْرُ', 'مُخَفَّفْ، مُتَوَسِّطْ، مُغَلَّظْ', 'അറബി അക്ഷരമാല', 'ചോദ്യ പദങ്ങൾ', 'നജസുകൾ മൂന്ന് വിധം', 'മാളി മൻഫി'],
-            'form' => ['MSR പരിശ്കരണ ഫോം', 'ജോയിൻ ലെറ്റർ', 'തദ്‌രീബ്- മുദരിബ് അംഗത്വത്തിനുള്ള അപേക്ഷാഫോറം', 'മദ്റസയിൽ ചേർക്കാനുള്ള അപേക്ഷാ ഫോറം', 'മദ്റസാ അംഗീകരണത്തിനുള്ള അപേക്ഷാ ഫോറം', 'മുഅല്ലിം നിക്ഷേപ പദ്ധതി അംഗത്വഫോറം', 'യോഗ്യതാ പരീക്ഷാ അപേക്ഷാ ഫോറം'],
+            'form' => ['MSR പരിശ്കരണ ഫോം', 'ജോയിൻ ലെറ്റർ', 'തദ്‌രീബ്- മുദരിബ് അംഗത്വത്തിനുള്ള അപേക്ഷാഫോറം', 'സ്ഥാപനത്തിൽ ചേർക്കാനുള്ള അപേക്ഷാ ഫോറം', 'മദ്റസാ അംഗീകരണത്തിനുള്ള അപേക്ഷാ ഫോറം', 'മുഅല്ലിം നിക്ഷേപ പദ്ധതി അംഗത്വഫോറം', 'യോഗ്യതാ പരീക്ഷാ അപേക്ഷാ ഫോറം'],
         ];
         foreach ($tools as $type => $titles) {
             foreach ($titles as $i => $title) {

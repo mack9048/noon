@@ -173,7 +173,8 @@ export function Input({ label, ...props }: React.ComponentProps<typeof TextInput
   const [show, setShow] = useState(false);
   const secret = !!props.secureTextEntry;
   return (
-    <View style={{ gap: 6, flex: 1 }}>
+    // min-content (web): a multi-line box keeps its full height in a column; without it, it overlapped the labels below it.
+    <View style={[{ gap: 6, flex: 1 }, Platform.OS === 'web' && ({ minHeight: 'min-content' } as any)]}>
       {label ? <T v="small" style={{ fontFamily: fonts.medium }}>{label}</T> : null}
       <View>
         <TextInput placeholderTextColor={colors.faint} accessibilityLabel={label} {...props} secureTextEntry={secret && !show}

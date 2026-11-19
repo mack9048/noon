@@ -9,7 +9,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
-/** Runs inside the user's madrasa (`tenant` middleware), so every query is limited to it. */
+/** Runs inside the user's institution (`tenant` middleware), so every query is limited to it. */
 class LeaveController extends Controller
 {
     /** Student/parent: quota summary + own history. */
@@ -49,7 +49,7 @@ class LeaveController extends Controller
         return LeaveRequest::create($data + ['student_id' => $user->id]);
     }
 
-    /** Teacher/admin: requests in their madrasa. */
+    /** Teacher/admin: requests in their institution. */
     public function staffIndex(Request $request)
     {
         return LeaveRequest::with('student:id,name')

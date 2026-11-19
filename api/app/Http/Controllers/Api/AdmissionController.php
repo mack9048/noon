@@ -159,7 +159,7 @@ class AdmissionController extends Controller
         ];
     }
 
-    /** GET /admin/admissions — this madrasa only (tenant scope). */
+    /** GET /admin/admissions — this institution only (tenant scope). */
     public function index()
     {
         return Admission::latest()->limit(500)->get()->map(fn (Admission $a) => $a->toApp());

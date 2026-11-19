@@ -23,7 +23,7 @@ export function StaffHome({ role }: { role: 'teacher' | 'admin' | 'super' }) {
   }[role];
   const links = {
     teacher: [['Course & live class', '/teacher/course/1', 'videocam'], ['Leave approvals', '/teacher/leave', 'calendar'], ['Chats', '/teacher/chat', 'chatbubbles']],
-    admin: [['Courses for madrasa', '/admin/courses', 'school'], ['Leave approvals', '/admin/leave', 'calendar']],
+    admin: [['Courses for institution', '/admin/courses', 'school'], ['Leave approvals', '/admin/leave', 'calendar']],
     super: [['Manage courses', '/super/courses', 'school'], ['Study tools', '/super/tools', 'document-text']],
   }[role];
   return (

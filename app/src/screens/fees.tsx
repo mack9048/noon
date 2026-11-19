@@ -31,7 +31,7 @@ const errText = (e: unknown, f: string) => (e instanceof ApiError ? e.friendly :
 function remind(f: FeeRow) {
   const phone = f.student?.parent_phone?.replace(/\D/g, '');
   if (!phone) return say(`No WhatsApp number for ${f.student?.name ?? 'this student'}'s parent. Add it in Students → Edit.`);
-  const msg = `Assalamu alaikum${f.student?.parent ? ` ${f.student.parent}` : ''}. This is a reminder from the madrasa office: ${f.title} for ${f.student?.name} (${rupee(f.amount)}) was due on ${dateLabel(f.due_date)}. Jazakallah khair.`;
+  const msg = `Assalamu alaikum${f.student?.parent ? ` ${f.student.parent}` : ''}. This is a reminder from the institution office: ${f.title} for ${f.student?.name} (${rupee(f.amount)}) was due on ${dateLabel(f.due_date)}. Jazakallah khair.`;
   const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
   if (Platform.OS === 'web') (globalThis as any).open?.(url, '_blank', 'noopener'); else Linking.openURL(url);
 }
@@ -301,7 +301,7 @@ export function MyFeesScreen() {
           <Card tint={colors.butter[0]} style={{ marginTop: 14 }}>
             <T v="small" style={{ color: colors.butter[1] }}>Total due</T>
             <T style={{ fontSize: 34, fontFamily: fonts.semibold, color: colors.ink }}>{rupee(data?.due_total ?? 0)}</T>
-            {due.length ? <T v="small">Please pay at your madrasa office. Your receipt shows here once the office records it.</T> : null}
+            {due.length ? <T v="small">Please pay at your institution office. Your receipt shows here once the office records it.</T> : null}
           </Card>
           <Section title="To pay" />
           {due.length ? due.map((f) => (

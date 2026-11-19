@@ -1,7 +1,7 @@
 {
   "name": "Noon Learn",
   "short_name": "Noon Learn",
-  "description": "Learn Islam, anytime, anywhere: madrasa classes, Noon Courses, Quran & Hifz and learning games.",
+  "description": "Learn Islam, anytime, anywhere: institution classes, Noon Courses, Quran & Hifz and learning games.",
   "id": "/",
   "start_url": "/login",
   "scope": "/",

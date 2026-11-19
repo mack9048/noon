@@ -29,7 +29,13 @@ export function CategoryField({ value, onChange, manage }: { value: string; onCh
   return (
     <View style={{ flex: 1, gap: 4 }}>
       {options.length ? <Select label="Category" value={value} options={options} onChange={onChange} /> : <Input label="Category" value={value} onChangeText={onChange} />}
-      {manage ? <Pressable accessibilityRole="button" onPress={() => setOpen(true)}><T v="small" style={{ color: colors.teal, fontFamily: fonts.semibold }}>Edit categories</T></Pressable> : null}
+      {manage ? (
+        <Pressable accessibilityRole="button" accessibilityLabel="Add or edit categories" onPress={() => setOpen(true)}
+          style={{ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 4, height: 32, paddingHorizontal: 12, borderRadius: 16, backgroundColor: '#E6F4F4', marginTop: 2 }}>
+          <Ionicons name="add-circle-outline" size={16} color={colors.teal} />
+          <T style={{ fontSize: 13, color: colors.teal, fontFamily: fonts.semibold }}>Add / edit categories</T>
+        </Pressable>
+      ) : null}
       {open ? <CategoriesSheet list={list.data ?? []} onClose={() => setOpen(false)} onChanged={list.reload} onRenamed={(from, to) => { if (value === from) onChange(to); }} /> : null}
     </View>
   );

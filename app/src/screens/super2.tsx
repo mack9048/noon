@@ -23,13 +23,13 @@ export function ApprovalsScreen() {
   const act = async (id: number, s: Exclude<ApprovalStatus, 'waiting'>, title: string) => {
     try {
       await decide(id, s);
-      demoNote(s === 'approved' ? `"${title}" is approved and visible to students.` : s === 'changes' ? `Asked the madrasa to change "${title}".` : `"${title}" was rejected.`);
+      demoNote(s === 'approved' ? `"${title}" is approved and visible to students.` : s === 'changes' ? `Asked the institution to change "${title}".` : `"${title}" was rejected.`);
     } catch (e: any) { demoNote(e?.message ?? 'Could not save.'); }
   };
   return (
     <Screen>
       <T v="h1">Course approvals</T>
-      <T v="small">Courses created by madrasa admins</T>
+      <T v="small">Courses created by institution admins</T>
       <Row gap={6} style={{ marginTop: 12, backgroundColor: '#FFF', borderRadius: 26, padding: 4 }}>
         {([['waiting', `Waiting · ${list.filter((c) => c.status === 'waiting').length}`], ['approved', 'Approved'], ['other', 'Changes / rejected']] as const).map(([k, l]) => (
           <Pressable key={k} accessibilityRole="tab" accessibilityState={{ selected: tab === k }} onPress={() => setTab(k)} style={{ flex: 1, height: 44, borderRadius: 22, backgroundColor: tab === k ? colors.violet : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
@@ -86,12 +86,12 @@ export function SuperSettingsScreen() {
       { title: 'Platform', rows: [
         { icon: 'color-palette-outline', tint: T_.lav, label: 'App name & branding', value: 'Noon Learn' },
         { icon: 'globe-outline', tint: T_.sky, label: 'Default language', value: 'English · മലയാളം' },
-        { icon: 'business-outline', tint: T_.mint, label: 'New madrasa sign-ups', sub: 'Madrasas can register themselves', toggle: true },
+        { icon: 'business-outline', tint: T_.mint, label: 'New institution sign-ups', sub: 'Institutions can register themselves', toggle: true },
         { icon: 'person-outline', tint: T_.butter, label: 'Guest mode', sub: '2 free lessons per subject', toggle: true },
       ] },
       { title: 'Courses & content', rows: [
-        { icon: 'checkmark-circle-outline', tint: T_.mint, label: 'Approve madrasa courses', sub: 'Admins need approval to publish', toggle: true, href: '/super/approvals' },
-        { icon: 'pie-chart-outline', tint: T_.butter, label: 'Revenue share', sub: 'Madrasa / Noon Learn', value: '70 / 30' },
+        { icon: 'checkmark-circle-outline', tint: T_.mint, label: 'Approve institution courses', sub: 'Admins need approval to publish', toggle: true, href: '/super/approvals' },
+        { icon: 'pie-chart-outline', tint: T_.butter, label: 'Revenue share', sub: 'Institution / Noon Learn', value: '70 / 30' },
         { icon: 'sparkles-outline', tint: T_.pink, label: 'Noon AI tutor', sub: 'On for all students', toggle: true },
       ] },
       { title: 'Billing', rows: [
