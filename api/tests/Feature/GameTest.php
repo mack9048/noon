@@ -41,7 +41,10 @@ class GameTest extends TestCase
         $this->as($boss)->post("/api/super/games/{$b['id']}", ['title' => 'Team Quiz 2', 'status' => 'live'], ['Accept' => 'application/json'])->assertOk()->assertJsonPath('status', 'live');
 
         $path = Game::find($a['id'])->html_path;
+        // Delete moves it to the bin (file kept); delete forever removes the file.
         $this->as($boss)->deleteJson("/api/super/games/{$a['id']}")->assertNoContent();
+        Storage::disk('local')->assertExists($path);
+        $this->as($boss)->deleteJson("/api/super/games/{$a['id']}/forever")->assertNoContent();
         Storage::disk('local')->assertMissing($path);
     }
 

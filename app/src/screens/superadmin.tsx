@@ -62,45 +62,6 @@ export function SuperOverviewScreen() {
   );
 }
 
-/* ---------- Content library ---------- */
-const CONTENT = {
-  courses: [['Arabic Basics', '24 lessons · 38 tenants', 'Published', 'ع', 'lav'], ['Thajweed Level 1', '18 lessons · 41 tenants', 'Published', 'ت', 'mint'], ['Fiqh for Kids', '12 lessons · 22 tenants', 'Published', 'ف', 'sky'], ['Seerah Stories', '30 lessons · 19 tenants', 'Published', 'س', 'pink'], ['Akhlaq', '10 lessons · 0 tenants', 'Draft', 'أ', 'butter'], ['Hifz Planner', '6 lessons · 0 tenants', 'In review', 'ح', 'lav']],
-  games: [['Harakath Game', 'All tenants', 'Published', 'بَا', 'lav'], ['Car with Harakath', '31 tenants', 'Published', 'تَ', 'butter'], ['Letter Game', '40 tenants', 'Published', 'أ ب', 'mint'], ['Word Game', '36 tenants', 'Published', 'كِتَاب', 'pink'], ['Sukoon Hunt', 'Not assigned', 'In review', 'نْ', 'sky'], ['Thajweed Tap', 'Not assigned', 'In review', 'تجويد', 'mint']],
-  audio: [['Stories of the Prophets', '24 parts · Pro', 'Published', 'ق', 'sky'], ['Daily Duas', '40 tracks · All', 'Published', 'د', 'mint'], ['Juz Amma recitation', '37 tracks · All', 'Published', 'جزء', 'lav'], ['Akhlaq Tales', '12 parts · Pro', 'Published', 'خ', 'pink'], ['Arabic Phrases', '20 tracks', 'Draft', 'ع', 'butter'], ['Seerah for Kids', '18 parts', 'In review', 'س', 'sky']],
-} as const;
-const WAITING = { courses: '1 course waiting', games: '2 games waiting', audio: '1 audio book waiting' };
-
-export function SuperContentScreen() {
-  const [tab, setTab] = useState<keyof typeof CONTENT>('courses');
-  return (
-    <Screen>
-      <Row style={{ justifyContent: 'space-between', marginBottom: 4 }}>
-        <T v="h1">Content</T>
-        <Button title="Upload" icon="cloud-upload-outline" onPress={() => router.push((tab === 'courses' ? '/super/courses/new' : '/super/tools') as any)} style={{ height: 44 }} />
-      </Row>
-      <Tabs value={tab} onChange={setTab} options={[{ key: 'courses', label: 'Courses' }, { key: 'games', label: 'Games' }, { key: 'audio', label: 'Audio books' }]} />
-      <Grid cols={{ phone: 2, tablet: 4, desktop: 4 }} gap={8}>
-        <Pressable accessibilityRole="button" onPress={() => router.push('/super/tools' as any)} style={{ height: 70, borderRadius: 20, backgroundColor: '#F7A54A', padding: 10, justifyContent: 'center' }}>
-          <T style={{ color: '#3F2500', fontFamily: fonts.semibold }}>Study tools</T><T style={{ color: '#3F2500', fontSize: 11 }}>Charts · Adkar · Slides · Forms</T>
-        </Pressable>
-        <Pressable accessibilityRole="button" onPress={() => demoNote('Demo: the review queue opens here (step 5).')} style={{ height: 70, borderRadius: 20, backgroundColor: '#FFF', borderWidth: 1.5, borderColor: colors.line, padding: 10, justifyContent: 'center' }}>
-          <T style={{ fontFamily: fonts.semibold }}>{WAITING[tab]}</T><T style={{ color: colors.teal, fontSize: 12 }}>Review now →</T>
-        </Pressable>
-        {CONTENT[tab].map(([name, meta, status, glyph, tint]) => (
-          <Pressable key={name} accessibilityRole="button" onPress={() => (tab === 'courses' ? router.push('/super/courses' as any) : demoNote(`Demo: edit "${name}" (step 5).`))}
-            style={{ height: 120, borderRadius: 22, backgroundColor: pastel[tint][0], padding: 10, justifyContent: 'space-between' }}>
-            <View><T style={{ fontFamily: fonts.semibold, color: colors.ink }}>{name}</T><T style={{ fontSize: 11, color: colors.muted }}>{meta}</T></View>
-            <Row style={{ justifyContent: 'space-between' }}>
-              <Tag text={status} tone={status === 'Published' ? 'white' : status === 'Draft' ? 'butter' : 'lav'} />
-              <T style={{ fontFamily: fonts.arabic, fontSize: 22, color: pastel[tint][1] }}>{glyph}</T>
-            </Row>
-          </Pressable>
-        ))}
-      </Grid>
-    </Screen>
-  );
-}
-
 /* ---------- Subscriptions & billing ---------- */
 const PLANS = [['basic', 'Basic', 14, 'Up to 100 students · Classes, chat, attendance', 2500, colors.teal], ['pro', 'Pro', 26, 'Up to 500 students · + AI tutor, games, audio books', 6000, colors.violet], ['ent', 'Enterprise', 0, 'Unlimited students · own branding · support line', 0, '#D6336C']] as const;
 const INVOICES = [['Darul Huda Online', 'Pro', '₹6,000', 'Paid 1 Nov', 'Paid'], ['Noon Learn Academy', 'Pro', '₹6,000', 'Paid 1 Nov', 'Paid'], ['Hidaya Quran School', 'Basic', '₹2,500', 'Due 5 Nov', ''], ['Ar-Rahma Institute', 'Basic', '₹2,500', 'Overdue 21 days', ''], ['Baitul Ilm', 'Trial → Basic', '₹2,500', 'Starts 10 Nov', 'Scheduled']] as const;

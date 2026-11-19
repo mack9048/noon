@@ -2,12 +2,14 @@
 // fees, attendance, audio books, settings and help.
 import { NooniChat } from '@/components/Nooni';
 import React, { useState } from 'react';
-import { Pressable, Switch, Text, TextInput, View } from 'react-native';
+import { Linking, Platform, Pressable, Switch, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Button, Card, Grid, Header, Row, Screen, Segmented, T } from '@/components/ui';
+import { Button, Card, Grid, Header, Loading, Row, Screen, Segmented, T } from '@/components/ui';
 import { Avatar, Band, Chips, demoNote, Glyph, ListRow, pastel, Progress, Section, SmallButton, Stat, Tabs, Tag, Tile } from '@/components/kit';
 import { useAuth } from '@/lib/auth';
+import { api } from '@/lib/api';
+import { useApi } from '@/lib/useApi';
 import { useMyAttendancePercent } from './attendance';
 import { profileLine, profileRows, splitName } from '@/lib/profile';
 import { useLearnSpaces } from '@/lib/learnSpace';
@@ -16,6 +18,7 @@ import { useBase } from '@/lib/useBase';
 import { useLayout } from '@/lib/useLayout';
 import { AUDIO_BOOKS, CLASSROOM, HELP_FAQ, PROFILE, SALAH_SCORES } from '@/lib/demo';
 import { colors, fonts } from '@/theme/tokens';
+import type { StudyTool } from '@/lib/types';
 
 const rupee = (n: number) => '₹' + n.toLocaleString('en-IN');
 
@@ -183,13 +186,45 @@ export function ProfileScreen() {
 
 /* ---------- Audio books ---------- */
 export function AudioBooksScreen() {
+  // Audio books uploaded by Noon Learn (Content › Resources); the sample library shows until there are some.
+  const real = useApi<StudyTool[]>('/study-tools?type=audio');
+  if (real.loading && !real.data) return <Screen><Header title="Audio Books" /><Loading /></Screen>;
+  if (real.data?.length) return <RealAudioBooks books={real.data} />;
+  return <SampleAudioBooks />;
+}
+
+function RealAudioBooks({ books }: { books: StudyTool[] }) {
+  const [now, setNow] = useState<StudyTool>(books[0]);
+  const tints = [pastel.sky, pastel.mint, pastel.lav, pastel.pink, pastel.butter];
+  const play = (b: StudyTool) => { setNow(b); api.post(`/study-tools/${b.id}/open`).catch(() => {}); if (Platform.OS !== 'web' && b.file_url) Linking.openURL(b.file_url); };
+  return (
+    <Screen>
+      <Header title="Audio Books" />
+      <Card tint={colors.sky[0]} style={{ gap: 10 }}>
+        <Row gap={12}><Glyph text="♪" size={52} tint={pastel.white} /><View style={{ flex: 1 }}><T v="small">Now playing</T><T v="h3" auto>{now.title}</T>{now.author ? <T v="small">{now.author}</T> : null}</View></Row>
+        {Platform.OS === 'web' && now.file_url
+          ? React.createElement('audio', { key: now.id, src: now.file_url, controls: true, autoPlay: true, controlsList: 'nodownload', style: { width: '100%' } })
+          : <Button title="Play" icon="play" onPress={() => now.file_url && Linking.openURL(now.file_url)} />}
+      </Card>
+      <Section title="Library" />
+      <View style={{ gap: 8 }}>
+        {books.map((b, i) => (
+          <ListRow key={b.id} left={<Glyph text="♪" size={44} tint={tints[i % tints.length]} />} title={b.title} sub={[b.author, b.is_new ? 'New' : null].filter(Boolean).join(' · ') || 'Audio book'}
+            right={<Pressable accessibilityLabel={`Play ${b.title}`} onPress={() => play(b)} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: b.id === now.id ? colors.violet : colors.ink, alignItems: 'center', justifyContent: 'center' }}><Ionicons name={b.id === now.id ? 'volume-high' : 'play'} size={18} color="#FFF" /></Pressable>} />
+        ))}
+      </View>
+    </Screen>
+  );
+}
+
+function SampleAudioBooks() {
   const [cat, setCat] = useState<'all' | 'stories' | 'duas' | 'quran'>('all');
   const [now, setNow] = useState<(typeof AUDIO_BOOKS)[number]>(AUDIO_BOOKS[0]);
   const [playing, setPlaying] = useState(true);
   const list = AUDIO_BOOKS.filter((b) => cat === 'all' || b.cat === cat);
   return (
     <Screen>
-      <Header title="Audio Books" />
+      <Header title="Audio Books" subtitle="Sample library" />
       <Chips value={cat} onChange={setCat} options={[{ key: 'all', label: 'All' }, { key: 'stories', label: 'Stories' }, { key: 'duas', label: 'Duas' }, { key: 'quran', label: 'Quran' }]} />
       <Card tint={colors.sky[0]} style={{ gap: 10 }}>
         <Row gap={12}><Glyph text={now.glyph} size={52} tint={pastel.white} /><View style={{ flex: 1 }}><T v="small">Now playing</T><T v="h3">{now.title}</T><T v="small">{now.part}</T></View></Row>

@@ -183,6 +183,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::post('/courses', [CourseController::class, 'superStore']);
         Route::put('/courses/{course}', [CourseController::class, 'superUpdate']);
         Route::delete('/courses/{course}', [CourseController::class, 'superDestroy']);
+        Route::post('/courses/{id}/restore', [CourseController::class, 'superRestore'])->whereNumber('id');
+        Route::delete('/courses/{id}/forever', [CourseController::class, 'superForceDelete'])->whereNumber('id');
         Route::post('/courses/{course}/items', [CourseController::class, 'superAddItem']);
         Route::delete('/course-items/{item}', [CourseBuilderController::class, 'destroyItem']);
         // Course builder: subjects (optional) → lessons → content, each saved straight away
@@ -211,10 +213,14 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::post('/games/reorder', [GameController::class, 'reorder']);
         Route::post('/games/{id}', [GameController::class, 'update'])->whereNumber('id');
         Route::delete('/games/{id}', [GameController::class, 'destroy'])->whereNumber('id');
+        Route::post('/games/{id}/restore', [GameController::class, 'restore'])->whereNumber('id');
+        Route::delete('/games/{id}/forever', [GameController::class, 'forceDelete'])->whereNumber('id');
 
         Route::get('/study-tools', [StudyToolController::class, 'superIndex']);
         Route::post('/study-tools', [StudyToolController::class, 'store']);
         Route::match(['put', 'post'], '/study-tools/{tool}', [StudyToolController::class, 'update']);
         Route::delete('/study-tools/{tool}', [StudyToolController::class, 'destroy']);
+        Route::post('/study-tools/{id}/restore', [StudyToolController::class, 'restore'])->whereNumber('id');
+        Route::delete('/study-tools/{id}/forever', [StudyToolController::class, 'forceDelete'])->whereNumber('id');
     });
 });

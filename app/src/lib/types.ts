@@ -56,9 +56,9 @@ export interface CourseLessonRow {
 }
 export interface CourseDetail extends Course { items: CourseItem[]; lessons?: CourseLessonRow[]; subjects?: { id: number; title: string }[] }
 
-export type ToolType = 'chart' | 'adkar' | 'slide' | 'form';
+export type ToolType = 'audio' | 'chart' | 'adkar' | 'slide' | 'form';
 export interface StudyTool {
-  id: number; type: ToolType; title: string; file_url?: string | null;
+  id: number; type: ToolType; title: string; author?: string | null; file_url?: string | null;
   is_new: boolean; status: 'draft' | 'live'; views?: number;
 }
 

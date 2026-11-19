@@ -4,12 +4,15 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Course extends Model
 {
+    use SoftDeletes;
+
     protected $fillable = ['title', 'description', 'category', 'level', 'cover', 'logo_url', 'status', 'is_free', 'price', 'offer_price', 'price_period', 'trial_days', 'free_for_subscribers', 'teacher_id', 'tenant_id', 'visibility', 'review_note'];
 
     protected $casts = ['is_free' => 'boolean', 'free_for_subscribers' => 'boolean'];

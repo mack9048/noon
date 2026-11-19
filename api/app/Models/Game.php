@@ -4,9 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Game extends Model
 {
+    use SoftDeletes;
+
     public const MODES = ['solo', 'group'];
     public const AUDIENCES = ['all', 'students', 'guests'];
 

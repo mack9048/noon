@@ -189,9 +189,36 @@ class CourseController extends Controller
 
     /* ---------- Super admin CRUD ---------- */
 
-    public function superIndex()
+    public function superIndex(Request $request)
     {
-        return Course::with(self::WITH)->latest()->get()->map(fn (Course $c) => $c->toApp());
+        // ?deleted=1: the bin.
+        $q = $request->boolean('deleted') ? Course::onlyTrashed()->latest('deleted_at') : Course::latest();
+
+        return $q->with([...self::WITH, 'madrasa'])->get()->map(fn (Course $c) => $c->toApp() + [
+            'institution' => $c->madrasa?->name, 'deleted_at' => $c->deleted_at?->toIso8601String(),
+        ]);
+    }
+
+    /** Move a deleted course back out of the bin (it comes back as a draft). */
+    public function superRestore(int $id)
+    {
+        $course = Course::onlyTrashed()->findOrFail($id);
+        $course->restore();
+        $course->update(['status' => $course->status === 'published' ? 'draft' : $course->status]);
+
+        return $course->load(self::WITH)->toApp();
+    }
+
+    /** Delete a course from the bin for good, with its lessons and files. */
+    public function superForceDelete(int $id)
+    {
+        $course = Course::onlyTrashed()->with('items')->findOrFail($id);
+        foreach ($course->items as $item) {
+            CourseBuilderController::deleteFiles($item);
+        }
+        $course->forceDelete();
+
+        return response()->noContent();
     }
 
     public function superStore(Request $request)

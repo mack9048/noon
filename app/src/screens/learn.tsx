@@ -430,14 +430,14 @@ export function SubjectScreen() {
 
 /* ================= Study tools: charts / adkar / slides / forms ================= */
 
-const toolMeta: Record<ToolType, { title: string; g: readonly string[] }> = {
+const toolMeta: Record<Exclude<ToolType, 'audio'>, { title: string; g: readonly string[] }> = {
   chart: { title: 'Charts', g: gradients.chart }, adkar: { title: 'Adkar', g: gradients.adkar },
   slide: { title: 'Slides', g: gradients.slides }, form: { title: 'Forms', g: gradients.forms },
 };
 
 export function StudyToolsScreen() {
   const { type } = useLocalSearchParams<{ type: ToolType }>();
-  const [t, setT] = useState<ToolType>((type as ToolType) ?? 'chart');
+  const [t, setT] = useState<Exclude<ToolType, 'audio'>>(((type as ToolType) === 'audio' ? 'chart' : (type as Exclude<ToolType, 'audio'>)) ?? 'chart');
   const list = useApi<StudyTool[]>(`/study-tools?type=${t}`);
   return (
     <Screen back={false}>
@@ -447,7 +447,7 @@ export function StudyToolsScreen() {
           <View><T style={{ fontFamily: fonts.semibold, fontSize: 28, color: '#FFF' }}>{toolMeta[t].title}</T><T style={{ color: '#E4DDFF' }}>Select one · {list.data?.length ?? 0} files</T></View>
         </Row>
         <Segmented value={t} onChange={setT} activeColor={colors.violet}
-          options={(Object.keys(toolMeta) as ToolType[]).map((k) => ({ key: k, label: toolMeta[k].title }))} />
+          options={(Object.keys(toolMeta) as Exclude<ToolType, 'audio'>[]).map((k) => ({ key: k, label: toolMeta[k].title }))} />
       </GradientCard>
       {list.loading ? <Loading /> : (
         <Grid cols={{ phone: 1, tablet: 2, desktop: 3 }}>

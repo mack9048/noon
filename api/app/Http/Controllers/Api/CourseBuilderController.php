@@ -365,6 +365,14 @@ class CourseBuilderController extends Controller
         return response()->noContent();
     }
 
+    /** Remove an item's own files (used when a course is deleted for good). */
+    public static function deleteFiles(CourseItem $item): void
+    {
+        $self = new self;
+        $self->deleteFile($item);
+        $self->deletePublicFile($item);
+    }
+
     private function deleteFile(?CourseItem $item): void
     {
         if ($item?->file_path) {

@@ -59,9 +59,11 @@ class GameController extends Controller
 
     // ---------- Super admin ----------
 
-    public function adminIndex()
+    public function adminIndex(Request $request)
     {
-        return Game::orderBy('position')->orderBy('id')->get()->map(fn (Game $g) => $g->toApp(true));
+        $q = $request->boolean('deleted') ? Game::onlyTrashed()->latest('deleted_at') : Game::orderBy('position')->orderBy('id');
+
+        return $q->get()->map(fn (Game $g) => $g->toApp(true) + ['deleted_at' => $g->deleted_at?->toIso8601String()]);
     }
 
     public function store(Request $request)
@@ -100,10 +102,26 @@ class GameController extends Controller
 
     public function destroy(int $id)
     {
-        $game = Game::findOrFail($id);
+        // Goes to the bin; its file stays until it is deleted for good.
+        Game::findOrFail($id)->delete();
+
+        return response()->noContent();
+    }
+
+    public function restore(int $id)
+    {
+        $game = Game::onlyTrashed()->findOrFail($id);
+        $game->restore();
+
+        return $game->toApp(true);
+    }
+
+    public function forceDelete(int $id)
+    {
+        $game = Game::onlyTrashed()->findOrFail($id);
         Storage::disk('local')->delete($game->html_path);
         $this->deleteThumb($game);
-        $game->delete();
+        $game->forceDelete();
 
         return response()->noContent();
     }
@@ -116,7 +134,7 @@ class GameController extends Controller
             Game::whereKey($id)->update(['position' => $i + 1]);
         }
 
-        return $this->adminIndex();
+        return $this->adminIndex(new Request);
     }
 
     private function validated(Request $request, bool $creating): array

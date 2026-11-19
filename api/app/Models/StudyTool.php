@@ -3,11 +3,14 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 
 class StudyTool extends Model
 {
-    protected $fillable = ['type', 'title', 'file_path', 'is_new', 'status', 'board_id', 'views'];
+    use SoftDeletes;
+
+    protected $fillable = ['type', 'title', 'author', 'file_path', 'is_new', 'status', 'board_id', 'views'];
 
     protected $casts = ['is_new' => 'boolean'];
 

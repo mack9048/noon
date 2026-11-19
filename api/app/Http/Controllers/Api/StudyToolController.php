@@ -12,7 +12,7 @@ class StudyToolController extends Controller
 {
     public function index(Request $request)
     {
-        $data = $request->validate(['type' => ['required', 'in:chart,adkar,slide,form']]);
+        $data = $request->validate(['type' => ['required', 'in:chart,adkar,slide,form,audio']]);
         $boardId = $request->user()?->board_id;
 
         return StudyTool::where('type', $data['type'])
@@ -32,9 +32,28 @@ class StudyToolController extends Controller
 
     /* ---------- Super admin CRUD ---------- */
 
-    public function superIndex()
+    public function superIndex(Request $request)
     {
-        return StudyTool::latest()->get();
+        return $request->boolean('deleted') ? StudyTool::onlyTrashed()->latest('deleted_at')->get() : StudyTool::latest()->get();
+    }
+
+    public function restore(int $id)
+    {
+        $tool = StudyTool::onlyTrashed()->findOrFail($id);
+        $tool->restore();
+
+        return $tool;
+    }
+
+    public function forceDelete(int $id)
+    {
+        $tool = StudyTool::onlyTrashed()->findOrFail($id);
+        if ($tool->file_path) {
+            Storage::disk('public')->delete($tool->file_path);
+        }
+        $tool->forceDelete();
+
+        return response()->noContent();
     }
 
     public function store(Request $request)
@@ -66,9 +85,7 @@ class StudyToolController extends Controller
 
     public function destroy(StudyTool $tool)
     {
-        if ($tool->file_path) {
-            Storage::disk('public')->delete($tool->file_path);
-        }
+        // Goes to the bin; the file stays until it is deleted for good.
         $tool->delete();
 
         return response()->noContent();
@@ -79,12 +96,16 @@ class StudyToolController extends Controller
         $req = $partial ? 'sometimes' : 'required';
 
         return $request->validate([
-            'type' => [$req, 'in:chart,adkar,slide,form'],
+            'type' => [$req, 'in:chart,adkar,slide,form,audio'],
             'title' => [$req, 'string', 'max:200'],
+            'author' => ['nullable', 'string', 'max:80'],
             'is_new' => ['sometimes', 'boolean'],
             'status' => ['sometimes', 'in:draft,live'],
             'board_id' => ['nullable', 'exists:boards,id'],
-            'file' => ['nullable', 'file', 'max:20480', 'mimes:pdf,jpg,jpeg,png'],
+            // Audio books take an audio file (up to 100 MB); the others a PDF or picture.
+            'file' => $request->input('type', $request->route('tool')?->type) === 'audio'
+                ? ['nullable', 'file', 'max:102400', 'extensions:mp3,m4a,aac,ogg,wav,opus']
+                : ['nullable', 'file', 'max:20480', 'mimes:pdf,jpg,jpeg,png'],
         ]);
     }
 }

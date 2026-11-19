@@ -186,7 +186,7 @@ export function SuperCoursesScreen() {
 
 /* ================= Super admin: study tools CRUD ================= */
 
-const toolLabels: Record<ToolType, string> = { chart: 'Charts', adkar: 'Adkar', slide: 'Slides', form: 'Forms' };
+export const toolLabels: Record<ToolType, string> = { audio: 'Audio books', chart: 'Charts', adkar: 'Adkar', slide: 'Slides', form: 'Forms' };
 
 export function SuperToolsScreen() {
   const list = useApi<StudyTool[]>('/super/study-tools');
@@ -198,8 +198,8 @@ export function SuperToolsScreen() {
 
   return (
     <Screen>
-      <Header title="Study tools" subtitle="Charts · Adkar · Slides · Forms" back={false} right={<Button title="Add" icon="add" style={{ height: 46 }} onPress={() => setEditing('new')} />} />
-      <Grid cols={{ phone: 4, tablet: 4, desktop: 4 }} gap={8}>
+      <Header title="Resources" subtitle="Audio books · Charts · Adkar · Slides · Forms" back={false} right={<Button title="Add" icon="add" style={{ height: 46 }} onPress={() => setEditing('new')} />} />
+      <Grid cols={{ phone: 3, tablet: 5, desktop: 5 }} gap={8}>
         {(Object.keys(toolLabels) as ToolType[]).map((k) => (
           <Card key={k} onPress={() => setTab(k)} style={{ alignItems: 'center', borderWidth: 2, borderColor: k === tab ? '#F2B518' : 'transparent' }}>
             <T style={{ fontFamily: fonts.semibold, fontSize: 20 }}>{(list.data ?? []).filter((t) => t.type === k).length}</T>
@@ -230,21 +230,24 @@ export function SuperToolsScreen() {
   );
 }
 
-function ToolSheet({ tool, defaultType, onClose, onSaved }: { tool: StudyTool | null; defaultType: ToolType; onClose: () => void; onSaved: () => void }) {
+export function ToolSheet({ tool, defaultType, onClose, onSaved, onDelete }: { tool: StudyTool | null; defaultType: ToolType; onClose: () => void; onSaved: () => void; onDelete?: () => void }) {
   const [type, setType] = useState<ToolType>(tool?.type ?? defaultType);
   const [title, setTitle] = useState(tool?.title ?? '');
+  const [author, setAuthor] = useState(tool?.author ?? '');
+  const [err, setErr] = useState('');
+  const audio = type === 'audio';
   const [isNew, setIsNew] = useState(tool?.is_new ?? true);
   const [file, setFile] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
   const [busy, setBusy] = useState(false);
 
   const pick = async () => {
-    const res = await DocumentPicker.getDocumentAsync({ type: ['application/pdf', 'image/*'], copyToCacheDirectory: true });
+    const res = await DocumentPicker.getDocumentAsync({ type: audio ? ['audio/*'] : ['application/pdf', 'image/*'], copyToCacheDirectory: true });
     if (!res.canceled) setFile(res.assets[0]);
   };
   const save = async (status: 'draft' | 'live') => {
-    setBusy(true);
+    setBusy(true); setErr('');
     try {
-      let body: any = { type, title, is_new: isNew, status };
+      let body: any = { type, title, is_new: isNew, status, ...(audio ? { author } : {}) };
       if (file && !USE_MOCK) {
         const fd = new FormData();
         Object.entries(body).forEach(([k, v]) => fd.append(k, String(v === true ? 1 : v === false ? 0 : v)));
@@ -256,22 +259,25 @@ function ToolSheet({ tool, defaultType, onClose, onSaved }: { tool: StudyTool | 
       } else if (tool) await api.put(`/super/study-tools/${tool.id}`, body);
       else await api.post('/super/study-tools', body);
       onSaved();
-    } finally { setBusy(false); }
+    } catch (e) { setErr(e instanceof Error ? e.message : 'Could not save.'); } finally { setBusy(false); }
   };
 
   return (
     <Modal transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={{ flex: 1, backgroundColor: 'rgba(16,48,58,0.35)' }} onPress={onClose} />
       <View style={{ backgroundColor: '#FFF', borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 20, gap: 12, width: '100%', maxWidth: 640, alignSelf: 'center' }}>
-        <Row><T v="h2" style={{ flex: 1 }}>{tool ? 'Edit item' : 'Add study tool'}</T><IconButton name="close" label="Close" tint={colors.bg} size={38} onPress={onClose} /></Row>
+        <Row><T v="h2" style={{ flex: 1 }}>{tool ? 'Edit resource' : 'Add resource'}</T><IconButton name="close" label="Close" tint={colors.bg} size={38} onPress={onClose} /></Row>
         <Segmented value={type} onChange={setType} activeColor="#F2B518" options={(Object.keys(toolLabels) as ToolType[]).map((k) => ({ key: k, label: toolLabels[k] }))} />
         <Field label="Title (Malayalam, Arabic or English)" value={title} onChangeText={setTitle} placeholder="eg. നിസ്കാരം" style={{ fontFamily: scriptFont(title || 'a') }} />
+        {audio ? <Field label="Narrator / author (optional)" value={author} onChangeText={setAuthor} placeholder="eg. Usthad Ahmed" /> : null}
         <Card onPress={pick} tint={colors.surfaceSoft} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1.5, borderStyle: 'dashed', borderColor: '#9BB6BE' }}>
           <Ionicons name="cloud-upload-outline" size={24} color="#F2B518" />
-          <View style={{ flex: 1 }}><T v="h3">{file ? file.name : tool ? 'Replace file' : 'Upload file'}</T><T v="small">PDF, JPG or PNG · up to 20 MB</T></View>
+          <View style={{ flex: 1 }}><T v="h3">{file ? file.name : tool ? 'Replace file' : 'Upload file'}</T><T v="small">{audio ? 'MP3, M4A, AAC, OGG or WAV · up to 100 MB' : 'PDF, JPG or PNG · up to 20 MB'}</T></View>
         </Card>
         <Row><T style={{ flex: 1 }}>Show “New” tag to students</T><Switch value={isNew} onValueChange={setIsNew} trackColor={{ true: colors.green, false: '#C3D3D8' }} thumbColor="#FFF" /></Row>
+        {err ? <T style={{ color: colors.red }}>{err}</T> : null}
         <Row>
+          {onDelete ? <Button title="Delete" kind="danger" style={{ paddingHorizontal: 14 }} onPress={onDelete} /> : null}
           <Button title="Save draft" kind="ghost" style={{ flex: 1 }} loading={busy} disabled={!title} onPress={() => save('draft')} />
           <Button title={tool ? 'Update' : 'Publish'} style={{ flex: 1 }} loading={busy} disabled={!title} onPress={() => save('live')} />
         </Row>

@@ -1,3 +1,1 @@
-import { SuperContentScreen } from '@/screens/superadmin';
-
-export default SuperContentScreen;
+export { SuperContentScreen as default } from '@/screens/superContent';
