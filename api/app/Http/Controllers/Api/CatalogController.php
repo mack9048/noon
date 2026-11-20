@@ -12,7 +12,8 @@ class CatalogController extends Controller
 {
     public function boards()
     {
-        return Board::orderBy('id')->get(['id', 'code', 'name', 'meta']);
+        // Madrasa Support offers only the AP and EK boards for now (General is hidden, not deleted).
+        return Board::where('code', '!=', 'GEN')->orderBy('id')->get(['id', 'code', 'name', 'meta']);
     }
 
     public function classes(Board $board)

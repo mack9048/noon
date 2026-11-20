@@ -317,7 +317,7 @@ const routes: [string, RegExp, Handler][] = [
   }],
   ['PUT', /^\/me\/learning$/, (_, b) => { if (me) Object.assign(me, { board_id: b.board_id, class_id: b.class_id }); return me; }],
 
-  ['GET', /^\/boards$/, () => boards],
+  ['GET', /^\/boards$/, () => boards.filter((b) => b.code !== 'GEN')],
   ['GET', /^\/boards\/(\d+)\/classes$/, (m) => classes.filter((c) => c.board_id === +m[1])],
   ['GET', /^\/classes\/(\d+)\/subjects$/, (m) => subjectNames.map(([name, ar], i): Subject => ({ id: +m[1] * 10 + i, class_id: +m[1], name, name_ar: ar, lessons_count: 10 + i }))],
   ['GET', /^\/subjects\/(\d+)$/, (m): SubjectDetail => {
