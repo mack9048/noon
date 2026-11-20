@@ -10,6 +10,9 @@ export interface User {
   tenant_name?: string | null;
   board_id?: number | null;
   class_id?: number | null;
+  /** Madrasa Support medium the learner picked: Malayalam or English. */
+  medium?: Medium | null;
+  board_code?: string | null;
   avatar_initial?: string;
   tenant_code?: string | null;
   tenant_phone?: string | null;
@@ -26,7 +29,9 @@ export interface User {
 }
 
 export interface Board { id: number; code: string; name: string; meta?: string }
-export interface SchoolClass { id: number; board_id: number; label: string; subjects_count: number }
+export type Medium = 'ml' | 'en';
+export const MEDIUM_LABEL: Record<Medium, string> = { ml: 'Malayalam medium', en: 'English medium' };
+export interface SchoolClass { id: number; board_id: number; medium?: Medium; label: string; subjects_count: number }
 export interface Subject { id: number; class_id: number; name: string; name_ar?: string; lessons_count: number }
 export interface Lesson {
   id: number; subject_id: number; position: number; title: string;

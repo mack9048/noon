@@ -16,8 +16,9 @@ const boards: Board[] = [
   { id: 3, code: 'GEN', name: 'General', meta: 'Noon Learn syllabus' },
 ];
 const classLabels = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '+1', '+2'];
-const classes: SchoolClass[] = boards.flatMap((b) =>
-  classLabels.map((label, i) => ({ id: b.id * 100 + i + 1, board_id: b.id, label, subjects_count: 8 })));
+// Every board in both mediums: Malayalam ids b01–b12, English ids b51–b62
+const classes: SchoolClass[] = boards.flatMap((b) => (['ml', 'en'] as const).flatMap((medium) =>
+  classLabels.map((label, i) => ({ id: b.id * 100 + (medium === 'en' ? 50 : 0) + i + 1, board_id: b.id, medium, label, subjects_count: 8 }))));
 const subjectNames: [string, string][] = [
   ['Quran', 'قرآن'], ['Thajweed', 'تجويد'], ['Fiqh', 'فقه'], ['Thareekh', 'تاريخ'],
   ['Aqeedah', 'عقيدة'], ['Akhlaq', 'أخلاق'], ['Hadith', 'حديث'], ['Arabic', 'لغة'],
@@ -69,7 +70,7 @@ const messages: Message[] = [
 function demoUser(role: Role, name: string): User {
   const inSchool = role !== 'guest' && role !== 'super';
   const login = ({ student: null, parent: 'parent1@demo.noonlearn.com', teacher: 'teacher1@demo.noonlearn.com', admin: 'admin@demo.noonlearn.com', super: 'super@noonlearn.com' } as Record<string, string | null>)[role] ?? null;
-  return { id: 1, name, role, tenant_id: inSchool ? 1 : null, tenant_name: inSchool ? 'Noon Demo Institution' : null, tenant_code: inSchool ? 'DEMO01' : null, board_id: 1, class_id: 105, avatar_initial: name[0],
+  return { id: 1, name, role, tenant_id: inSchool ? 1 : null, tenant_name: inSchool ? 'Noon Demo Institution' : null, tenant_code: inSchool ? 'DEMO01' : null, board_id: 1, class_id: 105, medium: 'ml', board_code: 'AP', avatar_initial: name[0],
     email: login, phone: role === 'parent' ? '+97336800100' : null, admission_no: role === 'student' ? 'DEMO-001' : null,
     board_name: role === 'student' ? 'Sunni Vidyabhyasa Board' : null, class_label: role === 'student' ? '5' : null,
     parent: role === 'student' ? { name: 'Muhammed Ali', phone: '+97336800100' } : null, joined: 'Jun 2026' };
@@ -266,7 +267,7 @@ const routes: [string, RegExp, Handler][] = [
     return { token: 'demo-token', user: me };
   }],
   ['POST', /^\/auth\/guest$/, (_, b) => {
-    me = { ...demoUser('guest', b?.name || 'Guest'), board_id: b?.board_id ?? null, class_id: b?.class_id ?? null };
+    me = { ...demoUser('guest', b?.name || 'Guest'), board_id: b?.board_id ?? null, class_id: b?.class_id ?? null, medium: b?.medium ?? null, board_code: null };
     (b?.course_ids ?? []).forEach((cid: number) => { const c = courses.find((x) => x.id === cid); if (c) c.enrolled = true; });
     return { token: 'demo-guest', user: me };
   }],
@@ -315,10 +316,17 @@ const routes: [string, RegExp, Handler][] = [
     me = { ...demoUser(u.role, u.name), tenant_id: 1, tenant_name: u.tenant_name, impersonated_by: superMe?.name };
     return { token: 'demo-impersonated', user: me };
   }],
-  ['PUT', /^\/me\/learning$/, (_, b) => { if (me) Object.assign(me, { board_id: b.board_id, class_id: b.class_id }); return me; }],
+  ['PUT', /^\/me\/learning$/, (_, b) => {
+    if (!me) return me;
+    const next = { ...me, ...Object.fromEntries(Object.entries(b ?? {}).filter(([k]) => ['board_id', 'class_id', 'medium'].includes(k))) } as User;
+    const cls = classes.find((c) => c.id === next.class_id);
+    if (cls && (cls.board_id !== next.board_id || (next.medium && cls.medium !== next.medium))) next.class_id = null;
+    Object.assign(me, next, { board_code: boards.find((x) => x.id === next.board_id)?.code ?? null });
+    return me;
+  }],
 
   ['GET', /^\/boards$/, () => boards.filter((b) => b.code !== 'GEN')],
-  ['GET', /^\/boards\/(\d+)\/classes$/, (m) => classes.filter((c) => c.board_id === +m[1])],
+  ['GET', /^\/boards\/(\d+)\/classes(?:\?(.*))?$/, (m) => { const medium = new URLSearchParams(m[2] ?? '').get('medium') === 'en' ? 'en' : 'ml'; return classes.filter((c) => c.board_id === +m[1] && c.medium === medium); }],
   ['GET', /^\/classes\/(\d+)\/subjects$/, (m) => subjectNames.map(([name, ar], i): Subject => ({ id: +m[1] * 10 + i, class_id: +m[1], name, name_ar: ar, lessons_count: 10 + i }))],
   ['GET', /^\/subjects\/(\d+)$/, (m): SubjectDetail => {
     const id = +m[1]; const cls = classes.find((c) => c.id === Math.floor(id / 10));

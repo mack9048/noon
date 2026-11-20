@@ -8,9 +8,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class SchoolClass extends Model
 {
+    /** Madrasa Support mediums: Malayalam and English. */
+    public const MEDIUMS = ['ml', 'en'];
+
     protected $table = 'school_classes';
 
-    protected $fillable = ['board_id', 'label', 'position'];
+    protected $fillable = ['board_id', 'medium', 'label', 'position'];
 
     public function board(): BelongsTo
     {

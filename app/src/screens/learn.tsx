@@ -13,7 +13,8 @@ import { useLayout } from '@/lib/useLayout';
 import { setLearnSpace, useLearnSpaces } from '@/lib/learnSpace';
 import { LearnTiles } from './learnspace';
 import { ContentViewerHost, openContent } from './courseBuilder';
-import type { Board, Course, CourseDetail, CourseItem, LiveInfo, SchoolClass, Subject, SubjectDetail, StudyTool, ToolType } from '@/lib/types';
+import { MEDIUM_LABEL } from '@/lib/types';
+import type { Board, Course, CourseDetail, CourseItem, LiveInfo, SchoolClass, Subject, SubjectDetail, StudyTool, ToolType, Medium } from '@/lib/types';
 import { colors, ContentKind, fonts, gradients, scriptFont } from '@/theme/tokens';
 
 const pastels = [colors.lav, colors.sky, colors.mint, colors.pink, colors.butter];
@@ -418,47 +419,119 @@ function Progress({ value }: { value: number }) {
 
 /* ================= Madrasa Support: board → class → subject → lessons ================= */
 
+/**
+ * Madrasa Support home. The first time, the learner picks their board and medium
+ * (Malayalam / English) once; it is saved on their profile. After that this opens
+ * straight to their board's classes in their medium, with a switch to change medium.
+ */
 export function BoardsScreen() {
-  const base = useBase();
+  const { user } = useAuth();
   const boards = useApi<Board[]>('/boards');
+  const [changing, setChanging] = useState(false);
+  if (boards.loading || !user) return <Screen><Loading /></Screen>;
+  const board = (boards.data ?? []).find((b) => b.id === user.board_id);
+  if (board && user.medium && !changing) return <MyClasses board={board} medium={user.medium} onChangeBoard={() => setChanging(true)} />;
+  return <ChooseBoardMedium boards={boards.data ?? []} initialBoard={board?.id ?? null} initialMedium={user.medium ?? null} onDone={() => setChanging(false)} />;
+}
+
+function ChooseBoardMedium({ boards, initialBoard, initialMedium, onDone }: { boards: Board[]; initialBoard: number | null; initialMedium: Medium | null; onDone: () => void }) {
+  const { refresh } = useAuth();
+  const [boardId, setBoardId] = useState<number | null>(initialBoard);
+  const [medium, setMedium] = useState<Medium | null>(initialMedium);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const save = async () => {
+    setBusy(true); setErr(null);
+    try { await api.put('/me/learning', { board_id: boardId, medium }); await refresh(); onDone(); }
+    catch (e: any) { setErr(e?.friendly ?? e?.message ?? 'Could not save. Please try again.'); }
+    finally { setBusy(false); }
+  };
   return (
     <Screen>
-      <Header title="Madrasa Support" subtitle="Step 1 · choose your board" />
-      {boards.loading ? <Loading /> : (
-        <Grid cols={{ phone: 1, tablet: 3, desktop: 3 }}>
-          {(boards.data ?? []).map((b, i) => (
-            <Card key={b.id} onPress={() => router.push(`${base}/support/board/${b.id}` as any)} style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 20 }}>
-              <View style={{ width: 70, height: 70, borderRadius: 22, backgroundColor: pastels[(i + 2) % 5][0], alignItems: 'center', justifyContent: 'center' }}>
-                <T style={{ fontFamily: fonts.semibold, fontSize: 20, color: pastels[(i + 2) % 5][1] }}>{b.code}</T>
-              </View>
-              <View style={{ flex: 1 }}><T v="h3">{b.name}</T><T v="small">{b.meta} · Class 1–10, +1, +2</T></View>
-              <Ionicons name="chevron-forward" size={20} color={colors.muted} />
-            </Card>
-          ))}
+      <View style={{ maxWidth: 760, width: '100%', alignSelf: 'center', gap: 14 }}>
+        <Header title="Madrasa Support" subtitle="Choose once · you can change it later" />
+        <T v="fun" style={{ fontSize: 20 }}>1. Your board</T>
+        <Grid cols={{ phone: 1, tablet: 2, desktop: 2 }}>
+          {boards.map((b, i) => {
+            const on = b.id === boardId;
+            return (
+              <Card key={b.id} onPress={() => setBoardId(b.id)} style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 18, borderWidth: 3, borderColor: on ? colors.teal : 'transparent' }}>
+                <View style={{ width: 64, height: 64, borderRadius: 20, backgroundColor: pastels[(i + 2) % 5][0], alignItems: 'center', justifyContent: 'center' }}>
+                  <T style={{ fontFamily: fonts.semibold, fontSize: 20, color: pastels[(i + 2) % 5][1] }}>{b.code}</T>
+                </View>
+                <View style={{ flex: 1 }}><T v="h3">{b.name}</T><T v="small">{b.meta} · Class 1–10, +1, +2</T></View>
+                <Ionicons name={on ? 'checkmark-circle' : 'ellipse-outline'} size={28} color={on ? colors.teal : colors.line} />
+              </Card>
+            );
+          })}
         </Grid>
-      )}
+        <T v="fun" style={{ fontSize: 20 }}>2. Your medium</T>
+        <Grid cols={{ phone: 2, tablet: 2, desktop: 2 }}>
+          {(['ml', 'en'] as Medium[]).map((m) => {
+            const on = m === medium;
+            return (
+              <Card key={m} onPress={() => setMedium(m)} tint={on ? colors.lav[0] : '#FFF'} style={{ alignItems: 'center', gap: 4, paddingVertical: 18, borderWidth: 3, borderColor: on ? colors.violet : 'transparent' }}>
+                <T style={{ fontSize: 30, fontFamily: fonts.semibold, color: colors.violet }}>{m === 'ml' ? 'മ' : 'A'}</T>
+                <T v="h3">{m === 'ml' ? 'Malayalam' : 'English'}</T>
+                <T v="small">medium</T>
+              </Card>
+            );
+          })}
+        </Grid>
+        {err ? <T style={{ color: colors.red, textAlign: 'center' }}>{err}</T> : null}
+        <Button title="Continue" icon="arrow-forward" loading={busy} disabled={!boardId || !medium} onPress={save} />
+      </View>
     </Screen>
   );
 }
 
-export function ClassesScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const base = useBase();
-  const classes = useApi<SchoolClass[]>(`/boards/${id}/classes`);
+/** The learner's own board in their medium, with a one-tap medium switch. */
+function MyClasses({ board, medium, onChangeBoard }: { board: Board; medium: Medium; onChangeBoard: () => void }) {
+  const { refresh } = useAuth();
+  const [busy, setBusy] = useState(false);
+  const switchMedium = async (m: Medium) => {
+    if (m === medium || busy) return;
+    setBusy(true);
+    try { await api.put('/me/learning', { medium: m }); await refresh(); } catch { /* keep the current medium */ } finally { setBusy(false); }
+  };
   return (
     <Screen>
-      <Header title="Choose class" subtitle="Step 2" />
-      {classes.loading ? <Loading /> : (
-        <Grid cols={{ phone: 3, tablet: 4, desktop: 6 }}>
-          {(classes.data ?? []).map((c, i) => (
-            <Card key={c.id} tint={pastels[i % 5][0]} onPress={() => router.push(`${base}/support/class/${c.id}` as any)} style={{ alignItems: 'center', paddingVertical: 20 }}>
-              <T v="small" style={{ color: pastels[i % 5][1] }}>{c.label.startsWith('+') ? 'Plus' : 'Class'}</T>
-              <T style={{ fontFamily: fonts.semibold, fontSize: 38, color: pastels[i % 5][1] }}>{c.label}</T>
-              <T v="small" style={{ color: pastels[i % 5][1] }}>{c.subjects_count} subjects</T>
-            </Card>
-          ))}
-        </Grid>
-      )}
+      <Header title="Madrasa Support" subtitle={`${board.code} · ${board.name}`} right={<Button title="Change board" kind="ghost" onPress={onChangeBoard} />} />
+      <View style={{ marginBottom: 12 }}>
+        <Segmented value={medium} onChange={switchMedium} options={[{ key: 'ml', label: 'Malayalam medium' }, { key: 'en', label: 'English medium' }]} />
+      </View>
+      {busy ? <Loading /> : <ClassGrid boardId={board.id} medium={medium} />}
+    </Screen>
+  );
+}
+
+function ClassGrid({ boardId, medium }: { boardId: number | string; medium: Medium }) {
+  const base = useBase();
+  const classes = useApi<SchoolClass[]>(`/boards/${boardId}/classes?medium=${medium}`);
+  if (classes.loading) return <Loading />;
+  if (!classes.data?.length) return <Empty text={`${MEDIUM_LABEL[medium]} classes for this board are coming soon.`} />;
+  return (
+    <Grid cols={{ phone: 3, tablet: 4, desktop: 6 }}>
+      {classes.data.map((c, i) => (
+        <Card key={c.id} tint={pastels[i % 5][0]} onPress={() => router.push(`${base}/support/class/${c.id}` as any)} style={{ alignItems: 'center', paddingVertical: 20 }}>
+          <T v="small" style={{ color: pastels[i % 5][1] }}>{c.label.startsWith('+') ? 'Plus' : 'Class'}</T>
+          <T style={{ fontFamily: fonts.semibold, fontSize: 38, color: pastels[i % 5][1] }}>{c.label}</T>
+          <T v="small" style={{ color: pastels[i % 5][1] }}>{c.subjects_count} subjects</T>
+        </Card>
+      ))}
+    </Grid>
+  );
+}
+
+/** Direct link to one board's classes (?medium=ml|en, else the learner's own medium). */
+export function ClassesScreen() {
+  const { id, medium: q } = useLocalSearchParams<{ id: string; medium?: string }>();
+  const { user } = useAuth();
+  const medium: Medium = q === 'en' || q === 'ml' ? q : user?.medium ?? 'ml';
+  return (
+    <Screen>
+      <Header title="Choose class" subtitle={MEDIUM_LABEL[medium]} />
+      <ClassGrid boardId={id} medium={medium} />
     </Screen>
   );
 }

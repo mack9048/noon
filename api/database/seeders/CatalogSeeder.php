@@ -29,8 +29,10 @@ class CatalogSeeder extends Seeder
         ])->map(fn ($b) => Board::create($b));
 
         foreach ($boards as $board) {
+            // Every board in both mediums: Malayalam (ml) and English (en)
+            foreach (['ml', 'en'] as $medium) {
             foreach (['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '+1', '+2'] as $i => $label) {
-                $class = $board->classes()->create(['label' => $label, 'position' => $i]);
+                $class = $board->classes()->create(['medium' => $medium, 'label' => $label, 'position' => $i]);
                 foreach ($subjects as $p => [$name, $ar]) {
                     $subject = $class->subjects()->create(['name' => $name, 'name_ar' => $ar, 'position' => $p]);
                     // Only seed lesson rows for Class 5 to keep the demo DB small
@@ -43,6 +45,7 @@ class CatalogSeeder extends Seeder
                         }
                     }
                 }
+            }
             }
         }
 

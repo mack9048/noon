@@ -16,7 +16,7 @@ class User extends Authenticatable
     public const ROLES = ['guest', 'student', 'parent', 'teacher', 'admin', 'super'];
 
     protected $fillable = [
-        'tenant_id', 'name', 'role', 'email', 'phone', 'admission_no', 'age', 'board_id', 'class_id', 'password',
+        'tenant_id', 'name', 'role', 'email', 'phone', 'admission_no', 'age', 'board_id', 'class_id', 'medium', 'password',
     ];
 
     /** Mirror column defaults so a new model behaves like a loaded one. */
@@ -88,6 +88,8 @@ class User extends Authenticatable
             'tenant_address' => $this->tenant?->address,
             'board_id' => $this->board_id,
             'class_id' => $this->class_id,
+            'medium' => $this->medium,
+            'board_code' => $this->board?->code,
             'avatar_initial' => mb_substr($this->name, 0, 1),
             // Profile details shown on the profile/bio pages
             'email' => $this->email,

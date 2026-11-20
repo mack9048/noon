@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Board;
 use App\Models\SchoolClass;
 use App\Models\Subject;
+use Illuminate\Http\Request;
 
 /** Madrasa Support: board → class → subject → lessons (public read-only catalogue). */
 class CatalogController extends Controller
@@ -16,12 +17,16 @@ class CatalogController extends Controller
         return Board::where('code', '!=', 'GEN')->orderBy('id')->get(['id', 'code', 'name', 'meta']);
     }
 
-    public function classes(Board $board)
+    /** Classes of one board in one medium (?medium=ml|en, Malayalam by default). */
+    public function classes(Request $request, Board $board)
     {
-        return $board->classes()->withCount('subjects')->get()
+        $medium = in_array($request->query('medium'), SchoolClass::MEDIUMS, true) ? $request->query('medium') : 'ml';
+
+        return $board->classes()->where('medium', $medium)->withCount('subjects')->get()
             ->map(fn (SchoolClass $c) => [
                 'id' => $c->id,
                 'board_id' => $c->board_id,
+                'medium' => $c->medium,
                 'label' => $c->label,
                 'subjects_count' => $c->subjects_count,
             ]);
@@ -51,6 +56,7 @@ class CatalogController extends Controller
             'textbook_pdf_url' => $subject->textbook_pdf_url,
             'board_name' => $subject->schoolClass->board->code,
             'class_label' => $subject->schoolClass->label,
+            'medium' => $subject->schoolClass->medium,
             'lessons_count' => $subject->lessons->count(),
             'lessons' => $subject->lessons,
         ];

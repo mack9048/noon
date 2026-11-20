@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Course;
+use App\Models\SchoolClass;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\Auth\OtpService;
@@ -15,6 +16,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -196,6 +198,7 @@ class AuthController extends Controller
             'otp' => ['nullable', 'digits:6'],
             'board_id' => ['nullable', 'exists:boards,id'],
             'class_id' => ['nullable', 'exists:school_classes,id'],
+            'medium' => ['nullable', Rule::in(SchoolClass::MEDIUMS)],
             'course_ids' => ['array'],
             'course_ids.*' => ['integer', 'exists:courses,id'],
             'device_name' => ['nullable', 'string', 'max:60'],
@@ -226,8 +229,10 @@ class AuthController extends Controller
             $user->fill([
                 'name' => $data['name'],
                 'age' => $data['age'] ?? null,
-                'board_id' => $data['board_id'] ?? null,
-                'class_id' => $data['class_id'] ?? null,
+                // A returning guest keeps the board / medium / class they picked before.
+                'board_id' => $data['board_id'] ?? $user->board_id,
+                'class_id' => $data['class_id'] ?? $user->class_id,
+                'medium' => $data['medium'] ?? $user->medium,
             ])->save();
 
             $courses = Course::whereIn('id', $data['course_ids'] ?? [])->where('status', 'published')->get();
@@ -273,8 +278,17 @@ class AuthController extends Controller
         $data = $request->validate([
             'board_id' => ['nullable', 'exists:boards,id'],
             'class_id' => ['nullable', 'exists:school_classes,id'],
+            'medium' => ['nullable', Rule::in(SchoolClass::MEDIUMS)],
         ]);
-        $request->user()->update($data);
+        // A class belongs to one medium: keep the class only if it still matches board + medium.
+        $user = $request->user();
+        $board = array_key_exists('board_id', $data) ? $data['board_id'] : $user->board_id;
+        $medium = array_key_exists('medium', $data) ? $data['medium'] : $user->medium;
+        $class = isset($data['class_id']) ? SchoolClass::find($data['class_id']) : $user->schoolClass;
+        if ($class && ($class->board_id !== (int) $board || ($medium && $class->medium !== $medium))) {
+            $data['class_id'] = null;
+        }
+        $user->update($data);
 
         return $request->user()->fresh()->load('tenant')->toApp();
     }

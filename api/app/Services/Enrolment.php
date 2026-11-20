@@ -88,7 +88,7 @@ class Enrolment
             return [null, null];
         }
         $b = Board::where('code', strtoupper(explode(' ', trim($board))[0]))->first();
-        $c = $b && $cls ? $b->classes()->where('label', trim($cls))->first() : null;
+        $c = $b && $cls ? $b->classes()->where('medium', 'ml')->where('label', trim($cls))->first() : null;
 
         return [$b?->id, $c?->id];
     }
