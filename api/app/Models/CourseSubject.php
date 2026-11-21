@@ -9,7 +9,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /** An optional group of lessons inside a course (eg. "Grammar", "Reading"). */
 class CourseSubject extends Model
 {
-    protected $fillable = ['course_id', 'title', 'position'];
+    protected $fillable = ['course_id', 'title', 'thumbnail_path', 'position'];
+
+    public function toApp(): array
+    {
+        return ['id' => $this->id, 'title' => $this->title, 'thumbnail_url' => $this->thumbnail_path ? \Illuminate\Support\Facades\Storage::disk('public')->url($this->thumbnail_path) : null];
+    }
 
     public function course(): BelongsTo
     {

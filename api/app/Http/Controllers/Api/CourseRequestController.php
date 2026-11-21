@@ -30,7 +30,13 @@ class CourseRequestController extends Controller
             'offer_price' => ['nullable', 'integer', 'min:0', 'max:1000000'],
             'lessons' => ['nullable', 'array', 'max:200'],
             'lessons.*' => ['string', 'max:160'],
+            'trial_days' => ['sometimes', 'integer', 'min:0', 'max:60'],
+            'trial_lessons' => ['sometimes', 'integer', 'min:0', 'max:50'],
+            'board_id' => ['nullable', 'integer', Rule::exists('boards', 'id')],
+            'syllabus' => ['nullable', 'in:general,english'],
+            'class_id' => ['nullable', 'integer', Rule::exists('school_classes', 'id')],
         ]);
+        $data = CourseController::checkMadrasa($data);
         $course = Course::create(collect($data)->except('lessons')->all() + ['tenant_id' => $user->tenant_id, 'status' => 'pending', 'level' => $data['level'] ?? 'Beginner']);
         foreach ($data['lessons'] ?? [] as $i => $title) {
             $course->lessons()->create(['title' => $title, 'position' => $i + 1]);
@@ -73,6 +79,18 @@ class CourseRequestController extends Controller
         $course->update(['logo_url' => Storage::disk('public')->url($request->file('logo')->store("courses/{$course->id}", 'public'))]);
 
         return ['logo_url' => $course->logo_url];
+    }
+
+    /** The course thumbnail (picture on the course card), for super admin and the institution that owns the course. */
+    public function thumbnail(Request $request, Course $course)
+    {
+        $user = $request->user();
+        abort_unless($user->hasRole('super') || ($course->tenant_id && $course->tenant_id === $user->tenant_id), 403);
+        $request->validate(['thumbnail' => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:4096'], 'remove' => ['sometimes', 'boolean']]);
+        $course->thumbnail_path && Storage::disk('public')->delete($course->thumbnail_path);
+        $course->update(['thumbnail_path' => $request->hasFile('thumbnail') ? $request->file('thumbnail')->store("courses/{$course->id}", 'public') : null]);
+
+        return ['thumbnail_url' => $course->thumbnail_path ? Storage::disk('public')->url($course->thumbnail_path) : null];
     }
 
     private function row(Course $c): array

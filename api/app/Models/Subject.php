@@ -8,7 +8,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Subject extends Model
 {
-    protected $fillable = ['class_id', 'name', 'name_ar', 'textbook_pdf_url', 'workbook_pdf_url', 'position'];
+    protected $fillable = ['class_id', 'name', 'name_ar', 'thumbnail_path', 'textbook_pdf_url', 'workbook_pdf_url', 'position'];
+
+    public function thumbnailUrl(): ?string
+    {
+        return $this->thumbnail_path ? \Illuminate\Support\Facades\Storage::disk('public')->url($this->thumbnail_path) : null;
+    }
 
     public function schoolClass(): BelongsTo
     {

@@ -2,7 +2,8 @@
 // content (video, audios in order, PDF, HTML, note, image, link, live class). Saved as you go.
 // Also: the course category list, and the viewer students use for HTML / notes / images.
 import React, { useEffect, useState } from 'react';
-import { Linking, Modal, Platform, Pressable, ScrollView, Switch, View } from 'react-native';
+import { Image, Linking, Modal, Platform, Pressable, ScrollView, Switch, View } from 'react-native';
+import { appendFile, pickImage } from '@/lib/pickImage';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
@@ -174,6 +175,24 @@ function groups(c: BCourse) {
   return [{ subject: null as BSubject | null, lessons: loose }, ...c.subjects.map((s) => ({ subject: s as BSubject | null, lessons: c.lessons.filter((l) => l.subject_id === s.id) }))];
 }
 
+/** Subject picture so children recognise the subject; tap to upload or change. */
+function SubjectThumb({ subject, onChange }: { subject: BSubject; onChange: (c: BCourse) => void }) {
+  const [busy, setBusy] = useState(false);
+  const pick = async () => {
+    try {
+      const f = await pickImage(); if (!f) return;
+      setBusy(true); const fd = new FormData(); appendFile(fd, 'thumbnail', f);
+      onChange(await api.post<BCourse>(`/super/course-subjects/${subject.id}/thumbnail`, fd));
+    } catch (e) { demoNote(e instanceof ApiError ? e.friendly : e instanceof Error ? e.message : 'Could not upload.'); } finally { setBusy(false); }
+  };
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={`${subject.thumbnail_url ? 'Change' : 'Add'} picture for ${subject.title}`} onPress={pick} disabled={busy}
+      style={{ width: 44, height: 44, borderRadius: 12, overflow: 'hidden', backgroundColor: '#F1EDFF', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: subject.thumbnail_url ? colors.line : '#D9CCF7', borderStyle: subject.thumbnail_url ? 'solid' : 'dashed', opacity: busy ? 0.5 : 1 }}>
+      {subject.thumbnail_url ? <Image source={{ uri: subject.thumbnail_url }} style={{ width: 44, height: 44 }} resizeMode="cover" /> : <Ionicons name="image-outline" size={20} color={colors.violet} />}
+    </Pressable>
+  );
+}
+
 export function CourseStructure({ course, onChange }: { course: BCourse; onChange: (c: BCourse) => void }) {
   const [newSubject, setNewSubject] = useState<string | null>(null);
   const [renaming, setRenaming] = useState<BSubject | null>(null);
@@ -245,7 +264,7 @@ export function CourseStructure({ course, onChange }: { course: BCourse; onChang
                 </Row>
               ) : (
                 <Row gap={6}>
-                  <Ionicons name="folder-open" size={20} color={colors.violet} />
+                  <SubjectThumb subject={grp.subject} onChange={onChange} />
                   <T v="h3" style={{ flex: 1 }} numberOfLines={1}>{grp.subject.title}</T>
                   <T v="small">{plural(grp.lessons.length, 'lesson')}</T>
                   <IconButton name="chevron-up" label={`Move ${grp.subject.title} up`} tint="transparent" size={34} onPress={() => moveSubject(si, -1)} />

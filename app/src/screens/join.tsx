@@ -1,6 +1,6 @@
 import { takeNextPath } from '@/lib/shop';
 import React, { useEffect, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { Image, Pressable, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Button, Card, Grid, Header, Loading, Row, Screen, Segmented, T, Pill } from '@/components/ui';
@@ -30,6 +30,7 @@ export function JoinScreen() {
   const [tab, setTab] = useState<'madrasa' | 'course'>('madrasa');
   const [boardId, setBoardId] = useState<number | null>(null);
   const [classId, setClassId] = useState<number | null>(null);
+  const [syl, setSyl] = useState<'general' | 'english'>('general');
   const [picked, setPicked] = useState<number[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -38,7 +39,7 @@ export function JoinScreen() {
   const [otp, setOtp] = useState('');
 
   const boards = useApi<Board[]>('/boards');
-  const classes = useApi<SchoolClass[]>(boardId ? `/boards/${boardId}/classes` : null);
+  const classes = useApi<SchoolClass[]>(boardId ? `/boards/${boardId}/classes?syllabus=${syl}` : null);
   const courses = useApi<Course[]>('/catalog/courses');
 
   useEffect(() => { if (!boardId && boards.data?.length) setBoardId(boards.data[0].id); }, [boards.data, boardId]);
@@ -100,17 +101,20 @@ export function JoinScreen() {
           <View style={{ gap: 12 }}>
             <T v="fun" style={{ fontSize: 20 }}>Your board</T>
             {boards.loading ? <Loading /> : (
-              <Grid cols={{ phone: 3, tablet: 3, desktop: 3 }} gap={8}>
+              <Grid cols={{ phone: 2, tablet: 2, desktop: 2 }} gap={8}>
                 {(boards.data ?? []).map((b) => {
                   const on = b.id === boardId;
                   return (
                     <Card key={b.id} onPress={() => { setBoardId(b.id); setClassId(null); }} tint={on ? colors.mint[0] : '#FFF'} style={{ alignItems: 'center', borderWidth: 2.5, borderColor: on ? colors.mint[1] : 'transparent' }}>
-                      <T v="h2">{b.code}</T><T v="small" numberOfLines={1}>{b.name}</T>
+                      {b.logo_url ? <Image source={{ uri: b.logo_url }} style={{ width: 48, height: 48 }} resizeMode="contain" accessibilityLabel={`${b.name} logo`} /> : <T v="h2">{b.code}</T>}
+                      <T v="small" numberOfLines={1} style={{ fontFamily: fonts.semibold, color: colors.ink }}>{b.name}</T>
                     </Card>
                   );
                 })}
               </Grid>
             )}
+            <T v="fun" style={{ fontSize: 20 }}>Syllabus</T>
+            <Segmented value={syl} onChange={(v) => { setSyl(v); setClassId(null); }} options={[{ key: 'general', label: 'General Madrasa' }, { key: 'english', label: 'English Medium Madrasa' }]} />
             <T v="fun" style={{ fontSize: 20 }}>Your class</T>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
               {(classes.data ?? []).map((c) => {

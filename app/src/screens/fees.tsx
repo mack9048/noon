@@ -1,5 +1,6 @@
 // Fees: the admin adds fees, records payments (with receipt numbers) and reminds parents on WhatsApp;
 // students and parents see their own dues and receipts.
+import { currencyCode, currencySymbol, money } from '@/lib/money';
 import React, { useState } from 'react';
 import { Linking, Modal, Platform, Pressable, View } from 'react-native';
 import { router } from 'expo-router';
@@ -19,7 +20,8 @@ export type FeeRow = {
 };
 type MonthFees = { month: string; summary: { expected: number; collected: number; paid: number; due: number; overdue: number }; fees: FeeRow[] };
 
-export const rupee = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`;
+/** Amounts in the institution's currency (₹ by default; AED, SAR… for Gulf institutions). */
+export const rupee = (n: number) => money(n);
 export const thisMonth = () => new Date().toISOString().slice(0, 7);
 const shiftMonth = (m: string, by: number) => { const d = new Date(`${m}-01T00:00:00`); d.setMonth(d.getMonth() + by); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; };
 export const monthLabel = (m: string) => new Date(`${m}-01T00:00:00`).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
@@ -208,7 +210,7 @@ function PaySheet({ fee, onClose, onSaved }: { fee: FeeRow | null; onClose: () =
             <>
               <T v="small" style={{ fontFamily: fonts.medium }}>Paid by</T>
               <ChoiceChips value={method} onChange={setMethod} options={[{ key: 'cash', label: 'Cash' }, { key: 'upi', label: 'UPI' }, { key: 'bank', label: 'Bank' }, { key: 'card', label: 'Card' }]} />
-              <Row gap={10}><Input label="Amount (₹)" value={amount} onChangeText={(v) => setAmount(v.replace(/[^\d.]/g, ''))} keyboardType="decimal-pad" /><DateInput label="Paid on" value={date} onChange={setDate} max={new Date().toISOString().slice(0, 10)} /></Row>
+              <Row gap={10}><Input label={`Amount (${currencyCode()})`} value={amount} onChangeText={(v) => setAmount(v.replace(/[^\d.]/g, ''))} keyboardType="decimal-pad" /><DateInput label="Paid on" value={date} onChange={setDate} max={new Date().toISOString().slice(0, 10)} /></Row>
               <Input label="Note (optional)" value={note} onChangeText={setNote} placeholder="e.g. UPI ref no." />
               <Button title="Mark as paid" icon="checkmark-circle-outline" loading={busy} onPress={() => act(() => api.post(`/admin/fees/${fee.id}/pay`, { method, amount: Number(amount) || fee.amount, paid_on: date, note: note || null }))} />
               <Row gap={8}>
@@ -270,7 +272,7 @@ export function AddFeesScreen({ month: initial }: { month?: string }) {
       <Panel title="FEE">
         <Select label="Month" value={month} options={months} onChange={changeMonth} />
         <Input label="Fee name" value={title} onChangeText={setTitle} placeholder="e.g. November fee, Admission fee, Exam fee" />
-        <Row gap={10}><Input label="Amount (₹)" value={amount} onChangeText={(v) => setAmount(v.replace(/[^\d.]/g, ''))} keyboardType="decimal-pad" placeholder="800" /><DateInput label="Due date" value={due} onChange={setDue} /></Row>
+        <Row gap={10}><Input label={`Amount (${currencyCode()})`} value={amount} onChangeText={(v) => setAmount(v.replace(/[^\d.]/g, ''))} keyboardType="decimal-pad" placeholder="800" /><DateInput label="Due date" value={due} onChange={setDue} /></Row>
       </Panel>
       <Panel title="FOR" style={{ marginBottom: 12 }}>
         <ChoiceChips value={scope} onChange={setScope} options={[{ key: 'all', label: 'All students' }, { key: 'class', label: 'One class' }, { key: 'batch', label: 'One batch' }]} />
@@ -305,7 +307,7 @@ export function MyFeesScreen() {
           </Card>
           <Section title="To pay" />
           {due.length ? due.map((f) => (
-            <ListRow key={f.id} style={{ marginBottom: 8 }} left={<Avatar name="₹" size={44} tint={f.overdue_days ? pastel.pink : pastel.butter} />}
+            <ListRow key={f.id} style={{ marginBottom: 8 }} left={<Avatar name={currencySymbol().trim().slice(0, 3)} size={44} tint={f.overdue_days ? pastel.pink : pastel.butter} />}
               title={f.title} sub={`${many ? `${f.student?.name} · ` : ''}${rupee(f.amount)} · due ${dateLabel(f.due_date)}${f.overdue_days ? ` · ${f.overdue_days} days late` : ''}`} />
           )) : <Card tint={colors.mint[0]}><T v="h3" style={{ color: colors.mint[1] }}>No fees due</T><T style={{ color: colors.mint[1] }}>Jazakallah khair!</T></Card>}
         </>

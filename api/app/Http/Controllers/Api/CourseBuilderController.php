@@ -73,11 +73,21 @@ class CourseBuilderController extends Controller
             'live_upcoming' => $course->isLive() ? LiveSchedule::forApp(LiveSchedule::upcoming($course, 6)) : [],
             'tenant_ids' => $ids,
             'audience' => $course->visibility === 'madrasa' ? 'selected' : ($ids ? 'all' : 'guests'),
-            'subjects' => $course->subjects->map(fn (CourseSubject $s) => ['id' => $s->id, 'title' => $s->title]),
+            'subjects' => $course->subjects->map(fn (CourseSubject $s) => $s->toApp()),
             'lessons' => $course->lessons->map(fn (CourseLesson $l) => self::lessonData($l)),
             // Content added before lessons existed (shown so it can be moved or removed).
             'loose_items' => $course->items->whereNull('course_lesson_id')->values()->map(fn (CourseItem $i) => self::itemData($i)),
         ];
+    }
+
+    /** A course subject's thumbnail (helps children find their subject). */
+    public function subjectThumbnail(Request $request, CourseSubject $subject)
+    {
+        $request->validate(['thumbnail' => ['nullable', 'file', 'max:2048', 'extensions:png,jpg,jpeg,webp,svg'], 'remove' => ['sometimes', 'boolean']]);
+        $subject->thumbnail_path && Storage::disk('public')->delete($subject->thumbnail_path);
+        $subject->update(['thumbnail_path' => $request->hasFile('thumbnail') ? $request->file('thumbnail')->store("courses/{$subject->course_id}/subjects", 'public') : null]);
+
+        return $this->show(Course::findOrFail($subject->course_id));
     }
 
     /* ---------- Live course timetable ---------- */
@@ -450,6 +460,9 @@ class CourseBuilderController extends Controller
             abort_unless(Course::visibleTo($user)->whereKey($course->id)->exists(), 404);
             $enrolled = $user->courses()->whereKey($course->id)->exists();
             abort_unless($enrolled || $item->lesson?->free_preview, 403, 'Join the course to open this lesson.');
+            $access = $course->access($user);
+            abort_if($enrolled && ! $item->lesson?->free_preview && $access['unlocked'] !== null && ! in_array($item->course_lesson_id, $access['unlocked'], true),
+                403, 'This lesson opens after the free trial. Please ask your institution or Noon Learn to continue.');
         }
         $path = URL::temporarySignedRoute('course-items.html', now()->addHours(3), ['id' => $item->id], absolute: false);
 

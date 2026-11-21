@@ -40,8 +40,13 @@ class StudentController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'min:2', 'max:80'],
-            'board' => ['required', 'string', 'max:10'],
-            'cls' => ['required', 'string', 'max:4'],
+            // Only for students joining Madrasa Support.
+            'board' => ['nullable', 'string', 'max:10'],
+            'syllabus' => ['nullable', 'in:general,english'],
+            'cls' => ['nullable', 'required_with:board', 'string', 'max:4'],
+            // Courses to enrol in straight away (ones switched on for this institution).
+            'course_ids' => ['nullable', 'array', 'max:20'],
+            'course_ids.*' => ['integer'],
             'admission_no' => ['nullable', 'string', 'max:40'],
             'dob' => ['nullable', 'date', 'before:today'],
             'email' => ['nullable', 'email', 'max:255'],
@@ -52,6 +57,9 @@ class StudentController extends Controller
             'batch_id' => ['nullable', 'integer'],
         ]);
         $r = $enrolment->admit($request->user()->tenant, $data);
+        foreach ($data['course_ids'] ?? [] as $cid) {
+            $this->enrol($request, $r['student'], (int) $cid);
+        }
 
         return response()->json(['student' => $this->row($r['student']->load(['schoolClass.board', 'parent'])), 'credentials' => $r['credentials']], 201);
     }
@@ -66,6 +74,7 @@ class StudentController extends Controller
             'admission_no' => ['sometimes', 'string', 'min:1', 'max:40'],
             'email' => ['nullable', 'email', 'max:255'],
             'board' => ['nullable', 'string', 'max:10'],
+            'syllabus' => ['nullable', 'in:general,english'],
             'cls' => ['nullable', 'string', 'max:4'],
             'parent_name' => ['nullable', 'string', 'max:80'],
             'parent_phone' => ['nullable', 'string', 'max:30'],
@@ -92,7 +101,8 @@ class StudentController extends Controller
                 $fill['email'] = $email;
             }
             if (! empty($data['board'])) {
-                [$fill['board_id'], $fill['class_id']] = $enrolment->place($data['board'], $data['cls'] ?? null);
+                [$fill['board_id'], $fill['class_id']] = $enrolment->place($data['board'], $data['cls'] ?? null, $data['syllabus'] ?? $u->syllabus ?? 'general');
+                $fill['syllabus'] = $data['syllabus'] ?? $u->syllabus ?? 'general';
             }
             if (array_key_exists('blocked', $data)) $fill['blocked'] = (bool) $data['blocked'];
             $u->forceFill($fill)->save();
@@ -129,6 +139,76 @@ class StudentController extends Controller
         });
 
         return $this->show($request, $u->id);
+    }
+
+    /* ---------- Enrolments: Madrasa Support placement and courses ---------- */
+
+    /** GET /admin/students/{id}/enrollments: Madrasa Support (board / syllabus / class), courses, and courses that can be added. */
+    public function enrollments(Request $request, int $id)
+    {
+        $u = $this->student($request, $id)->load('schoolClass.board');
+        $tenant = $request->user()->tenant;
+        $mine = $u->courses()->get();
+        $available = $tenant->courses()->wherePivot('enabled', true)->where('status', 'published')->whereNotIn('courses.id', $mine->pluck('id'))->orderBy('title')->get();
+        $course = fn ($c) => ['id' => $c->id, 'title' => $c->title, 'category' => $c->category, 'format' => $c->format ?? 'recorded', 'is_free' => (bool) $c->is_free];
+
+        return [
+            'madrasa' => $u->class_id ? ['board_id' => $u->board_id, 'board' => $u->schoolClass?->board?->name, 'board_code' => $u->schoolClass?->board?->code,
+                'syllabus' => $u->syllabus ?? 'general', 'syllabus_label' => \App\Models\Board::SYLLABI[$u->syllabus ?? 'general'], 'class_id' => $u->class_id, 'class_label' => $u->schoolClass?->label] : null,
+            'courses' => $mine->map(fn ($c) => $course($c) + ['progress' => (int) $c->pivot->progress, 'paid' => (bool) $c->pivot->paid_at, 'enrolled_at' => $c->pivot->created_at?->toIso8601String()])->values(),
+            'available' => $available->map($course)->values(),
+        ];
+    }
+
+    /** PUT: join Madrasa Support with a board / syllabus / class, or leave it ({remove: true}). */
+    public function madrasa(Request $request, int $id)
+    {
+        $u = $this->student($request, $id);
+        if ($request->boolean('remove')) {
+            $u->forceFill(['board_id' => null, 'class_id' => null, 'syllabus' => null])->save();
+
+            return $this->enrollments($request, $id);
+        }
+        $data = $request->validate(['board_id' => ['required', 'integer', 'exists:boards,id'], 'syllabus' => ['required', 'in:general,english'], 'class_id' => ['required', 'integer', 'exists:school_classes,id']]);
+        $class = \App\Models\SchoolClass::findOrFail($data['class_id']);
+        abort_unless($class->board_id === (int) $data['board_id'] && $class->syllabus === $data['syllabus'], 422, 'That class is not in the chosen board and syllabus.');
+        $u->forceFill(['board_id' => $data['board_id'], 'class_id' => $class->id, 'syllabus' => $data['syllabus']])->save();
+
+        return $this->enrollments($request, $id);
+    }
+
+    public function addCourse(Request $request, int $id)
+    {
+        $data = $request->validate(['course_id' => ['required', 'integer']]);
+        $this->enrol($request, $this->student($request, $id), $data['course_id']);
+
+        return $this->enrollments($request, $id);
+    }
+
+    public function removeCourse(Request $request, int $id, int $courseId)
+    {
+        $this->student($request, $id)->courses()->detach($courseId);
+
+        return $this->enrollments($request, $id);
+    }
+
+    /** Enrol a student in a course switched on for the institution; the institution's enrolments count as paid. */
+    private function enrol(Request $request, User $u, int $courseId): void
+    {
+        $course = $request->user()->tenant->courses()->wherePivot('enabled', true)->where('status', 'published')->whereKey($courseId)->first();
+        if (! $course) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['course_id' => 'Switch this course on for your institution first (Courses).']);
+        }
+        $u->courses()->syncWithoutDetaching([$course->id => ['paid_at' => now(), 'enrolled_by' => $request->user()->id, 'trial_ends_at' => null]]);
+        // A Madrasa Support course for one class also places the student in that class (if not placed yet).
+        if ($course->class_id && ! $u->class_id) {
+            $u->forceFill(['board_id' => $course->board_id, 'class_id' => $course->class_id, 'syllabus' => $course->syllabus])->save();
+        }
+    }
+
+    private function student(Request $request, int $id): User
+    {
+        return User::where('tenant_id', $request->user()->tenant_id)->where('role', 'student')->findOrFail($id);
     }
 
     /** GET /admin/teachers — teachers of this institution with their batches. */
@@ -178,7 +258,7 @@ class StudentController extends Controller
     {
         return [
             'id' => $u->id, 'name' => $u->name, 'admission_no' => $u->admission_no,
-            'cls' => $u->schoolClass?->label, 'class_id' => $u->class_id, 'board' => $u->schoolClass?->board?->code,
+            'cls' => $u->schoolClass?->label, 'class_id' => $u->class_id, 'board' => $u->schoolClass?->board?->code, 'syllabus' => $u->class_id ? ($u->syllabus ?? 'general') : null,
             'parent' => $u->parent?->name, 'parent_phone' => $u->parent?->phone, 'blocked' => (bool) $u->blocked,
         ];
     }

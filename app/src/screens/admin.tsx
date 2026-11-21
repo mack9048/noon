@@ -1,4 +1,5 @@
 // Institute admin screens from the design canvas.
+import { currencySymbol } from '@/lib/money';
 import React, { useState } from 'react';
 import { Pressable, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
@@ -62,7 +63,7 @@ export function AdminDashboardScreen() {
       </Card>
       <Section title="Needs attention" />
       <View style={{ gap: 8 }}>
-        {(fees?.summary.overdue ?? 0) > 0 ? <ListRow left={<Avatar name="₹" tint={pastel.pink} />} title={`${fees!.summary.overdue} fee${fees!.summary.overdue > 1 ? 's' : ''} overdue`} sub="Remind parents on WhatsApp from Fees"
+        {(fees?.summary.overdue ?? 0) > 0 ? <ListRow left={<Avatar name={currencySymbol().trim().slice(0, 3)} tint={pastel.pink} />} title={`${fees!.summary.overdue} fee${fees!.summary.overdue > 1 ? 's' : ''} overdue`} sub="Remind parents on WhatsApp from Fees"
           right={<SmallButton title="Open" filled tint={colors.ink} onPress={() => router.push('/admin/fees' as any)} />} /> : null}
         {newApps > 0 ? <ListRow left={<Avatar name="+" tint={pastel.mint} />} title={`${newApps} new application${newApps > 1 ? 's' : ''}`} sub="Review and admit"
           right={<SmallButton title="Open" filled tint={colors.ink} onPress={() => router.push('/admin/admissions' as any)} />} /> : null}

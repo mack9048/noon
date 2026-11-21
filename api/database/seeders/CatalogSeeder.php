@@ -23,9 +23,9 @@ class CatalogSeeder extends Seeder
         $lessons = ['Thaharah — purity', 'Types of water', 'Najas and cleaning', 'Wudu — steps', 'What breaks wudu', 'Ghusl', 'Tayammum', 'Times of Salah'];
 
         $boards = collect([
-            ['code' => 'AP', 'name' => 'Sunni Vidyabhyasa Board', 'meta' => 'AP syllabus'],
-            ['code' => 'EK', 'name' => 'Sunni Board', 'meta' => 'EK syllabus'],
-            ['code' => 'GEN', 'name' => 'General', 'meta' => 'Noon Learn syllabus'],
+            ['code' => 'AP', 'name' => 'SKSVB (AP)', 'full_name' => 'Samastha Kerala Sunni Vidyabhyasa Board', 'meta' => 'AP syllabus', 'position' => 2],
+            ['code' => 'EK', 'name' => 'SKIMVB (EK)', 'full_name' => 'Samastha Kerala Islam Matha Vidyabhyasa Board', 'meta' => 'EK syllabus', 'position' => 1],
+            ['code' => 'GEN', 'name' => 'General', 'meta' => 'Noon Learn syllabus', 'position' => 9, 'active' => false],
         ])->map(fn ($b) => Board::create($b));
 
         foreach ($boards as $board) {

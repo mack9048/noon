@@ -26,7 +26,8 @@ class Enrolment
     public function admit(Tenant $tenant, array $d): array
     {
         return DB::transaction(function () use ($tenant, $d) {
-            [$boardId, $classId] = $this->place($d['board'] ?? null, $d['cls'] ?? null);
+            // Board / syllabus / class only when the student joins Madrasa Support.
+            [$boardId, $classId] = $this->place($d['board'] ?? null, $d['cls'] ?? null, $d['syllabus'] ?? 'general');
 
             $admissionNo = trim((string) ($d['admission_no'] ?? '')) ?: $this->nextAdmissionNo($tenant);
             if (User::where('tenant_id', $tenant->id)->where('admission_no', $admissionNo)->exists()) {
@@ -42,7 +43,7 @@ class Enrolment
                 'tenant_id' => $tenant->id, 'name' => trim($d['name']), 'role' => 'student',
                 'admission_no' => $admissionNo, 'email' => $email,
                 'age' => isset($d['dob']) && $d['dob'] ? (int) now()->diffInYears($d['dob'], true) : null,
-                'board_id' => $boardId, 'class_id' => $classId, 'password' => $studentPassword,
+                'board_id' => $boardId, 'class_id' => $classId, 'syllabus' => $boardId ? ($d['syllabus'] ?? 'general') : null, 'password' => $studentPassword,
             ]);
             $credentials = [['who' => 'student', 'name' => $student->name, 'login' => $admissionNo, 'password' => $studentPassword]];
 
@@ -82,13 +83,14 @@ class Enrolment
     }
 
     /** Board code (AP / EK / GEN) and class label (5, +1) → ids. */
-    public function place(?string $board, ?string $cls): array
+    /** Board code (AP, EK…) + class label + syllabus → [board_id, class_id]. */
+    public function place(?string $board, ?string $cls, ?string $syllabus = 'general'): array
     {
         if (! $board) {
             return [null, null];
         }
         $b = Board::where('code', strtoupper(explode(' ', trim($board))[0]))->first();
-        $c = $b && $cls ? $b->classes()->where('label', trim($cls))->first() : null;
+        $c = $b && $cls ? $b->classes()->where('syllabus', $syllabus ?: 'general')->where('label', trim($cls))->first() : null;
 
         return [$b?->id, $c?->id];
     }

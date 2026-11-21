@@ -1,5 +1,6 @@
 // In-memory demo backend so the app runs before the Laravel API is deployed.
 // Mirrors the routes in api/routes/api.php.
+import { COUNTRIES } from './money';
 import type {
   Board, SchoolClass, Subject, SubjectDetail, Course, CourseDetail, StudyTool,
   LeaveSummary, Conversation, Message, User, Role, LearnDetail, LearnSpace, LearnResult,
@@ -10,10 +11,10 @@ const wait = (ms = 250) => new Promise((r) => setTimeout(r, ms));
 let me: User | null = null;
 let nextId = 1000;
 
+const SYLLABI = [{ key: 'general' as const, label: 'General Madrasa Syllabus', classes: 12 }, { key: 'english' as const, label: 'English Medium Madrasa Syllabus', classes: 12 }];
 const boards: Board[] = [
-  { id: 1, code: 'AP', name: 'Sunni Vidyabhyasa Board', meta: 'AP syllabus' },
-  { id: 2, code: 'EK', name: 'Sunni Board', meta: 'EK syllabus' },
-  { id: 3, code: 'GEN', name: 'General', meta: 'Noon Learn syllabus' },
+  { id: 2, code: 'EK', name: 'SKIMVB (EK)', full_name: 'Samastha Kerala Islam Matha Vidyabhyasa Board', meta: 'EK syllabus', logo_url: null, syllabi: SYLLABI },
+  { id: 1, code: 'AP', name: 'SKSVB (AP)', full_name: 'Samastha Kerala Sunni Vidyabhyasa Board', meta: 'AP syllabus', logo_url: null, syllabi: SYLLABI },
 ];
 const classLabels = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '+1', '+2'];
 const classes: SchoolClass[] = boards.flatMap((b) =>
@@ -253,7 +254,10 @@ let mockSitePublish: any = null;
 const siteChanged = (p: { draft: any; published: any }) => JSON.stringify(p.draft ?? {}) !== JSON.stringify(p.published ?? {});
 
 // ---- Institution settings & attendance ----
-let mockInstitution = { id: 1, name: 'Noon Demo Institution', code: 'DEMO01', plan: 'pro', active: true, phone: '+91 95626 51864', address: 'Kozhikode, Kerala', academic_year: '2026–27', default_fee: 800 as number | null };
+let mockInstitution = { id: 1, name: 'Noon Demo Institution', code: 'DEMO01', plan: 'pro', active: true, phone: '+91 95626 51864', address: 'Kozhikode, Kerala', academic_year: '2026–27', default_fee: 800 as number | null,
+  logo_url: null as string | null, tagline: null, website: null, email: null, registration_no: null, affiliation_no: null, principal: null, established: null,
+  country: 'IN', currency: 'INR', dial_code: '+91', timezone: 'Asia/Kolkata', countries: COUNTRIES };
+let mockEnrol: Record<string, any> = {};
 let mockAttendance: { student_id: number; date: string; status: string; batch_id: number }[] = [];
 
 type Handler = (m: RegExpMatchArray, body: any) => unknown;
@@ -318,7 +322,21 @@ const routes: [string, RegExp, Handler][] = [
   ['PUT', /^\/me\/learning$/, (_, b) => { if (me) Object.assign(me, { board_id: b.board_id, class_id: b.class_id }); return me; }],
 
   ['GET', /^\/boards$/, () => boards],
-  ['GET', /^\/boards\/(\d+)\/classes$/, (m) => classes.filter((c) => c.board_id === +m[1])],
+  ['GET', /^\/boards\/(\d+)\/classes(\?.*)?$/, (m) => classes.filter((c) => c.board_id === +m[1])],
+  // Super admin: Madrasa Support manager
+  ['GET', /^\/super\/madrasa\/boards$/, () => boards.map((b) => ({ ...b, active: true }))],
+  ['GET', /^\/super\/madrasa\/boards\/(\d+)\/classes(\?.*)?$/, (m) => classes.filter((c) => c.board_id === +m[1]).map((c) => ({ id: c.id, label: c.label, syllabus: 'general',
+    subjects: subjectNames.map(([name, ar], i) => ({ id: c.id * 10 + i, class_id: c.id, name, name_ar: ar, thumbnail_url: null, lessons_count: 0 })) }))],
+  ['POST', /^\/super\/madrasa\/.*$/, () => { throw new Error('Uploads and changes are not saved in the demo.'); }],
+  ['DELETE', /^\/super\/madrasa\/.*$/, () => { throw new Error('Changes are not saved in the demo.'); }],
+  // Admin: a student's enrolments
+  ['GET', /^\/admin\/students\/(\d+)\/enrollments$/, (m) => mockEnrol[m[1]] ?? { madrasa: null, courses: [], available: courses.filter((c) => c.status === 'published').map((c) => ({ id: c.id, title: c.title, category: c.category, format: c.format ?? 'recorded', is_free: !!c.is_free })) }],
+  ['PUT', /^\/admin\/students\/(\d+)\/madrasa$/, (m, b) => {
+    const cur = mockEnrol[m[1]] ?? { madrasa: null, courses: [], available: [] };
+    const cls = classes.find((c) => c.id === b?.class_id); const bd = boards.find((x) => x.id === b?.board_id);
+    mockEnrol[m[1]] = { ...cur, madrasa: b?.remove || !cls || !bd ? null : { board_id: bd.id, board: bd.name, board_code: bd.code, syllabus: b.syllabus, syllabus_label: b.syllabus === 'english' ? 'English Medium Madrasa Syllabus' : 'General Madrasa Syllabus', class_id: cls.id, class_label: cls.label } };
+    return mockEnrol[m[1]];
+  }],
   ['GET', /^\/classes\/(\d+)\/subjects$/, (m) => subjectNames.map(([name, ar], i): Subject => ({ id: +m[1] * 10 + i, class_id: +m[1], name, name_ar: ar, lessons_count: 10 + i }))],
   ['GET', /^\/subjects\/(\d+)$/, (m): SubjectDetail => {
     const id = +m[1]; const cls = classes.find((c) => c.id === Math.floor(id / 10));

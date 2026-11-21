@@ -228,12 +228,14 @@ class AuthController extends Controller
                 'age' => $data['age'] ?? null,
                 'board_id' => $data['board_id'] ?? null,
                 'class_id' => $data['class_id'] ?? null,
+                // The class belongs to one syllabus (General / English Medium).
+                'syllabus' => isset($data['class_id']) ? \App\Models\SchoolClass::find($data['class_id'])?->syllabus : null,
             ])->save();
 
             $courses = Course::whereIn('id', $data['course_ids'] ?? [])->where('status', 'published')->get();
             foreach ($courses as $course) {
                 $user->courses()->syncWithoutDetaching([
-                    $course->id => ['trial_ends_at' => $course->is_free ? null : now()->addDays(7)],
+                    $course->id => ['trial_ends_at' => $course->is_free ? null : now()->addDays(max(0, (int) ($course->trial_days ?? 7)))],
                 ]);
             }
         }
@@ -274,6 +276,9 @@ class AuthController extends Controller
             'board_id' => ['nullable', 'exists:boards,id'],
             'class_id' => ['nullable', 'exists:school_classes,id'],
         ]);
+        if (array_key_exists('class_id', $data)) {
+            $data['syllabus'] = $data['class_id'] ? \App\Models\SchoolClass::find($data['class_id'])?->syllabus : null;
+        }
         $request->user()->update($data);
 
         return $request->user()->fresh()->load('tenant')->toApp();

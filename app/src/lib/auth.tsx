@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { setCurrency } from './money';
 import { api, TOKEN_KEY } from './api';
 import { storage } from './storage';
 import type { Role, User } from './types';
@@ -31,7 +32,9 @@ const SUPER_TOKEN_KEY = 'noon.super_token';
 const AuthContext = createContext<AuthState | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUserState] = useState<User | null>(null);
+  // Fees and prices show in the user's institution currency.
+  const setUser = (u: User | null) => { setCurrency(u?.currency); setUserState(u); };
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {

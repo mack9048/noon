@@ -115,6 +115,7 @@ export const SUPER_MORE: MoreLink[] = [
   ['Website', '/super/website', 'globe-outline', colors.mint],
   ['Users · Log in as', '/super/users', 'people-outline', colors.sky],
   ['Courses', '/super/courses', 'school-outline', colors.lav],
+  ['Madrasa Support', '/super/madrasa', 'library-outline', colors.mint],
   ['Approvals', '/super/approvals', 'checkmark-done-outline', colors.mint],
   ['Games', '/super/games', 'game-controller-outline', colors.pink],
   ['Study tools', '/super/tools', 'document-text-outline', colors.butter],

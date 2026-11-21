@@ -33,16 +33,16 @@ export async function decide(id: number, status: Exclude<ApprovalStatus, 'waitin
 }
 
 /** Upload a course logo picked with the document picker (uri; on web also the File). */
-export async function uploadLogo(path: string, logo: { uri: string; name?: string; mimeType?: string; file?: File }) {
+export async function uploadLogo(path: string, logo: { uri: string; name?: string; mimeType?: string; file?: File }, field = 'logo') {
   if (USE_MOCK) return; // the demo keeps the logo_url sent with the course
   const fd = new FormData();
-  if (Platform.OS === 'web' && logo.file) fd.append('logo', logo.file);
-  else fd.append('logo', { uri: logo.uri, name: logo.name ?? 'logo.png', type: logo.mimeType ?? 'image/png' } as any);
+  if (Platform.OS === 'web' && logo.file) fd.append(field, logo.file);
+  else fd.append(field, { uri: logo.uri, name: logo.name ?? `${field}.png`, type: logo.mimeType ?? 'image/png' } as any);
   await api.post(path, fd);
 }
 
 /** Admin: create a course; it waits for approval. */
-export async function requestApproval(c: { title: string; description?: string; category: string; level: string; cover: string; visibility: 'all' | 'madrasa'; is_free: boolean; price?: number | null; offer_price?: number | null; lessons: string[]; logo_url?: string | null }) {
+export async function requestApproval(c: { title: string; description?: string; category: string; level: string; cover: string; visibility: 'all' | 'madrasa'; is_free: boolean; price?: number | null; offer_price?: number | null; lessons: string[]; logo_url?: string | null; trial_days?: number; trial_lessons?: number; board_id?: number | null; syllabus?: string | null; class_id?: number | null }) {
   const row = await api.post<Row & { id: number }>('/admin/courses', c);
   loaded = false;
   return row;

@@ -14,6 +14,7 @@ import { api, ApiError } from '@/lib/api';
 import { useApi } from '@/lib/useApi';
 import { refreshApplications, useApplications, type AppStatus } from '@/lib/admissions';
 import { colors, fonts } from '@/theme/tokens';
+import { CoursePicker, EnrollmentsPanel, MadrasaPicker, type Placement } from './enrollments';
 
 /* ---------- shared bits ---------- */
 export type Credential = { who: 'student' | 'parent'; name: string; login: string; password: string | null };
@@ -23,7 +24,7 @@ export type Campaign = { id: number; code: string; title: string; year: string |
 type LeadStatus = 'new' | 'contacted' | 'interested' | 'visit' | 'applied' | 'admitted' | 'lost';
 type Lead = { id: number; student: string; parent: string | null; phone: string; email: string | null; cls: string | null; source: string; status: LeadStatus; follow_up_on: string | null; overdue: boolean; notes: { text: string; by: string | null; at: string }[]; campaign: { id: number; title: string } | null; admission: string | null; when: string };
 
-const BOARDS = [{ key: 'AP', label: 'AP board' }, { key: 'EK', label: 'EK board' }, { key: 'GEN', label: 'General' }];
+const BOARDS = [{ key: 'AP', label: 'SKSVB (AP)' }, { key: 'EK', label: 'SKIMVB (EK)' }];
 const CLASSES = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '+1', '+2'];
 const LEAD_STATUS: { key: LeadStatus; label: string; tone: keyof typeof pastel }[] = [
   { key: 'new', label: 'New', tone: 'butter' }, { key: 'contacted', label: 'Contacted', tone: 'sky' }, { key: 'interested', label: 'Interested', tone: 'lav' },
@@ -156,9 +157,7 @@ export function AdminStudentDetailScreen() {
       <Panel title="BATCHES">
         {s.batches.length ? s.batches.map((b) => <T key={b.id}>• {b.name}</T>) : <T v="small">Not in a batch yet. Add from Batches.</T>}
       </Panel>
-      <Panel title="COURSES" style={{ marginBottom: 30 }}>
-        {s.courses.length ? s.courses.map((c) => <Row key={c.id} style={{ justifyContent: 'space-between' }}><T>{c.title}</T><T v="small">{c.progress}%</T></Row>) : <T v="small">No courses yet.</T>}
-      </Panel>
+      <EnrollmentsPanel studentId={s.id} />
     </Screen>
   );
 }
@@ -185,7 +184,7 @@ export function AdminStudentEditScreen() {
     if (f.parent_phone && f.parent_phone.replace(/\D/g, '').length < 9) return setErr('Enter a full WhatsApp number with country code.');
     setBusy(true);
     try {
-      await api.put(`/admin/students/${id}`, { name: f.name.trim(), admission_no: f.admission_no.trim(), email: f.email.trim() || null, board: f.board, cls: f.cls,
+      await api.put(`/admin/students/${id}`, { name: f.name.trim(), admission_no: f.admission_no.trim(), email: f.email.trim() || null,
         parent_name: f.parent_name.trim() || null, parent_phone: f.parent_phone.trim() || null, blocked: f.blocked, batch_ids: f.batch_ids });
       router.replace(`/admin/students/${id}` as any);
     } catch (e) { setErr(errText(e, 'Could not save the changes.')); } finally { setBusy(false); }
@@ -195,7 +194,6 @@ export function AdminStudentEditScreen() {
       <Header title="Edit student" subtitle={s?.name} />
       <Panel title="STUDENT">
         <Input label="Full name" value={f.name} onChangeText={set('name')} />
-        <Row gap={10}><Select label="Board" value={f.board} options={BOARDS} onChange={set('board')} /><Select label="Class" value={f.cls} options={CLASSES} onChange={set('cls')} /></Row>
         <Input label="Admission no. (login)" value={f.admission_no} onChangeText={set('admission_no')} autoCapitalize="characters" />
         <Input label="Email (optional)" value={f.email} onChangeText={set('email')} keyboardType="email-address" autoCapitalize="none" placeholder="for password reset by email" />
       </Panel>
@@ -234,7 +232,10 @@ export function AdminStudentEditScreen() {
 
 /* ---------- New student (single admission) ---------- */
 export function NewStudentScreen() {
-  const [f, setF] = useState({ name: '', dob: '', board: 'AP', cls: '1', admission_no: '', email: '', parent_name: '', parent_phone: '', parent_email: '', password: '' });
+  const [f, setF] = useState({ name: '', dob: '', admission_no: '', email: '', parent_name: '', parent_phone: '', parent_email: '', password: '' });
+  const [madrasa, setMadrasa] = useState(false);
+  const [place, setPlace] = useState<Placement>({ board: null, syllabus: 'general', cls: null });
+  const [courseIds, setCourseIds] = useState<number[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [done, setDone] = useState<{ student: StudentRow; credentials: Credential[] } | null>(null);
@@ -243,19 +244,22 @@ export function NewStudentScreen() {
     setErr(null);
     if (f.name.trim().length < 2) return setErr('Enter the student name.');
     if (f.parent_phone && f.parent_phone.replace(/\D/g, '').length < 9) return setErr('Enter a full parent phone number with country code.');
+    if (madrasa && (!place.board || !place.cls)) return setErr('Choose the Madrasa Support board, syllabus and class, or switch Madrasa Support off.');
     setBusy(true);
     try {
-      const body = Object.fromEntries(Object.entries(f).filter(([, v]) => v.trim() !== '').map(([k, v]) => [k, v.trim()]));
+      const body: Record<string, unknown> = Object.fromEntries(Object.entries(f).filter(([, v]) => v.trim() !== '').map(([k, v]) => [k, v.trim()]));
+      if (madrasa && place.board && place.cls) Object.assign(body, { board: place.board.code, syllabus: place.syllabus, cls: place.cls.label });
+      if (courseIds.length) body.course_ids = courseIds;
       setDone(await api.post('/admin/students', body));
     } catch (e) { setErr(errText(e, 'Could not add the student.')); } finally { setBusy(false); }
   };
   if (done) {
     return (
       <Screen>
-        <Header title="Student added" subtitle={`${done.student.name} · Class ${done.student.cls ?? '—'}`} />
+        <Header title="Student added" subtitle={`${done.student.name}${done.student.cls ? ` · Class ${done.student.cls}` : ''}`} />
         <CredentialsCard creds={done.credentials} phone={done.student.parent_phone} />
         <Row gap={10} style={{ marginTop: 14 }}>
-          <View style={{ flex: 1 }}><Button title="Add another" kind="ghost" icon="person-add-outline" onPress={() => { setDone(null); setF({ ...f, name: '', dob: '', admission_no: '', email: '', parent_name: '', parent_phone: '', parent_email: '', password: '' }); }} /></View>
+          <View style={{ flex: 1 }}><Button title="Add another" kind="ghost" icon="person-add-outline" onPress={() => { setDone(null); setCourseIds([]); setF({ ...f, name: '', dob: '', admission_no: '', email: '', parent_name: '', parent_phone: '', parent_email: '', password: '' }); }} /></View>
           <View style={{ flex: 1 }}><Button title="Open record" icon="arrow-forward" onPress={() => router.replace(`/admin/students/${done.student.id}` as any)} /></View>
         </Row>
       </Screen>
@@ -266,9 +270,15 @@ export function NewStudentScreen() {
       <Header title="New student" subtitle="Admit one student. The student's and parent's logins are created for you." />
       <Panel title="STUDENT">
         <Input label="Full name" value={f.name} onChangeText={set('name')} placeholder="eg. Rayan Ahmed" />
-        <Row gap={10}><Select label="Board" value={f.board} options={BOARDS} onChange={set('board')} /><Select label="Class" value={f.cls} options={CLASSES} onChange={set('cls')} /></Row>
         <Row gap={10}><DateInput label="Date of birth (optional)" value={f.dob} onChange={set('dob')} max={new Date().toISOString().slice(0, 10)} /><Input label="Admission no. (optional)" value={f.admission_no} onChangeText={set('admission_no')} placeholder="Auto" autoCapitalize="characters" /></Row>
         <Input label="Student email (optional)" value={f.email} onChangeText={set('email')} placeholder="for password reset by email" keyboardType="email-address" autoCapitalize="none" />
+      </Panel>
+      <Panel title="COURSES" right={<T v="small">{courseIds.length ? `${courseIds.length} chosen` : 'optional'}</T>}>
+        <CoursePicker value={courseIds} onChange={setCourseIds} />
+        <T v="small">You can add more courses later from the student's record.</T>
+      </Panel>
+      <Panel title="MADRASA SUPPORT" right={<Switch accessibilityLabel="Madrasa Support" value={madrasa} onValueChange={setMadrasa} />}>
+        {madrasa ? <MadrasaPicker value={place} onChange={setPlace} /> : <T v="small">Only for students who follow the madrasa textbooks. Switch on to choose the board, syllabus and class.</T>}
       </Panel>
       <Panel title="PARENT">
         <Input label="Parent name" value={f.parent_name} onChangeText={set('parent_name')} placeholder="Father / mother / guardian" />

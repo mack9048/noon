@@ -57,6 +57,14 @@ class TenantController extends Controller
         return $code;
     }
 
+    /** Super admin: change an institution's logo. */
+    public function logo(Request $request, Tenant $tenant)
+    {
+        $t = InstitutionController::saveLogo($request, $tenant);
+
+        return ['logo_url' => $t->logoUrl()];
+    }
+
     public function update(Request $request, Tenant $tenant)
     {
         $data = $request->validate([
@@ -67,7 +75,8 @@ class TenantController extends Controller
             // Optional: reset the password of the institution's first admin
             'admin_password' => ['sometimes', 'nullable', 'string', 'min:8'],
         ]);
-        $tenant->update(collect($data)->except('admin_password')->all());
+        // Country, currency, phone code and school details, as the institution itself can set them.
+        $tenant->update(collect($data)->except('admin_password')->all() + collect(InstitutionController::rules($request))->except('name')->all());
         if (! empty($data['admin_password'])) {
             $admin = $tenant->users()->where('role', 'admin')->orderBy('id')->first();
             abort_unless($admin, 422, 'This institution has no admin yet.');

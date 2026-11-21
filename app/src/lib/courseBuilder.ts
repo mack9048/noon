@@ -9,11 +9,12 @@ export type BItem = {
   url?: string | null; body?: string | null; has_file?: boolean; file_size?: number | null; starts_at?: string | null; done?: boolean;
 };
 export type BLesson = { id: number; subject_id: number | null; title: string; description?: string | null; duration?: string | null; free_preview: boolean; items: BItem[] };
-export type BSubject = { id: number; title: string };
+export type BSubject = { id: number; title: string; thumbnail_url?: string | null };
 export type BCourse = {
   id: number; title: string; description?: string | null; category: string; level: string; cover: string; logo_url?: string | null;
   status: string; is_free: boolean; price?: number | null; offer_price?: number | null; price_period?: 'once' | 'monthly'; trial_days?: number; free_for_subscribers?: boolean;
   audience: 'all' | 'selected' | 'guests'; tenant_ids: number[];
+  thumbnail_url?: string | null; board_id?: number | null; syllabus?: 'general' | 'english' | null; class_id?: number | null; trial_lessons?: number; madrasa_label?: string | null;
   subjects: BSubject[]; lessons: BLesson[]; loose_items: BItem[]; lessons_count: number;
   format?: 'recorded' | 'live'; meet_url?: string | null; live_timezone?: string; live_summary?: string | null;
   live_slots?: LiveSlot[]; live_upcoming?: LiveClass[];

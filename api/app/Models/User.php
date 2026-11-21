@@ -16,7 +16,7 @@ class User extends Authenticatable
     public const ROLES = ['guest', 'student', 'parent', 'teacher', 'admin', 'super'];
 
     protected $fillable = [
-        'tenant_id', 'name', 'role', 'email', 'phone', 'admission_no', 'age', 'board_id', 'class_id', 'password',
+        'tenant_id', 'name', 'role', 'email', 'phone', 'admission_no', 'age', 'board_id', 'class_id', 'syllabus', 'password',
     ];
 
     /** Mirror column defaults so a new model behaves like a loaded one. */
@@ -61,7 +61,7 @@ class User extends Authenticatable
 
     public function courses(): BelongsToMany
     {
-        return $this->belongsToMany(Course::class)->withPivot(['progress', 'trial_ends_at'])->withTimestamps();
+        return $this->belongsToMany(Course::class)->withPivot(['progress', 'trial_ends_at', 'paid_at', 'enrolled_by'])->withTimestamps();
     }
 
     public function conversations(): BelongsToMany
@@ -86,6 +86,11 @@ class User extends Authenticatable
             'tenant_code' => $this->tenant?->code,
             'tenant_phone' => $this->tenant?->phone,
             'tenant_address' => $this->tenant?->address,
+            'tenant_logo_url' => $this->tenant?->logoUrl(),
+            // Money and phone numbers follow the institution's country (default India).
+            'currency' => $this->tenant?->currency ?? 'INR',
+            'dial_code' => $this->tenant?->dial_code ?? '+91',
+            'syllabus' => $this->syllabus,
             'board_id' => $this->board_id,
             'class_id' => $this->class_id,
             'avatar_initial' => mb_substr($this->name, 0, 1),

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Linking, Pressable, View } from 'react-native';
+import { Image, Linking, Pressable, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { demoNote } from '@/components/kit';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -13,7 +13,7 @@ import { useLayout } from '@/lib/useLayout';
 import { setLearnSpace, useLearnSpaces } from '@/lib/learnSpace';
 import { LearnTiles } from './learnspace';
 import { ContentViewerHost, openContent } from './courseBuilder';
-import type { Board, Course, CourseDetail, CourseItem, LiveInfo, SchoolClass, Subject, SubjectDetail, StudyTool, ToolType } from '@/lib/types';
+import type { Board, Course, CourseDetail, CourseItem, LiveInfo, SchoolClass, Subject, SubjectDetail, StudyTool, SyllabusKey, ToolType } from '@/lib/types';
 import { colors, ContentKind, fonts, gradients, scriptFont } from '@/theme/tokens';
 
 const pastels = [colors.lav, colors.sky, colors.mint, colors.pink, colors.butter];
@@ -168,6 +168,14 @@ function LiveCourseScreen({ c, live, reload }: { c: CourseDetail; live: LiveInfo
 }
 
 /** One course card (Our Courses grid and the Classroom course picker). */
+/** "Free course", "2 free lessons", "7-day free trial". */
+export function trialText(c: Pick<Course, 'is_free' | 'format' | 'trial_lessons' | 'trial_days'>) {
+  if (c.is_free) return 'Free course';
+  if (c.format === 'live') return c.trial_days ? `${c.trial_days}-day free trial` : 'Paid course';
+  if (c.trial_lessons) return `${c.trial_lessons} free lesson${c.trial_lessons === 1 ? '' : 's'}`;
+  return 'Paid course';
+}
+
 export function CourseCard({ c }: { c: Course }) {
   const base = useBase();
     const g = bannerFor(c);
@@ -175,17 +183,19 @@ export function CourseCard({ c }: { c: Course }) {
     return (
       <Pressable accessibilityRole="button" accessibilityLabel={c.title} onPress={() => router.push(`${base}/courses/${c.id}` as any)}
         style={{ borderRadius: 26, backgroundColor: '#FFF', overflow: 'hidden' }}>
-        <LinearGradient colors={g} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ height: 96, padding: 14 }}>
-          <View style={{ position: 'absolute', right: -30, top: -40, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.14)' }} />
-          <T style={{ position: 'absolute', right: 22, top: 6, fontFamily: fonts.arabic, fontSize: 48, color: 'rgba(255,255,255,0.9)' }}>{COURSE_GLYPH[c.category] ?? c.title[0]}</T>
+        <LinearGradient colors={g} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ height: c.thumbnail_url ? 140 : 96, padding: 14 }}>
+          {c.thumbnail_url ? <Image source={{ uri: c.thumbnail_url }} style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 }} resizeMode="cover" accessibilityLabel={c.title} /> : <>
+            <View style={{ position: 'absolute', right: -30, top: -40, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.14)' }} />
+            <T style={{ position: 'absolute', right: 22, top: 6, fontFamily: fonts.arabic, fontSize: 48, color: 'rgba(255,255,255,0.9)' }}>{COURSE_GLYPH[c.category] ?? c.title[0]}</T>
+          </>}
           <View style={{ alignSelf: 'flex-start', backgroundColor: '#FFF', borderRadius: 11, paddingHorizontal: 8, height: 22, justifyContent: 'center' }}><T style={{ fontSize: 10, fontFamily: fonts.semibold, color: g[0] }}>{c.next_live_at ? '● ' : ''}{tag}</T></View>
         </LinearGradient>
         <View style={{ padding: 14, gap: 6 }}>
           <T v="h3">{c.title}</T>
-          <T v="small">{c.teacher_name ?? c.category} · {c.format === 'live' ? `Live · ${c.live_summary ?? 'timetable soon'}` : `${c.lessons_count} lessons`}</T>
+          <T v="small">{c.madrasa_label ?? c.teacher_name ?? c.category} · {c.format === 'live' ? `Live · ${c.live_summary ?? 'timetable soon'}` : `${c.lessons_count} lessons`}</T>
           {c.enrolled && c.progress != null ? <Progress value={c.progress} /> : null}
           <Row style={{ justifyContent: 'space-between', marginTop: 4 }}>
-            <T v="small">{c.enrolled ? `Level · ${c.level}` : c.is_free ? 'Free course' : '7-day free trial'}</T>
+            <T v="small">{c.enrolled ? `Level · ${c.level}` : trialText(c)}</T>
             <View style={{ backgroundColor: g[0], borderRadius: 16, height: 32, paddingHorizontal: 14, justifyContent: 'center' }}><T style={{ color: '#FFF', fontFamily: fonts.semibold, fontSize: 13 }}>{c.enrolled ? 'Explore ›' : 'View ›'}</T></View>
           </Row>
         </View>
@@ -230,7 +240,7 @@ function CourseIntro({ c, onJoin }: { c: CourseDetail; onJoin: () => Promise<voi
   return (
     <Screen bar={false} overlay={(
       <View style={{ position: 'absolute', left: 12, right: 12, bottom: isPhone ? 100 : 16, backgroundColor: '#FFF', borderRadius: 24, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 14, maxWidth: 640, alignSelf: 'center', shadowColor: '#10303A', shadowOpacity: 0.12, shadowRadius: 16 }}>
-        <View><T v="small">Price</T><T style={{ fontFamily: fonts.fun, fontSize: 20, color: g[0] }}>{c.is_free ? 'Free' : '7 days free'}</T></View>
+        <View><T v="small">{c.is_free ? 'Price' : 'Free trial'}</T><T style={{ fontFamily: fonts.fun, fontSize: 18, color: g[0] }}>{c.is_free ? 'Free' : trialText(c).replace('Paid course', '—')}</T></View>
         <Pressable accessibilityRole="button" accessibilityLabel="Join course" disabled={busy} onPress={join} style={{ flex: 1 }}>
           <LinearGradient colors={[g[1], g[0]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ height: 54, borderRadius: 27, alignItems: 'center', justifyContent: 'center', opacity: busy ? 0.7 : 1 }}>
             <T style={{ color: '#FFF', fontFamily: fonts.fun, fontSize: 18 }}>{busy ? 'Joining…' : 'Join course'}</T>
@@ -239,17 +249,18 @@ function CourseIntro({ c, onJoin }: { c: CourseDetail; onJoin: () => Promise<voi
       </View>
     )}>
       <LinearGradient colors={[g[1], g[0]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ marginHorizontal: -20, marginTop: -12, height: 250, padding: 20, overflow: 'hidden' }}>
-        <View style={{ position: 'absolute', right: -40, top: -40, width: 220, height: 220, borderRadius: 110, backgroundColor: 'rgba(255,255,255,0.14)' }} />
+        {c.thumbnail_url ? <Image source={{ uri: c.thumbnail_url }} style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 }} resizeMode="cover" accessibilityLabel={c.title} />
+          : <View style={{ position: 'absolute', right: -40, top: -40, width: 220, height: 220, borderRadius: 110, backgroundColor: 'rgba(255,255,255,0.14)' }} />}
         <Row style={{ justifyContent: 'space-between' }}>
           <IconButton name="chevron-back" label="Back" size={44} onPress={() => (router.canGoBack() ? router.back() : router.replace(`${base}/courses` as any))} />
           <IconButton name="heart-outline" label="Save course" size={44} color={g[0]} onPress={() => demoNote('Saved to your list.')} />
         </Row>
-        <View style={{ alignSelf: 'flex-start', marginTop: 12, backgroundColor: '#FFF', borderRadius: 12, paddingHorizontal: 10, height: 24, justifyContent: 'center' }}><T style={{ fontSize: 11, fontFamily: fonts.semibold, color: g[0] }}>{c.is_free ? 'FREE' : '7-DAY TRIAL'} · {c.level.toUpperCase()}</T></View>
-        <T style={{ position: 'absolute', right: 30, bottom: 30, fontFamily: fonts.arabic, fontSize: 110, color: 'rgba(255,255,255,0.9)' }}>{COURSE_GLYPH[c.category] ?? c.title[0]}</T>
+        <View style={{ alignSelf: 'flex-start', marginTop: 12, backgroundColor: '#FFF', borderRadius: 12, paddingHorizontal: 10, height: 24, justifyContent: 'center' }}><T style={{ fontSize: 11, fontFamily: fonts.semibold, color: g[0] }}>{trialText(c).toUpperCase()} · {c.level.toUpperCase()}</T></View>
+        {c.thumbnail_url ? null : <T style={{ position: 'absolute', right: 30, bottom: 30, fontFamily: fonts.arabic, fontSize: 110, color: 'rgba(255,255,255,0.9)' }}>{COURSE_GLYPH[c.category] ?? c.title[0]}</T>}
       </LinearGradient>
       <View style={{ marginHorizontal: -20, marginTop: -28, backgroundColor: colors.bg, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 20, paddingTop: 20 }}>
         <T v="h1">{c.title}</T>
-        <T v="small">{c.category} · {c.level} · with {c.teacher_name ?? 'Noon Learn teachers'}</T>
+        <T v="small">{c.madrasa_label ?? c.category} · {c.level} · with {c.teacher_name ?? 'Noon Learn teachers'}</T>
         <T v="small" style={{ marginTop: 4 }}><T style={{ color: '#D9A21A', fontFamily: fonts.semibold }}>★ 4.8</T> · Malayalam & English</T>
         <Row gap={8} style={{ marginTop: 12 }}>
           {(c.format === 'live' ? [['Live', 'Classes', colors.pink], [String(c.live?.upcoming.length ? c.live.slots.reduce((n, s) => n + s.days.length, 0) : 0), 'A week', colors.lav], [c.live?.slots[0] ? `${c.live.slots[0].duration_min}m` : '—', 'Each class', colors.butter]] : [[String(c.lessons_count), 'Lessons', colors.pink], [`${Math.max(1, Math.round(c.lessons_count / 5))} h`, 'Total', colors.lav], ['✓', 'Certificate', colors.butter]]).map(([v, l, t]) => (
@@ -325,6 +336,15 @@ export function CourseDetailScreen() {
       <ContentViewerHost />
       {c.lessons?.length ? (
         <View style={{ marginTop: 14, gap: 12 }}>
+          {c.access && !c.access.paid && c.lessons.some((l) => l.locked) ? (
+            <Card tint={colors.butter[0]} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <Ionicons name="gift-outline" size={24} color={colors.butter[1]} />
+              <View style={{ flex: 1 }}>
+                <T v="h3" style={{ color: colors.butter[1] }}>Free trial · {c.lessons.filter((l) => !l.locked).length} of {c.lessons.length} lessons open</T>
+                <T v="small" style={{ color: colors.butter[1] }}>The other lessons open after the free trial. Ask your madrasa office or Noon Learn to unlock the full course.</T>
+              </View>
+            </Card>
+          ) : null}
           <Button title={(c.progress ?? 0) > 0 ? 'Continue learning' : 'Start learning'} icon="play" onPress={() => router.push(`${base}/courses/${c.id}/play` as any)} />
           <LessonList c={c} onDone={course.reload} />
         </View>
@@ -366,26 +386,30 @@ function ItemRow({ it, onDone, locked }: { it: CourseItem; onDone?: () => void; 
   );
 }
 
+export const LOCKED_MSG = 'This lesson opens after the free trial. Ask your madrasa office or Noon Learn to unlock the full course.';
+
 /** Lessons grouped by subject; tap a lesson to open it in the course player. */
 function LessonList({ c, locked }: { c: CourseDetail; locked?: boolean; onDone?: () => void }) {
   const base = useBase();
   const lessons = c.lessons ?? [];
   const subjects = c.subjects ?? [];
   const groups = [{ title: null as string | null, list: lessons.filter((l) => !l.subject_id || !subjects.some((s) => s.id === l.subject_id)) },
-    ...subjects.map((s) => ({ title: s.title as string | null, list: lessons.filter((l) => l.subject_id === s.id) }))].filter((g) => g.list.length);
+    ...subjects.map((s) => ({ title: s.title as string | null, thumb: s.thumbnail_url ?? null, list: lessons.filter((l) => l.subject_id === s.id) }))].filter((g) => g.list.length) as { title: string | null; thumb?: string | null; list: typeof lessons }[];
   let n = 0;
   return (
     <View style={{ gap: 14 }}>
       {groups.map((g, gi) => (
         <View key={gi} style={{ gap: 8 }}>
-          {g.title ? <Row gap={6}><Ionicons name="folder-open" size={18} color={colors.violet} /><T v="h3">{g.title}</T></Row> : null}
+          {g.title ? <Row gap={8} style={{ alignItems: 'center' }}>{g.thumb ? <Image source={{ uri: g.thumb }} style={{ width: 40, height: 40, borderRadius: 12 }} accessibilityLabel={g.title} /> : <Ionicons name="folder-open" size={18} color={colors.violet} />}<T v="h3">{g.title}</T></Row> : null}
           {g.list.map((l) => {
             n += 1;
-            const shut = locked && !l.free_preview;
+            // Before joining: free-trial lessons are open to preview. After joining: past the free trial is locked.
+            const shut = locked ? (l.locked ?? !l.free_preview) : !!l.locked;
+            const preview = locked && !shut;
             const done = l.items.length > 0 && l.items.every((i) => i.done);
             const started = l.items.some((i) => i.done);
             return (
-              <Card key={l.id} onPress={() => (shut ? demoNote('Join the course to open this lesson.') : router.push(`${base}/courses/${c.id}/play?lesson=${l.id}` as any))}
+              <Card key={l.id} onPress={() => (shut ? demoNote(locked ? 'Join the course to open this lesson.' : LOCKED_MSG) : router.push(`${base}/courses/${c.id}/play?lesson=${l.id}` as any))}
                 style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 }}>
                 <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: done ? colors.mint[0] : shut ? '#EEF3F5' : colors.lav[0], alignItems: 'center', justifyContent: 'center' }}>
                   {done ? <Ionicons name="checkmark" size={18} color={colors.mint[1]} /> : <T style={{ fontFamily: fonts.semibold, color: shut ? colors.muted : colors.lav[1] }}>{n}</T>}
@@ -394,7 +418,7 @@ function LessonList({ c, locked }: { c: CourseDetail; locked?: boolean; onDone?:
                   <T style={{ fontFamily: fonts.semibold }} numberOfLines={2}>{l.title}</T>
                   <T v="small">{l.items.length} items{l.duration ? ` · ${l.duration}` : ''}{!locked && started && !done ? ` · ${l.items.filter((i) => i.done).length}/${l.items.length} done` : ''}</T>
                 </View>
-                {locked && l.free_preview ? <View style={{ backgroundColor: colors.pink[0], borderRadius: 12, paddingHorizontal: 10, height: 26, justifyContent: 'center' }}><T style={{ color: colors.pink[1], fontSize: 12, fontFamily: fonts.semibold }}>▶ Preview</T></View>
+                {preview ? <View style={{ backgroundColor: colors.pink[0], borderRadius: 12, paddingHorizontal: 10, height: 26, justifyContent: 'center' }}><T style={{ color: colors.pink[1], fontSize: 12, fontFamily: fonts.semibold }}>▶ Free</T></View>
                   : shut ? <Ionicons name="lock-closed-outline" size={16} color={colors.muted} /> : <Ionicons name="play-circle" size={26} color={colors.violet} />}
               </Card>
             );
@@ -425,13 +449,17 @@ export function BoardsScreen() {
     <Screen>
       <Header title="Madrasa Support" subtitle="Step 1 · choose your board" />
       {boards.loading ? <Loading /> : (
-        <Grid cols={{ phone: 1, tablet: 3, desktop: 3 }}>
+        <Grid cols={{ phone: 1, tablet: 2, desktop: 2 }}>
           {(boards.data ?? []).map((b, i) => (
-            <Card key={b.id} onPress={() => router.push(`${base}/support/board/${b.id}` as any)} style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 20 }}>
-              <View style={{ width: 70, height: 70, borderRadius: 22, backgroundColor: pastels[(i + 2) % 5][0], alignItems: 'center', justifyContent: 'center' }}>
-                <T style={{ fontFamily: fonts.semibold, fontSize: 20, color: pastels[(i + 2) % 5][1] }}>{b.code}</T>
+            <Card key={b.id} onPress={() => router.push(`${base}/support/board/${b.id}` as any)} style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 18 }}>
+              <View style={{ width: 76, height: 76, borderRadius: 22, backgroundColor: b.logo_url ? '#FFF' : pastels[(i + 2) % 5][0], alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderWidth: b.logo_url ? 1 : 0, borderColor: colors.line }}>
+                {b.logo_url ? <Image source={{ uri: b.logo_url }} style={{ width: 70, height: 70 }} resizeMode="contain" accessibilityLabel={`${b.name} logo`} />
+                  : <T style={{ fontFamily: fonts.semibold, fontSize: 18, color: pastels[(i + 2) % 5][1] }}>{b.code}</T>}
               </View>
-              <View style={{ flex: 1 }}><T v="h3">{b.name}</T><T v="small">{b.meta} · Class 1–10, +1, +2</T></View>
+              <View style={{ flex: 1 }}>
+                <T v="h3">{b.name}</T>
+                <T v="small">{b.full_name || b.meta}</T>
+              </View>
               <Ionicons name="chevron-forward" size={20} color={colors.muted} />
             </Card>
           ))}
@@ -442,13 +470,34 @@ export function BoardsScreen() {
 }
 
 export function ClassesScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, syllabus } = useLocalSearchParams<{ id: string; syllabus?: string }>();
+  const { user } = useAuth();
   const base = useBase();
-  const classes = useApi<SchoolClass[]>(`/boards/${id}/classes`);
+  const boards = useApi<Board[]>('/boards');
+  const board = boards.data?.find((b) => String(b.id) === String(id));
+  const [syl, setSyl] = useState<SyllabusKey>(syllabus === 'english' || syllabus === 'general' ? syllabus : user?.syllabus === 'english' ? 'english' : 'general');
+  const classes = useApi<SchoolClass[]>(`/boards/${id}/classes?syllabus=${syl}`);
+  const syllabi = board?.syllabi ?? [{ key: 'general' as const, label: 'General Madrasa Syllabus', classes: 0 }, { key: 'english' as const, label: 'English Medium Madrasa Syllabus', classes: 0 }];
   return (
     <Screen>
-      <Header title="Choose class" subtitle="Step 2" />
-      {classes.loading ? <Loading /> : (
+      <Header title={board ? board.name : 'Choose class'} subtitle="Step 2 · choose syllabus and class" />
+      <T v="label" style={{ marginBottom: 8 }}>Syllabus</T>
+      <Grid cols={{ phone: 1, tablet: 2, desktop: 2 }}>
+        {syllabi.map((s) => {
+          const on = s.key === syl;
+          return (
+            <Card key={s.key} onPress={() => setSyl(s.key)} tint={on ? colors.mint[0] : undefined} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 2, borderColor: on ? colors.teal : 'transparent' }}>
+              <Ionicons name={on ? 'radio-button-on' : 'radio-button-off'} size={22} color={on ? colors.teal : colors.muted} />
+              <View style={{ flex: 1 }}>
+                <T v="h3">{s.label}</T>
+                <T v="small">{s.key === 'english' ? 'Lessons taught in English' : 'Lessons taught in Malayalam'}</T>
+              </View>
+            </Card>
+          );
+        })}
+      </Grid>
+      <T v="label" style={{ marginTop: 16, marginBottom: 8 }}>Class</T>
+      {classes.loading ? <Loading /> : (classes.data ?? []).length === 0 ? <Empty text="Classes for this syllabus are coming soon, in sha Allah." /> : (
         <Grid cols={{ phone: 3, tablet: 4, desktop: 6 }}>
           {(classes.data ?? []).map((c, i) => (
             <Card key={c.id} tint={pastels[i % 5][0]} onPress={() => router.push(`${base}/support/class/${c.id}` as any)} style={{ alignItems: 'center', paddingVertical: 20 }}>
@@ -469,19 +518,24 @@ export function SubjectsScreen() {
   const subjects = useApi<Subject[]>(`/classes/${id}/subjects`);
   return (
     <Screen>
-      <Header title="Subjects" subtitle="Step 3" />
+      <Header title="Subjects" subtitle="Step 3 · choose a subject" />
       {subjects.loading ? <Loading /> : (
         <Grid cols={{ phone: 2, tablet: 3, desktop: 4 }}>
           {(subjects.data ?? []).map((s, i) => {
             const p = pastels[(i + 2) % 5];
             return (
-              <Card key={s.id} tint={p[0]} onPress={() => router.push(`${base}/support/subject/${s.id}` as any)} style={{ minHeight: 120 }}>
-                <T style={{ position: 'absolute', right: 12, bottom: 4, fontFamily: fonts.arabic, fontSize: 40, color: p[1], opacity: 0.3 }}>{s.name_ar}</T>
-                <T v="h2" style={{ color: p[1] }}>{s.name}</T>
-                <T v="small" style={{ color: p[1] }}>{s.lessons_count} lessons</T>
-                <Row gap={4} style={{ marginTop: 'auto' }}>
-                  <Pill text="VIDEO" tint="rgba(255,255,255,0.7)" ink={p[1]} /><Pill text="AUDIO" tint="rgba(255,255,255,0.7)" ink={p[1]} /><Pill text="PDF" tint="rgba(255,255,255,0.7)" ink={p[1]} />
-                </Row>
+              <Card key={s.id} tint={p[0]} onPress={() => router.push(`${base}/support/subject/${s.id}` as any)} style={{ padding: 0, overflow: 'hidden' }}>
+                {s.thumbnail_url ? (
+                  <Image source={{ uri: s.thumbnail_url }} style={{ width: '100%', aspectRatio: 1.4, backgroundColor: '#FFF' }} resizeMode="cover" accessibilityLabel={s.name} />
+                ) : (
+                  <View style={{ width: '100%', aspectRatio: 1.4, alignItems: 'center', justifyContent: 'center' }}>
+                    <T style={{ fontFamily: fonts.arabic, fontSize: 40, color: p[1], opacity: 0.45 }}>{s.name_ar || s.name.slice(0, 1)}</T>
+                  </View>
+                )}
+                <View style={{ padding: 12 }}>
+                  <T v="h3" style={{ color: p[1] }} numberOfLines={1}>{s.name}</T>
+                  <T v="small" style={{ color: p[1] }}>{s.lessons_count} lessons</T>
+                </View>
               </Card>
             );
           })}

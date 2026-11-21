@@ -61,7 +61,8 @@ export function CoursePlayerScreen() {
   const modules = useMemo(() => (c ? modulesOf(c) : []), [c]);
   const ordered = useMemo(() => modules.flatMap((m) => m.lessons), [modules]);
   const isDone = (it: CourseItem) => !!it.done || doneNow.has(it.id);
-  const canOpen = (l: CourseLessonRow) => !!c?.enrolled || l.free_preview;
+  // Joined: every lesson in the free trial (or all, once paid). Not joined: free previews only.
+  const canOpen = (l: CourseLessonRow) => (c?.enrolled ? !l.locked : l.free_preview);
 
   const lesson = ordered.find((l) => String(l.id) === lessonParam)
     ?? ordered.find((l) => canOpen(l) && l.items.some((i) => !isDone(i))) ?? ordered.find(canOpen) ?? ordered[0];
@@ -182,7 +183,7 @@ export function CoursePlayerScreen() {
       <Pressable accessibilityRole="link" onPress={() => router.replace(coursePage as any)} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', paddingVertical: 4 }}>
         <Ionicons name="arrow-back" size={16} color={colors.violet} /><T style={{ color: colors.violet, fontFamily: fonts.semibold }}>Back to course</T>
       </Pressable>
-      {locked ? <LockedBox onJoin={() => router.replace(coursePage as any)} />
+      {locked ? <LockedBox trial={!!c.enrolled} onJoin={() => router.replace(coursePage as any)} />
         : item ? <Player key={item.id} item={item} watermark={user?.phone || user?.email || user?.name || ''} onEnded={() => complete(item)} />
         : <View style={{ borderRadius: 20, backgroundColor: '#FFF', padding: 24 }}><T v="small">Nothing in this lesson yet.</T></View>}
       <View style={{ gap: 4 }}>
@@ -280,12 +281,13 @@ function TabPill({ on, icon, label, count, onPress }: { on: boolean; icon: any; 
   );
 }
 
-function LockedBox({ onJoin }: { onJoin: () => void }) {
+function LockedBox({ onJoin, trial }: { onJoin: () => void; trial?: boolean }) {
   return (
     <View style={{ aspectRatio: 16 / 9, borderRadius: 20, backgroundColor: '#10162B', alignItems: 'center', justifyContent: 'center', gap: 12, padding: 20 }}>
       <Ionicons name="lock-closed" size={36} color="#FFF" />
-      <T style={{ color: '#FFF', fontFamily: fonts.semibold, fontSize: 17, textAlign: 'center' }}>Join the course to open this lesson</T>
-      <Button title="Join course" kind="yellow" onPress={onJoin} />
+      <T style={{ color: '#FFF', fontFamily: fonts.semibold, fontSize: 17, textAlign: 'center' }}>{trial ? 'This lesson opens after the free trial' : 'Join the course to open this lesson'}</T>
+      {trial ? <T style={{ color: '#C9D2E8', fontSize: 13, textAlign: 'center' }}>Ask your madrasa office or Noon Learn to unlock the full course.</T> : null}
+      <Button title={trial ? 'Back to course' : 'Join course'} kind="yellow" onPress={onJoin} />
     </View>
   );
 }

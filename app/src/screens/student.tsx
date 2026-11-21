@@ -1,6 +1,7 @@
 // Student screens from the design canvas: My Classroom, AI tutor, Salah report, profile,
 // fees, attendance, audio books, settings and help.
 import { NooniChat } from '@/components/Nooni';
+import { money } from '@/lib/money';
 import React, { useState } from 'react';
 import { Linking, Platform, Pressable, Switch, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
@@ -20,7 +21,7 @@ import { AUDIO_BOOKS, CLASSROOM, HELP_FAQ, PROFILE, SALAH_SCORES } from '@/lib/d
 import { colors, fonts } from '@/theme/tokens';
 import type { StudyTool } from '@/lib/types';
 
-const rupee = (n: number) => '₹' + n.toLocaleString('en-IN');
+const rupee = (n: number) => money(n);
 
 /* ---------- My Classroom ---------- */
 export function ClassroomScreen() {

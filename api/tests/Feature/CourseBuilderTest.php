@@ -102,7 +102,7 @@ class CourseBuilderTest extends TestCase
     public function test_categories_can_be_added_renamed_and_removed(): void
     {
         $boss = $this->boss();
-        $this->as($boss)->getJson('/api/course-categories')->assertOk()->assertJsonPath('0.name', 'Arabic');
+        $this->as($boss)->getJson('/api/course-categories')->assertOk()->assertJsonPath('0.name', 'Madrasa Support');
         $cat = $this->as($boss)->postJson('/api/super/course-categories', ['name' => 'Akhlaq'])->assertOk()->json();
         $this->as($boss)->postJson('/api/super/course-categories', ['name' => 'Akhlaq'])->assertUnprocessable();
         $c = $this->as($boss)->postJson('/api/super/courses', ['title' => 'Good manners', 'category' => 'Akhlaq'])->json();

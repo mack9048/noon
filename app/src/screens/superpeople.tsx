@@ -1,6 +1,9 @@
 // Super admin: tenants (institutions), every user, and "Log in as" any user.
 import React, { useState } from 'react';
-import { Alert, Platform, Pressable, Switch, TextInput, View } from 'react-native';
+import { Alert, Image, Platform, Pressable, Switch, TextInput, View } from 'react-native';
+import * as DocumentPicker from 'expo-document-picker';
+import { Select } from '@/components/kit2';
+import { COUNTRIES, money } from '@/lib/money';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Button, Card, Empty, Header, Loading, Row, Screen, Segmented, T } from '@/components/ui';
@@ -14,6 +17,7 @@ import { SetPasswordModal } from '@/screens/passwords';
 export interface TenantRow {
   id: number; name: string; code: string; plan: string; active: boolean; leave_quota?: number;
   students_count: number; teachers_count?: number; created_at?: string;
+  logo_url?: string | null; country?: string; currency?: string;
 }
 export interface UserRow {
   id: number; name: string; role: 'admin' | 'teacher' | 'parent' | 'student' | 'guest';
@@ -227,13 +231,16 @@ export function SuperTenantFormScreen() {
   const editing = !!id;
   const { data: tenants } = useApi<TenantRow[]>(editing ? '/super/tenants' : null);
   const t = tenants?.find((x) => String(x.id) === String(id));
-  const [f, setF] = useState({ name: '', plan: 'basic' as Plan, leave_quota: '15', admin_name: '', admin_email: '', admin_password: '' });
+  const [f, setF] = useState({ name: '', plan: 'basic' as Plan, leave_quota: '15', admin_name: '', admin_email: '', admin_password: '', country: 'IN' });
+  const [logo, setLogo] = useState<string | null | undefined>(undefined);
+  const [logoBusy, setLogoBusy] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [showPw, setShowPw] = useState(false);
   if (editing && t && !loaded) {
-    setF({ ...f, name: t.name, plan: (t.plan as Plan) ?? 'basic', leave_quota: String(t.leave_quota ?? 15) });
+    setF({ ...f, name: t.name, plan: (t.plan as Plan) ?? 'basic', leave_quota: String(t.leave_quota ?? 15), country: t.country ?? 'IN' });
+    setLogo(t.logo_url ?? null);
     setLoaded(true);
   }
   if (editing && !t) return tenants ? <Screen><Header title="Edit tenant" /><Empty text="Tenant not found." /></Screen> : <Loading />;
@@ -247,11 +254,12 @@ export function SuperTenantFormScreen() {
     setBusy(true);
     try {
       if (editing) {
-        await api.put(`/super/tenants/${id}`, { name: f.name.trim(), plan: f.plan, leave_quota: Number(f.leave_quota) || 0, ...(f.admin_password ? { admin_password: f.admin_password } : {}) });
+        await api.put(`/super/tenants/${id}`, { name: f.name.trim(), plan: f.plan, leave_quota: Number(f.leave_quota) || 0, ...(f.country !== t?.country ? { country: f.country } : {}), ...(f.admin_password ? { admin_password: f.admin_password } : {}) });
         say(f.admin_password ? 'Saved. The admin password was changed.' : 'Saved.');
         router.replace(`/super/tenants/${id}` as any);
       } else {
         const made = await api.post<TenantRow>('/super/tenants', { name: f.name.trim(), plan: f.plan, admin_name: f.admin_name.trim(), admin_email: f.admin_email.trim(), admin_password: f.admin_password });
+        if (f.country !== 'IN') await api.put(`/super/tenants/${made.id}`, { country: f.country });
         say(`${made.name} created. Tenant code: ${made.code}\nAdmin login: ${f.admin_email.trim()}`);
         router.replace(`/super/tenants/${made.id}` as any);
       }
@@ -265,6 +273,25 @@ export function SuperTenantFormScreen() {
     try { await api.del(`/super/tenants/${t.id}?permanent=1`); router.replace('/super/tenants' as any); }
     catch (e) { setErr(e instanceof ApiError ? e.friendly : 'Could not delete.'); setBusy(false); }
   };
+
+  const uploadLogo = async (remove = false) => {
+    let file: DocumentPicker.DocumentPickerAsset | null = null;
+    if (!remove) {
+      const r = await DocumentPicker.getDocumentAsync({ type: ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'], copyToCacheDirectory: true });
+      file = r.canceled ? null : r.assets[0];
+      if (!file) return;
+      if (file.size && file.size > 2 * 1024 * 1024) return setErr('The logo is over 2 MB. Please choose a smaller picture.');
+    }
+    setLogoBusy(true); setErr(null);
+    try {
+      const fd = new FormData();
+      if (file) { if (Platform.OS === 'web' && (file as any).file) fd.append('logo', (file as any).file); else fd.append('logo', { uri: file.uri, name: file.name, type: file.mimeType ?? 'image/png' } as any); }
+      else fd.append('remove', '1');
+      const r = await api.post<{ logo_url: string | null }>(`/super/tenants/${id}/logo`, fd);
+      setLogo(r.logo_url);
+    } catch (e) { setErr(e instanceof ApiError ? e.friendly : 'Could not upload the logo.'); } finally { setLogoBusy(false); }
+  };
+  const country = COUNTRIES.find((c) => c.code === f.country) ?? COUNTRIES[0];
 
   const field = (label: string, k: keyof typeof f, props: Partial<React.ComponentProps<typeof TextInput>> = {}) => {
     const secret = !!props.secureTextEntry;
@@ -295,6 +322,23 @@ export function SuperTenantFormScreen() {
           <Chips value={f.plan} onChange={(p) => setF({ ...f, plan: p })} options={PLANS} />
         </View>
         {editing ? field('Leave days per year (students)', 'leave_quota', { keyboardType: 'number-pad' }) : null}
+        <Select label="Country" value={f.country} options={COUNTRIES.map((c) => ({ key: c.code, label: c.name }))} onChange={(v) => setF({ ...f, country: v })} />
+        <T v="small">Fees in {country.currency} ({money(1500, country.currency)}), phone code {country.dial_code}, time zone {country.timezone.replace('_', ' ')}. The institution can fine-tune these in its settings.</T>
+        {editing ? (
+          <Row gap={12} style={{ alignItems: 'center' }}>
+            <View style={{ width: 64, height: 64, borderRadius: 16, overflow: 'hidden', backgroundColor: colors.teal, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.line }}>
+              {logo ? <Image source={{ uri: logo }} style={{ width: 64, height: 64, backgroundColor: '#FFF' }} resizeMode="contain" accessibilityLabel="Institution logo" />
+                : <T style={{ color: '#FFF', fontFamily: fonts.semibold, fontSize: 20 }}>{f.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()}</T>}
+            </View>
+            <View style={{ flex: 1, gap: 6 }}>
+              <T style={{ fontFamily: fonts.semibold }}>Logo</T>
+              <Row gap={8}>
+                <Button title={logo ? 'Change' : 'Upload'} icon="cloud-upload-outline" kind="ghost" loading={logoBusy} style={{ height: 38 }} onPress={() => uploadLogo()} />
+                {logo ? <Button title="Remove" kind="ghost" style={{ height: 38 }} onPress={() => uploadLogo(true)} /> : null}
+              </Row>
+            </View>
+          </Row>
+        ) : <T v="small">You can upload the logo after creating the tenant.</T>}
       </Card>
       <Section title={editing ? 'Admin login' : 'First admin'} />
       <Card style={{ gap: 14 }}>

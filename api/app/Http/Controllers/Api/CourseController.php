@@ -21,7 +21,7 @@ use Illuminate\Validation\Rule;
  */
 class CourseController extends Controller
 {
-    private const WITH = ['items', 'teacher', 'students', 'lessons', 'liveSlots'];
+    private const WITH = ['items', 'teacher', 'students', 'lessons', 'liveSlots', 'board', 'schoolClass'];
 
     /** Public catalogue for the sign-up page: published courses open to everyone (no institution-only ones). */
     public function catalog()
@@ -65,17 +65,27 @@ class CourseController extends Controller
         abort_unless($canSee, 404);
         $course->load([...self::WITH, 'lessons.items', 'subjects']);
         if ($course->isLive()) {
-            return $course->toApp($user) + ['items' => [], 'lessons' => [], 'subjects' => [], 'live' => $this->liveInfo($course, $user)];
+            $access = $course->access($user);
+            $pivot = $course->students->firstWhere('id', $user->id)?->pivot;
+
+            return $course->toApp($user) + ['items' => [], 'lessons' => [], 'subjects' => [], 'live' => $this->liveInfo($course, $user),
+                'access' => ['paid' => $access['paid'], 'trial_over' => $access['trial_over'], 'trial_days' => (int) ($course->trial_days ?? 7),
+                    'trial_ends_at' => $pivot?->trial_ends_at ? \Illuminate\Support\Carbon::parse($pivot->trial_ends_at)->toIso8601String() : null]];
         }
         $done = $user->id ? DB::table('course_item_user')->where('user_id', $user->id)->pluck('course_item_id')->all() : [];
-        $item = fn (CourseItem $i) => CourseBuilderController::itemData($i, $done);
+        $access = $course->access($user);
+        $open = fn ($lessonId) => $access['unlocked'] === null || in_array($lessonId, $access['unlocked'], true);
+        // Locked lessons (after the free trial) show their titles but not their files.
+        $item = fn (CourseItem $i) => $open($i->course_lesson_id) || ! $i->course_lesson_id
+            ? CourseBuilderController::itemData($i, $done)
+            : ['url' => null, 'body' => null] + CourseBuilderController::itemData($i, $done);
         // Content in the order students follow it: older loose items first, then lesson by lesson.
         $flat = $course->items->whereNull('course_lesson_id')->values()
             ->concat($course->lessons->flatMap(fn ($l) => $l->items));
 
         return $course->toApp($user) + [
             'items' => $flat->map($item)->values(),
-            'subjects' => $course->subjects->map(fn ($s) => ['id' => $s->id, 'title' => $s->title]),
+            'subjects' => $course->subjects->map(fn ($s) => $s->toApp()),
             'lessons' => $course->lessons->map(fn ($l) => [
                 'id' => $l->id,
                 'subject_id' => $l->course_subject_id,
@@ -83,8 +93,10 @@ class CourseController extends Controller
                 'description' => $l->description,
                 'duration' => $l->duration,
                 'free_preview' => $l->free_preview,
+                'locked' => ! $open($l->id),
                 'items' => $l->items->map($item)->values(),
             ]),
+            'access' => ['paid' => $access['paid'], 'trial_over' => $access['trial_over'], 'trial_lessons' => (int) ($course->trial_lessons ?? 2)],
         ];
     }
 
@@ -160,6 +172,9 @@ class CourseController extends Controller
         $enrolled = $user->courses()->whereKey($course->id)->exists() && Course::visibleTo($user)->whereKey($course->id)->exists();
         abort_unless($staff || $enrolled, 403, 'Join the course first.');
         abort_unless($course->meet_url, 422, 'The class link is not ready yet. Please check back soon.');
+        if (! $staff && $course->access($user)['trial_over']) {
+            abort(422, 'Your free trial has ended. Please ask your institution or Noon Learn to continue the classes.');
+        }
         $course->load('liveSlots');
         $now = LiveSchedule::current($course);
         if (! $now && ! $staff) {
@@ -177,7 +192,7 @@ class CourseController extends Controller
     {
         $user = $request->user();
         abort_unless(Course::visibleTo($user)->whereKey($course->id)->exists(), 404);
-        $user->courses()->syncWithoutDetaching([$course->id => ['trial_ends_at' => $course->is_free ? null : now()->addDays(7)]]);
+        $user->courses()->syncWithoutDetaching([$course->id => ['trial_ends_at' => $course->is_free ? null : now()->addDays(max(0, (int) ($course->trial_days ?? 7)))]]);
 
         return $course->load(self::WITH)->toApp($user);
     }
@@ -352,6 +367,30 @@ class CourseController extends Controller
 
     private function validated(Request $request, bool $partial = false): array
     {
+        return self::checkMadrasa($this->rules($request, $partial));
+    }
+
+    /** Only Madrasa Support courses keep a board / syllabus / class, and those must match. */
+    public static function checkMadrasa(array $data): array
+    {
+        // Only Madrasa Support courses are for a board / syllabus / class.
+        if (array_key_exists('category', $data) && $data['category'] !== 'Madrasa Support') {
+            $data['board_id'] = $data['syllabus'] = $data['class_id'] = null;
+        } elseif (($data['category'] ?? null) === 'Madrasa Support') {
+            if (empty($data['board_id']) || empty($data['syllabus']) || empty($data['class_id'])) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['board_id' => 'Choose the board, syllabus and class for a Madrasa Support course.']);
+            }
+            $class = \App\Models\SchoolClass::find($data['class_id']);
+            if (! $class || $class->board_id !== (int) $data['board_id'] || $class->syllabus !== $data['syllabus']) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['class_id' => 'That class is not in the chosen board and syllabus.']);
+            }
+        }
+
+        return $data;
+    }
+
+    private function rules(Request $request, bool $partial): array
+    {
         $req = $partial ? 'sometimes' : 'required';
 
         return $request->validate([
@@ -367,6 +406,10 @@ class CourseController extends Controller
             'price_period' => ['sometimes', 'in:once,monthly'],
             'trial_days' => ['sometimes', 'integer', 'min:0', 'max:60'],
             'free_for_subscribers' => ['sometimes', 'boolean'],
+            'trial_lessons' => ['sometimes', 'integer', 'min:0', 'max:50'],
+            'board_id' => ['nullable', 'integer', Rule::exists('boards', 'id')],
+            'syllabus' => ['nullable', 'in:general,english'],
+            'class_id' => ['nullable', 'integer', Rule::exists('school_classes', 'id')],
             'format' => ['sometimes', 'in:recorded,live'],
             'meet_url' => ['nullable', 'string', 'max:500', 'url:https'],
             'live_timezone' => ['sometimes', 'timezone'],

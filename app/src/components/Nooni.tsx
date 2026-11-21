@@ -6,7 +6,7 @@ import { Image, Modal, Platform, Pressable, ScrollView, TextInput, View } from '
 import { Ionicons } from '@expo/vector-icons';
 import { router, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { T } from './ui';
+import { Row, T } from './ui';
 import { useAuth } from '@/lib/auth';
 import { useLayout } from '@/lib/useLayout';
 import { ApiError } from '@/lib/api';
@@ -19,9 +19,9 @@ const Recognition = web ? (W.SpeechRecognition || W.webkitSpeechRecognition) : n
 const canSpeak = web && !!W.speechSynthesis;
 const LANGS: { key: NooniLang; label: string }[] = [{ key: 'ml', label: 'മലയാളം' }, { key: 'en', label: 'English' }, { key: 'ar', label: 'العربية' }];
 const HELLO: Record<NooniLang, string> = {
-  ml: 'അസ്സലാമു അലൈക്കും! ഞാൻ നൂനി. എന്താണ് പഠിക്കേണ്ടത്? മൈക്കിൽ തൊട്ട് സംസാരിക്കൂ.',
-  en: "Assalamu alaikum! I'm Nooni. What shall we learn today? Tap the mic and talk to me.",
-  ar: 'السلام عليكم! أنا نوني. ماذا نتعلم اليوم؟ اضغط على الميكروفون وتحدث معي.',
+  ml: 'അസ്സലാമു അലൈക്കും! ഞാൻ നൂനി. ഇന്ന് നമുക്ക് ഒരുമിച്ച് എന്ത് പഠിക്കാം? മൈക്കിൽ തൊട്ട് പറയൂ.',
+  en: "Assalamu alaikum! I'm Nooni, your learning friend. What shall we learn together today? Tap the mic and tell me.",
+  ar: 'السلام عليكم! أنا نوني، صديقك في التعلّم. ماذا نتعلّم معًا اليوم؟ اضغط على الميكروفون وأخبرني.',
 };
 const SUGGEST: Record<NooniLang, string[]> = {
   ml: ['ഇന്നത്തെ പാഠം വിശദീകരിക്കൂ', 'വുദുവിന്റെ ഫർളുകൾ ഏതൊക്കെ?', 'എന്റെ കോഴ്സുകൾ തുറക്കൂ'],
@@ -45,12 +45,23 @@ function speak(text: string, lang: NooniLang, onEnd: () => void) {
   synth.speak(u);
 }
 
-/** Nooni's face: the mascot art on the web, a sparkle elsewhere. */
-export function NooniAvatar({ size = 44 }: { size?: number }) {
+/** Nooni's palette (Nooni Visual World Guide v2). */
+export const NOONI = { deep: '#176C78', teal: '#278588', ivory: '#F6F0E5', coral: '#D77A66', blue: '#96B9D0', mustard: '#D8AE45' };
+export type NooniMood = 'wave' | 'smile' | 'thinking' | 'listening' | 'delight';
+const FACES: Record<NooniMood, any> = {
+  wave: require('../../assets/nooni/face.png'),
+  smile: require('../../assets/nooni/smile.png'),
+  thinking: require('../../assets/nooni/thinking.png'),
+  listening: require('../../assets/nooni/listening.png'),
+  delight: require('../../assets/nooni/delight.png'),
+};
+export const NOONI_FULL = require('../../assets/nooni/nooni-full.png');
+
+/** Nooni's face (the 5-year-old learning friend from the guide), with an expression for what he is doing. */
+export function NooniAvatar({ size = 44, mood = 'wave' }: { size?: number; mood?: NooniMood }) {
   return (
-    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: '#EEE8FF', alignItems: 'center', justifyContent: 'flex-start', overflow: 'hidden' }}>
-      {web ? <Image source={{ uri: '/art/nooni-wave.svg' }} accessibilityIgnoresInvertColors style={{ width: size * 1.05, height: size * 1.8, marginTop: size * 0.02 }} resizeMode="contain" />
-        : <Ionicons name="sparkles" size={size * 0.5} color={colors.violet} />}
+    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: NOONI.ivory, overflow: 'hidden', borderWidth: size > 40 ? 2 : 1.5, borderColor: '#FFF' }}>
+      <Image source={FACES[mood]} accessibilityLabel="Nooni" style={{ width: size, height: size }} resizeMode="cover" />
     </View>
   );
 }
@@ -66,7 +77,7 @@ export function NooniButton() {
   return (
     <>
       <Pressable accessibilityRole="button" accessibilityLabel="Ask Nooni" onPress={() => setOpen(true)}
-        style={({ pressed }) => ({ position: 'absolute', right: 16, bottom, flexDirection: 'row', alignItems: 'center', gap: 8, height: 56, paddingLeft: 6, paddingRight: device === 'phone' ? 6 : 18, borderRadius: 28, backgroundColor: colors.violet, opacity: pressed ? 0.9 : 1, ...shadow.lifted })}>
+        style={({ pressed }) => ({ position: 'absolute', right: 16, bottom, flexDirection: 'row', alignItems: 'center', gap: 8, height: 56, paddingLeft: 6, paddingRight: device === 'phone' ? 6 : 18, borderRadius: 28, backgroundColor: NOONI.teal, opacity: pressed ? 0.9 : 1, ...shadow.lifted })}>
         <NooniAvatar size={44} />
         {device !== 'phone' ? <T style={{ color: '#FFF', fontFamily: fonts.semibold }}>Ask Nooni</T> : null}
       </Pressable>
@@ -145,11 +156,11 @@ export function NooniChat({ onClose }: { onClose?: () => void }) {
   const list = msgs.length ? msgs : [{ role: 'assistant' as const, content: HELLO[lang] }];
   return (
     <View style={{ flex: 1 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, backgroundColor: colors.violet }}>
-        <NooniAvatar size={46} />
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, backgroundColor: NOONI.deep }}>
+        <NooniAvatar size={50} mood={listening ? 'listening' : busy ? 'thinking' : talking ? 'delight' : msgs.length ? 'smile' : 'wave'} />
         <View style={{ flex: 1 }}>
           <T style={{ color: '#FFF', fontFamily: fonts.fun, fontSize: 20 }}>Nooni</T>
-          <T style={{ color: '#E2DBFF', fontSize: 12 }}>{listening ? 'Listening…' : busy ? 'Thinking…' : talking ? 'Speaking…' : 'Your learning friend'}</T>
+          <T style={{ color: '#D5ECEE', fontSize: 12 }}>{listening ? 'Listening…' : busy ? 'Thinking…' : talking ? 'Speaking…' : 'Your learning friend'}</T>
         </View>
         {canSpeak ? (
           <Pressable accessibilityRole="switch" accessibilityState={{ checked: voiceOn }} accessibilityLabel="Read answers aloud" onPress={() => { if (voiceOn && canSpeak) W.speechSynthesis.cancel(); setVoiceOn(!voiceOn); setTalking(false); }}
@@ -166,15 +177,16 @@ export function NooniChat({ onClose }: { onClose?: () => void }) {
       <View accessibilityRole="radiogroup" style={{ flexDirection: 'row', gap: 6, paddingHorizontal: 14, paddingTop: 10 }}>
         {LANGS.map((l) => (
           <Pressable key={l.key} accessibilityRole="radio" accessibilityState={{ checked: lang === l.key }} onPress={() => setLang(l.key)}
-            style={{ height: 32, paddingHorizontal: 12, borderRadius: 16, justifyContent: 'center', backgroundColor: lang === l.key ? colors.ink : '#FFF', borderWidth: 1, borderColor: lang === l.key ? colors.ink : colors.line }}>
+            style={{ height: 32, paddingHorizontal: 12, borderRadius: 16, justifyContent: 'center', backgroundColor: lang === l.key ? NOONI.deep : '#FFF', borderWidth: 1, borderColor: lang === l.key ? NOONI.deep : colors.line }}>
             <T style={{ fontSize: 13, fontFamily: fonts.semibold, color: lang === l.key ? '#FFF' : colors.ink }}>{l.label}</T>
           </Pressable>
         ))}
       </View>
-      <ScrollView ref={scroll} style={{ flex: 1 }} contentContainerStyle={{ padding: 14, gap: 10 }}>
+      <ScrollView ref={scroll} style={{ flex: 1, backgroundColor: NOONI.ivory }} contentContainerStyle={{ padding: 14, gap: 10 }}>
         {list.map((m, i) => (
           <View key={i} style={{ flexDirection: 'row', gap: 8, alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '88%' }}>
-            <View style={{ flexShrink: 1, backgroundColor: m.role === 'user' ? colors.teal : '#FFF', borderRadius: 20, borderTopLeftRadius: m.role === 'user' ? 20 : 6, borderTopRightRadius: m.role === 'user' ? 6 : 20, paddingHorizontal: 14, paddingVertical: 10, borderWidth: m.role === 'user' ? 0 : 1, borderColor: colors.line }}>
+            {m.role === 'assistant' ? <NooniAvatar size={30} mood={i === list.length - 1 && talking ? 'delight' : 'smile'} /> : null}
+            <View style={{ flexShrink: 1, backgroundColor: m.role === 'user' ? NOONI.teal : '#FFF', borderRadius: 20, borderTopLeftRadius: m.role === 'user' ? 20 : 6, borderTopRightRadius: m.role === 'user' ? 6 : 20, paddingHorizontal: 14, paddingVertical: 10, borderWidth: m.role === 'user' ? 0 : 1, borderColor: colors.line }}>
               <T style={{ color: m.role === 'user' ? '#FFF' : colors.ink, fontSize: 15, lineHeight: 23 }} auto>{m.content}</T>
             </View>
             {m.role === 'assistant' && canSpeak && msgs.length ? (
@@ -184,12 +196,12 @@ export function NooniChat({ onClose }: { onClose?: () => void }) {
             ) : null}
           </View>
         ))}
-        {busy ? <View style={{ alignSelf: 'flex-start', backgroundColor: '#FFF', borderRadius: 18, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1, borderColor: colors.line }}><T style={{ color: colors.muted }}>Nooni is thinking…</T></View> : null}
+        {busy ? <Row gap={8} style={{ alignSelf: 'flex-start' }}><NooniAvatar size={30} mood="thinking" /><View style={{ backgroundColor: '#FFF', borderRadius: 18, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1, borderColor: colors.line }}><T style={{ color: colors.muted }}>Nooni is thinking…</T></View></Row> : null}
         {!msgs.length ? (
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
             {SUGGEST[lang].map((s) => (
-              <Pressable key={s} accessibilityRole="button" onPress={() => send(s)} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16, backgroundColor: '#EEE8FF' }}>
-                <T style={{ fontSize: 13, color: colors.violet, fontFamily: fonts.semibold }} auto>{s}</T>
+              <Pressable key={s} accessibilityRole="button" onPress={() => send(s)} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16, backgroundColor: '#E3F1F2', borderWidth: 1, borderColor: '#BFDDE0' }}>
+                <T style={{ fontSize: 13, color: NOONI.deep, fontFamily: fonts.semibold }} auto>{s}</T>
               </Pressable>
             ))}
           </View>
@@ -207,7 +219,7 @@ export function NooniChat({ onClose }: { onClose?: () => void }) {
           </Pressable>
         ) : (
           <Pressable accessibilityRole="button" accessibilityLabel={listening ? 'Stop listening' : 'Talk to Nooni'} disabled={busy} onPress={listen}
-            style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: listening ? colors.red : colors.violet, alignItems: 'center', justifyContent: 'center', opacity: busy ? 0.5 : 1 }}>
+            style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: listening ? NOONI.coral : NOONI.teal, alignItems: 'center', justifyContent: 'center', opacity: busy ? 0.5 : 1 }}>
             <Ionicons name={listening ? 'stop' : 'mic'} size={24} color="#FFF" />
           </Pressable>
         )}

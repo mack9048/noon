@@ -10,7 +10,7 @@ class SchoolClass extends Model
 {
     protected $table = 'school_classes';
 
-    protected $fillable = ['board_id', 'label', 'position'];
+    protected $fillable = ['board_id', 'syllabus', 'label', 'position'];
 
     public function board(): BelongsTo
     {

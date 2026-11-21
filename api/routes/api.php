@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\CourseRequestController;
 use App\Http\Controllers\Api\CatalogController;
 use App\Http\Controllers\Api\ChatController;
 use App\Http\Controllers\Api\CourseBuilderController;
+use App\Http\Controllers\Api\MadrasaSupportAdminController;
 use App\Http\Controllers\Api\NooniController;
 use App\Http\Controllers\Api\ShopAdminController;
 use App\Http\Controllers\Api\ShopController;
@@ -158,6 +159,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::put('/courses/{course}', [CourseController::class, 'adminToggle']);
         Route::post('/courses', [CourseRequestController::class, 'store']);
         Route::post('/courses/{course}/logo', [CourseRequestController::class, 'logo']);
+        Route::post('/courses/{course}/thumbnail', [CourseRequestController::class, 'thumbnail']);
         Route::get('/admissions', [AdmissionController::class, 'index']);
         Route::get('/admissions/{ref}', [AdmissionController::class, 'show']);
         Route::patch('/admissions/{ref}', [AdmissionController::class, 'update']);
@@ -166,6 +168,10 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/students/{id}', [StudentController::class, 'show'])->whereNumber('id');
         Route::put('/students/{id}', [StudentController::class, 'update'])->whereNumber('id');
         Route::post('/students', [StudentController::class, 'store']);
+        Route::get('/students/{id}/enrollments', [StudentController::class, 'enrollments'])->whereNumber('id');
+        Route::put('/students/{id}/madrasa', [StudentController::class, 'madrasa'])->whereNumber('id');
+        Route::post('/students/{id}/courses', [StudentController::class, 'addCourse'])->whereNumber('id');
+        Route::delete('/students/{id}/courses/{courseId}', [StudentController::class, 'removeCourse'])->whereNumber('id')->whereNumber('courseId');
         Route::get('/teachers', [StudentController::class, 'teachers']);
         Route::post('/teachers', [StudentController::class, 'storeTeacher']);
         Route::get('/campaigns', [CampaignController::class, 'index']);
@@ -175,6 +181,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::delete('/campaigns/{id}', [CampaignController::class, 'destroy'])->whereNumber('id');
         Route::get('/institution', [InstitutionController::class, 'show']);
         Route::put('/institution', [InstitutionController::class, 'update']);
+        Route::post('/institution/logo', [InstitutionController::class, 'logo']);
         Route::get('/attendance', [AttendanceController::class, 'report']);
         Route::get('/fees', [FeeController::class, 'index']);
         Route::post('/fees', [FeeController::class, 'store']);
@@ -196,6 +203,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     // Super admin
     Route::middleware('role:super')->prefix('super')->group(function () {
         Route::apiResource('tenants', TenantController::class)->except('show');
+        Route::post('/tenants/{tenant}/logo', [TenantController::class, 'logo']);
         Route::get('/users', [ImpersonationController::class, 'users']);
         Route::post('/users/{user}/impersonate', [ImpersonationController::class, 'start']);
         Route::put('/users/{user}/password', [PasswordAdminController::class, 'superSet']);
@@ -220,6 +228,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::post('/courses/{course}/subjects', [CourseBuilderController::class, 'storeSubject']);
         Route::put('/course-subjects/{subject}', [CourseBuilderController::class, 'updateSubject']);
         Route::delete('/course-subjects/{subject}', [CourseBuilderController::class, 'destroySubject']);
+        Route::post('/course-subjects/{subject}/thumbnail', [CourseBuilderController::class, 'subjectThumbnail']);
         Route::post('/courses/{course}/lessons', [CourseBuilderController::class, 'storeLesson']);
         Route::post('/courses/{course}/live-slots', [CourseBuilderController::class, 'storeLiveSlot']);
         Route::put('/course-live-slots/{slot}', [CourseBuilderController::class, 'updateLiveSlot']);
@@ -235,9 +244,20 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::put('/course-categories/{category}', [CourseBuilderController::class, 'updateCategory']);
         Route::delete('/course-categories/{category}', [CourseBuilderController::class, 'destroyCategory']);
         Route::post('/courses/{course}/logo', [CourseRequestController::class, 'logo']);
+        Route::post('/courses/{course}/thumbnail', [CourseRequestController::class, 'thumbnail']);
         Route::get('/approvals', [CourseRequestController::class, 'index']);
         Route::patch('/approvals/{course}', [CourseRequestController::class, 'decide']);
 
+        // Madrasa Support catalogue: boards (logos), classes per syllabus, subjects (thumbnails)
+        Route::get('/madrasa/boards', [MadrasaSupportAdminController::class, 'boards']);
+        Route::post('/madrasa/boards/{board}', [MadrasaSupportAdminController::class, 'updateBoard']);
+        Route::get('/madrasa/boards/{board}/classes', [MadrasaSupportAdminController::class, 'classes']);
+        Route::post('/madrasa/boards/{board}/classes', [MadrasaSupportAdminController::class, 'storeClass']);
+        Route::post('/madrasa/boards/{board}/copy', [MadrasaSupportAdminController::class, 'copySyllabus']);
+        Route::delete('/madrasa/classes/{class}', [MadrasaSupportAdminController::class, 'destroyClass']);
+        Route::post('/madrasa/classes/{class}/subjects', [MadrasaSupportAdminController::class, 'storeSubject']);
+        Route::post('/madrasa/subjects/{subject}', [MadrasaSupportAdminController::class, 'updateSubject']);
+        Route::delete('/madrasa/subjects/{subject}', [MadrasaSupportAdminController::class, 'destroySubject']);
         Route::get('/shop/summary', [ShopAdminController::class, 'summary']);
         Route::get('/shop/products', [ShopAdminController::class, 'products']);
         Route::post('/shop/products', [ShopAdminController::class, 'storeProduct']);

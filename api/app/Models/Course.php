@@ -13,13 +13,55 @@ class Course extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = ['title', 'description', 'category', 'format', 'meet_url', 'live_timezone', 'level', 'cover', 'logo_url', 'status', 'is_free', 'price', 'offer_price', 'price_period', 'trial_days', 'free_for_subscribers', 'teacher_id', 'tenant_id', 'visibility', 'review_note'];
+    protected $fillable = ['title', 'description', 'category', 'board_id', 'syllabus', 'class_id', 'thumbnail_path', 'trial_lessons', 'format', 'meet_url', 'live_timezone', 'level', 'cover', 'logo_url', 'status', 'is_free', 'price', 'offer_price', 'price_period', 'trial_days', 'free_for_subscribers', 'teacher_id', 'tenant_id', 'visibility', 'review_note'];
 
     protected $casts = ['is_free' => 'boolean', 'free_for_subscribers' => 'boolean'];
 
     public function liveSlots(): HasMany
     {
         return $this->hasMany(CourseLiveSlot::class)->orderBy('position')->orderBy('id');
+    }
+
+    public function board(): BelongsTo
+    {
+        return $this->belongsTo(Board::class);
+    }
+
+    public function schoolClass(): BelongsTo
+    {
+        return $this->belongsTo(SchoolClass::class, 'class_id');
+    }
+
+    /**
+     * What a user may open: everything when the course is free, paid / given by the institution, or the user is staff;
+     * otherwise the free trial: the first N lessons of a recorded course, or the first N days of a live course.
+     *
+     * @return array{paid: bool, trial_over: bool, unlocked: ?array<int>} unlocked = lesson ids open (null = all)
+     */
+    public function access(?User $user): array
+    {
+        if (! $user) {
+            return ['paid' => false, 'trial_over' => false, 'unlocked' => []];
+        }
+        $pivot = $this->relationLoaded('students') ? $this->students->firstWhere('id', $user->id)?->pivot : $user->courses()->whereKey($this->id)->first()?->pivot;
+        $staff = $user->hasRole('super') || $this->teacher_id === $user->id;
+        $paid = $staff || $this->is_free || ($pivot && $pivot->paid_at);
+        if ($paid) {
+            return ['paid' => true, 'trial_over' => false, 'unlocked' => null];
+        }
+        if ($this->isLive()) {
+            $over = ! $pivot || ($pivot->trial_ends_at && now()->gt($pivot->trial_ends_at));
+
+            return ['paid' => false, 'trial_over' => (bool) $over, 'unlocked' => null];
+        }
+        // Lessons in the order students see them: outside a subject first, then subject by subject.
+        $this->loadMissing(['lessons', 'subjects']);
+        $pos = $this->subjects->pluck('id')->flip();
+        $ordered = $this->lessons->sortBy(fn ($l) => [$l->course_subject_id && $pos->has($l->course_subject_id) ? 1 + $pos[$l->course_subject_id] : 0, $l->position, $l->id])->values();
+        $free = $ordered->take(max(0, (int) ($this->trial_lessons ?? 2)))->pluck('id')
+            ->merge($ordered->where('free_preview', true)->pluck('id'))->unique()->values()->all();
+
+        return ['paid' => false, 'trial_over' => $pivot !== null && count($free) < $ordered->count(), 'unlocked' => $free];
     }
 
     public function isLive(): bool
@@ -54,7 +96,7 @@ class Course extends Model
 
     public function students(): BelongsToMany
     {
-        return $this->belongsToMany(User::class)->withPivot(['progress', 'trial_ends_at']);
+        return $this->belongsToMany(User::class)->withPivot(['progress', 'trial_ends_at', 'paid_at', 'enrolled_by']);
     }
 
     public function tenants(): BelongsToMany
@@ -90,6 +132,11 @@ class Course extends Model
             'level' => $this->level,
             'cover' => $this->cover,
             'logo_url' => $this->logo_url,
+            'thumbnail_url' => $this->thumbnail_path ? \Illuminate\Support\Facades\Storage::disk('public')->url($this->thumbnail_path) : null,
+            // Madrasa Support courses are for one board / syllabus / class.
+            'board_id' => $this->board_id, 'syllabus' => $this->syllabus, 'class_id' => $this->class_id,
+            'madrasa_label' => $this->board_id ? trim(implode(' · ', array_filter([$this->board?->name, $this->syllabus ? (Board::SYLLABI[$this->syllabus] ?? null) : null, $this->schoolClass ? 'Class '.$this->schoolClass->label : null]))) : null,
+            'trial_lessons' => (int) ($this->trial_lessons ?? 2),
             'description' => $this->description,
             'price' => $this->price,
             'offer_price' => $this->offer_price,

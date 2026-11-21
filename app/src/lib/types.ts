@@ -12,6 +12,9 @@ export interface User {
   class_id?: number | null;
   avatar_initial?: string;
   tenant_code?: string | null;
+  tenant_logo_url?: string | null;
+  /** Institution currency (INR, AED, SAR…) and phone country code (+91, +971…). */
+  currency?: string; dial_code?: string; syllabus?: string | null;
   tenant_phone?: string | null;
   tenant_address?: string | null;
   email?: string | null;
@@ -25,9 +28,10 @@ export interface User {
   impersonated_by?: string;
 }
 
-export interface Board { id: number; code: string; name: string; meta?: string }
-export interface SchoolClass { id: number; board_id: number; label: string; subjects_count: number }
-export interface Subject { id: number; class_id: number; name: string; name_ar?: string; lessons_count: number }
+export type SyllabusKey = 'general' | 'english';
+export interface Board { id: number; code: string; name: string; full_name?: string | null; meta?: string; logo_url?: string | null; syllabi?: { key: SyllabusKey; label: string; classes: number }[] }
+export interface SchoolClass { id: number; board_id: number; label: string; subjects_count: number; syllabus?: SyllabusKey }
+export interface Subject { id: number; class_id: number; name: string; name_ar?: string; lessons_count: number; thumbnail_url?: string | null }
 export interface Lesson {
   id: number; subject_id: number; position: number; title: string;
   video_url?: string | null; video_duration?: string | null;
@@ -48,6 +52,12 @@ export interface Course {
   logo_url?: string | null;
   /** live: regular live classes only (no lessons). */
   format?: 'recorded' | 'live'; live_summary?: string | null; live_now?: boolean;
+  /** Picture on the course card. */
+  thumbnail_url?: string | null;
+  /** Free trial: first N lessons (recorded) or N days (live). */
+  trial_lessons?: number; trial_days?: number;
+  /** Madrasa Support courses: e.g. "SKSVB (AP) · General Madrasa Syllabus · Class 5". */
+  madrasa_label?: string | null;
 }
 export interface LiveClass { starts_at: string; ends_at: string; title?: string | null; state: 'live' | 'upcoming' }
 export interface LiveInfo {
@@ -60,8 +70,13 @@ export interface CourseItem {
 }
 export interface CourseLessonRow {
   id: number; subject_id: number | null; title: string; description?: string | null; duration?: string | null; free_preview: boolean; items: CourseItem[];
+  /** Past the free trial: the title shows but the lesson does not open. */
+  locked?: boolean;
 }
-export interface CourseDetail extends Course { items: CourseItem[]; lessons?: CourseLessonRow[]; subjects?: { id: number; title: string }[]; live?: LiveInfo }
+export interface CourseDetail extends Course {
+  items: CourseItem[]; lessons?: CourseLessonRow[]; subjects?: { id: number; title: string; thumbnail_url?: string | null }[]; live?: LiveInfo;
+  access?: { paid: boolean; trial_over: boolean; trial_lessons?: number; trial_days?: number; trial_ends_at?: string | null };
+}
 
 export type ToolType = 'audio' | 'chart' | 'adkar' | 'slide' | 'form';
 export interface StudyTool {

@@ -1,7 +1,7 @@
 // Institute admin screens from the second design round, plus the course editor shared
 // with super admin and the public admission form.
 import React, { useEffect, useState, useSyncExternalStore } from 'react';
-import { Linking, Platform, Pressable, Text, View } from 'react-native';
+import { Image, Linking, Platform, Pressable, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -20,6 +20,7 @@ import { useApi } from '@/lib/useApi';
 import { profileRows } from '@/lib/profile';
 import { useAuth } from '@/lib/auth';
 import type { BCourse } from '@/lib/courseBuilder';
+import type { Board, SchoolClass } from '@/lib/types';
 import { CategoryField, CourseStructure, LiveTimetable } from './courseBuilder';
 import { colors, fonts } from '@/theme/tokens';
 
@@ -414,6 +415,25 @@ export function CourseEditorScreen({ mode, id }: { mode: 'admin' | 'super'; id?:
     setLogo(f.uri);
     setLogoFile(f as any);
   };
+  // Course thumbnail: the picture on the course card (replaces the old colour choice).
+  const [thumb, setThumb] = useState<string | null>(null);
+  const [thumbFile, setThumbFile] = useState<{ uri: string; name?: string; mimeType?: string; file?: File } | null>(null);
+  const [thumbRemoved, setThumbRemoved] = useState(false);
+  const pickThumb = async () => {
+    const r = await DocumentPicker.getDocumentAsync({ type: ['image/png', 'image/jpeg', 'image/webp'], copyToCacheDirectory: true });
+    const f = r.canceled ? null : r.assets?.[0];
+    if (!f) return;
+    if (f.size && f.size > 4 * 1024 * 1024) return demoNote('That image is over 4 MB. Please pick a smaller one.');
+    setThumb(f.uri); setThumbFile(f as any); setThumbRemoved(false);
+  };
+  // Madrasa Support courses are for one board, syllabus and class.
+  const [boardId, setBoardId] = useState('');
+  const [syllabus, setSyllabus] = useState<'general' | 'english'>('general');
+  const [classId, setClassId] = useState('');
+  const isMadrasa = cat === 'Madrasa Support';
+  const boardList = useApi<Board[]>(isMadrasa ? '/boards' : null);
+  const classList = useApi<SchoolClass[]>(isMadrasa && boardId ? `/boards/${boardId}/classes?syllabus=${syllabus}` : null);
+  const [trialLessons, setTrialLessons] = useState('2');
   // Recorded lessons, or live classes only (a weekly timetable and a meeting link).
   const [format, setFormat] = useState<'recorded' | 'live'>('recorded');
   const [meetUrl, setMeetUrl] = useState('');
@@ -439,6 +459,8 @@ export function CourseEditorScreen({ mode, id }: { mode: 'admin' | 'super'; id?:
     setPrice(c.price != null ? String(c.price) : ''); setOffer(c.offer_price != null ? String(c.offer_price) : '');
     setTrial(!c.trial_days ? 'None' : `${c.trial_days} days`); setFreeForSubs(c.free_for_subscribers ?? true);
     setFormat(c.format === 'live' ? 'live' : 'recorded'); setMeetUrl(c.meet_url ?? '');
+    setThumb(c.thumbnail_url ?? null); setTrialLessons(String(c.trial_lessons ?? 0));
+    setBoardId(c.board_id ? String(c.board_id) : ''); setSyllabus(c.syllabus === 'english' ? 'english' : 'general'); setClassId(c.class_id ? String(c.class_id) : '');
   }, [existing.data]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const details = () => {
@@ -447,6 +469,8 @@ export function CourseEditorScreen({ mode, id }: { mode: 'admin' | 'super'; id?:
     return {
       title: title.trim(), description: desc.trim() || null, category: cat, level, cover: colour, is_free: pricing === 'free', price: priceN, offer_price: offerN,
       price_period: pricing === 'monthly' ? 'monthly' : 'once', trial_days: trial === 'None' ? 0 : parseInt(trial, 10), free_for_subscribers: freeForSubs,
+      trial_lessons: Math.max(0, Math.min(50, parseInt(trialLessons, 10) || 0)),
+      board_id: isMadrasa ? Number(boardId) || null : null, syllabus: isMadrasa ? syllabus : null, class_id: isMadrasa ? Number(classId) || null : null,
       ...(mode === 'super' ? { format, meet_url: format === 'live' ? meetUrl.trim() || null : null } : {}),
       audience: visible === 'Selected institutions' ? 'selected' : visible === 'Guests only' ? 'guests' : 'all', tenant_ids: visible === 'Selected institutions' ? tenantIds : [],
     };
@@ -454,6 +478,7 @@ export function CourseEditorScreen({ mode, id }: { mode: 'admin' | 'super'; id?:
   const check = () => {
     if (!title.trim()) return 'Give the course a name.';
     if (!cat) return 'Choose a category.';
+    if (isMadrasa && (!boardId || !classId)) return 'Choose the board, syllabus and class for this Madrasa Support course.';
     if (format === 'live' && meetUrl.trim() && !/^https:\/\/\S+$/.test(meetUrl.trim())) return 'The meeting link should start with https://';
     if (mode === 'super' && visible === 'Selected institutions' && !tenantIds.length) return 'Pick at least one institution for this course.';
     return null;
@@ -467,8 +492,10 @@ export function CourseEditorScreen({ mode, id }: { mode: 'admin' | 'super'; id?:
       if (mode === 'admin') {
         const d = details();
         const row = await requestApproval({ title: d.title, description: d.description ?? undefined, category: cat, level, cover: colour, visibility: visible === 'My institution only' ? 'madrasa' : 'all',
-          is_free: d.is_free, price: d.price, offer_price: d.offer_price, lessons: lessons.map((l) => l.trim()).filter(Boolean), logo_url: logo });
+          is_free: d.is_free, price: d.price, offer_price: d.offer_price, lessons: lessons.map((l) => l.trim()).filter(Boolean), logo_url: logo,
+          trial_days: d.trial_days, trial_lessons: d.trial_lessons, board_id: d.board_id, syllabus: d.syllabus, class_id: d.class_id });
         if (logoFile) await uploadLogo(`/admin/courses/${row.id}/logo`, logoFile);
+        if (thumbFile) await uploadLogo(`/admin/courses/${row.id}/thumbnail`, thumbFile, 'thumbnail');
         demoNote('Sent to Noon Learn for approval. Students see it once it is approved.');
         router.replace('/admin/courses' as any);
         return;
@@ -477,11 +504,14 @@ export function CourseEditorScreen({ mode, id }: { mode: 'admin' | 'super'; id?:
         // New course: save it as a draft, then add subjects and lessons on its own page.
         const c = await api.post<{ id: number }>('/super/courses', { ...details(), status: 'draft', logo_url: logo });
         if (logoFile) await uploadLogo(`/super/courses/${c.id}/logo`, logoFile);
+        if (thumbFile) await uploadLogo(`/super/courses/${c.id}/thumbnail`, thumbFile, 'thumbnail');
         router.replace(`/super/courses/${c.id}` as any);
         return;
       }
       const c = await api.put<BCourse>(`/super/courses/${id}`, { ...details(), ...(status ? { status } : {}) });
       if (logoFile) { await uploadLogo(`/super/courses/${id}/logo`, logoFile); setLogoFile(null); }
+      if (thumbFile) { await uploadLogo(`/super/courses/${id}/thumbnail`, thumbFile, 'thumbnail'); setThumbFile(null); }
+      else if (thumbRemoved) { await api.post(`/super/courses/${id}/thumbnail`, { remove: true }); setThumbRemoved(false); }
       setCourse((old) => (old ? { ...old, status: c.status } : old));
       demoNote(status === 'published' ? 'Course published. Students can see it now.' : status === 'draft' ? 'Course moved to drafts. Students no longer see it.' : 'Changes saved.');
     } catch (e: any) { demoNote(e instanceof ApiError ? e.friendly : e?.message ?? 'Could not save the course.'); } finally { setBusy(false); }
@@ -519,8 +549,9 @@ export function CourseEditorScreen({ mode, id }: { mode: 'admin' | 'super'; id?:
         </View>
       ) : null}
       <LinearGradient colors={[colour, '#B49CFF']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ marginTop: 12, height: 150, borderRadius: 26, padding: 16, overflow: 'hidden' }}>
+        {thumb ? <><Image source={{ uri: thumb }} style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 }} resizeMode="cover" /><LinearGradient colors={['transparent', 'rgba(0,0,0,0.55)']} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 90 }} /></> : null}
         <View style={{ alignSelf: 'flex-start', backgroundColor: '#FFF', borderRadius: 10, paddingHorizontal: 8, height: 22, justifyContent: 'center' }}><T style={{ fontSize: 10, fontFamily: fonts.semibold, color: colour }}>{cat}·{level}</T></View>
-        <T style={{ position: 'absolute', right: 24, top: 6, fontFamily: fonts.arabic, fontSize: 70, color: 'rgba(255,255,255,0.9)' }}>{LETTER[cat] ?? (title[0] || 'N')}</T>
+        {thumb ? null : <T style={{ position: 'absolute', right: 24, top: 6, fontFamily: fonts.arabic, fontSize: 70, color: 'rgba(255,255,255,0.9)' }}>{LETTER[cat] ?? (title[0] || 'N')}</T>}
         <Text style={{ marginTop: 'auto', fontFamily: fonts.fun, fontSize: 22, color: '#FFF' }} numberOfLines={1}>{title || 'Course name'}</Text>
         <Row style={{ justifyContent: 'space-between' }}>
           <T style={{ color: '#EDE7FF', fontSize: 12 }}>{lessonCount} lessons · student card preview</T>
@@ -563,6 +594,32 @@ export function CourseEditorScreen({ mode, id }: { mode: 'admin' | 'super'; id?:
             <T v="small">Only students of these institutions see the course. It is switched on for them straight away.</T>
           </View>
         ) : <T v="small">{visible === 'Guests only' ? 'Only guests exploring the free app. Institution students do not see it.' : 'Switched on for every institution, and guests can see it too.'}</T>) : null}
+        {isMadrasa ? (
+          <View style={{ gap: 10, backgroundColor: '#EAF6F3', borderRadius: 18, padding: 12 }}>
+            <T style={{ fontFamily: fonts.semibold }}>Madrasa Support · who is this course for?</T>
+            <T v="small">Students see it under their own board, syllabus and class.</T>
+            <Select label="Board" value={boardId || '0'} options={[{ key: '0', label: 'Choose board' }, ...(boardList.data ?? []).map((b) => ({ key: String(b.id), label: `${b.name}${b.full_name ? ` – ${b.full_name}` : ''}` }))]}
+              onChange={(v) => { setBoardId(v === '0' ? '' : v); setClassId(''); }} />
+            <ChoiceChips value={syllabus} onChange={(v) => { setSyllabus(v); setClassId(''); }} options={[{ key: 'general', label: 'General Madrasa Syllabus' }, { key: 'english', label: 'English Medium Madrasa Syllabus' }]} />
+            {boardId ? (
+              <View style={{ gap: 6 }}>
+                <T v="small" style={{ fontFamily: fonts.medium }}>Class</T>
+                <Row gap={8} style={{ flexWrap: 'wrap' }}>
+                  {(classList.data ?? []).map((c) => {
+                    const on = String(c.id) === classId;
+                    return (
+                      <Pressable key={c.id} accessibilityRole="button" accessibilityLabel={`Class ${c.label}`} accessibilityState={{ selected: on }} onPress={() => setClassId(String(c.id))}
+                        style={{ minWidth: 48, height: 44, paddingHorizontal: 10, borderRadius: 14, backgroundColor: on ? colors.teal : '#FFF', borderWidth: 1.5, borderColor: on ? colors.teal : colors.line, alignItems: 'center', justifyContent: 'center' }}>
+                        <T style={{ fontFamily: fonts.semibold, color: on ? '#FFF' : colors.ink }}>{c.label}</T>
+                      </Pressable>
+                    );
+                  })}
+                  {classList.data && !classList.data.length ? <T v="small">No classes in this syllabus yet. Add them under Madrasa Support.</T> : null}
+                </Row>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
         <T v="small" style={{ fontFamily: fonts.medium }}>Level</T>
         <ChoiceChips value={level} onChange={setLevel} options={['Beginner', 'Middle', 'Advanced'].map((k) => ({ key: k, label: k }))} />
       </Panel>
@@ -590,15 +647,32 @@ export function CourseEditorScreen({ mode, id }: { mode: 'admin' | 'super'; id?:
           <View style={{ width: 84, height: 84, borderRadius: 18, backgroundColor: '#FFF', alignItems: 'center', justifyContent: 'center' }}><CourseLogo title={title || 'Course'} logo={logo} category={cat} size={76} /></View>
         </LinearGradient>
       </Panel>
-      <Panel title="Colour & thumbnail">
-        <Swatches colorsList={COURSE_COLOURS} value={colour} onChange={setColour} />
-        <T v="small">The colour is used on the course banner in the course list.</T>
+      <Panel title="Course thumbnail" right={<T v="small">the picture on the course card</T>}>
+        <Pressable accessibilityRole="button" accessibilityLabel={thumb ? 'Change thumbnail' : 'Upload thumbnail'} onPress={pickThumb}
+          style={{ width: '100%', maxWidth: 420, aspectRatio: 16 / 9, borderRadius: 20, overflow: 'hidden', borderWidth: 1.5, borderStyle: thumb ? 'solid' : 'dashed', borderColor: thumb ? colors.line : colors.teal, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F5FAFA' }}>
+          {thumb ? <Image source={{ uri: thumb }} style={{ width: '100%', height: '100%' }} resizeMode="cover" accessibilityLabel="Course thumbnail" />
+            : <View style={{ alignItems: 'center', gap: 6 }}><Ionicons name="image-outline" size={30} color={colors.teal} /><T style={{ color: colors.teal, fontFamily: fonts.semibold }}>Upload thumbnail</T></View>}
+        </Pressable>
+        <Row gap={14}>
+          {thumb ? <Pressable accessibilityRole="button" onPress={pickThumb}><T v="small" style={{ color: colors.teal, fontFamily: fonts.semibold }}>Change</T></Pressable> : null}
+          {thumb ? <Pressable accessibilityRole="button" onPress={() => { setThumb(null); setThumbFile(null); setThumbRemoved(true); }}><T v="small" style={{ color: colors.red }}>Remove</T></Pressable> : null}
+        </Row>
+        <T v="small">A wide picture, 1280 × 720 works best. PNG, JPG or WEBP, max 4 MB.</T>
       </Panel>
       <Panel title="Pricing" right={<T v="small">shown on the course card</T>}>
         <ChoiceChips value={pricing} onChange={setPricing} options={[{ key: 'free', label: 'Free' }, { key: 'once', label: 'One-time' }, { key: 'monthly', label: 'Monthly' }]} />
         {pricing !== 'free' ? <Row gap={10}><Input label="Course price (₹)" value={price} onChangeText={setPrice} keyboardType="number-pad" /><Input label="Offer price (optional)" value={offer} onChangeText={setOffer} keyboardType="number-pad" /></Row> : null}
-        <Select label="Free trial" value={trial} options={['None', '3 days', '7 days', '14 days']} onChange={setTrial} />
-        {mode === 'super' ? <T v="small">Free lessons: switch on “Free preview” inside a lesson.</T> : null}
+        {pricing !== 'free' ? (format === 'live' ? (
+          <>
+            <Select label="Free trial (live classes)" value={trial} options={['None', '1 days', '3 days', '7 days', '14 days', '30 days']} onChange={setTrial} />
+            <T v="small">New students can join the live classes free for these days, then they pay to continue.</T>
+          </>
+        ) : (
+          <>
+            <Input label="Free lessons (trial)" value={trialLessons} onChangeText={(v) => setTrialLessons(v.replace(/\D/g, '').slice(0, 2))} keyboardType="number-pad" placeholder="e.g. 2" />
+            <T v="small">The first {Number(trialLessons) || 0} lesson{Number(trialLessons) === 1 ? '' : 's'} open free. The rest unlock after payment.{mode === 'super' ? ' You can also mark single lessons as “Free preview”.' : ''}</T>
+          </>
+        )) : null}
         <Row style={{ justifyContent: 'space-between' }}><T style={{ flex: 1, fontSize: 14 }}>Free for students of subscribed institutions</T>
           <Pressable accessibilityRole="switch" accessibilityState={{ checked: freeForSubs }} onPress={() => setFreeForSubs(!freeForSubs)} style={{ width: 50, height: 30, borderRadius: 15, backgroundColor: freeForSubs ? colors.green : '#D2E1E5', padding: 3, alignItems: freeForSubs ? 'flex-end' : 'flex-start' }}><View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: '#FFF' }} /></Pressable>
         </Row>
