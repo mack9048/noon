@@ -6,7 +6,8 @@ import { router } from 'expo-router';
 import { GradientCard, IconButton, IconTile, Pill, Row, Screen, T } from '@/components/ui';
 import { Logo } from '@/components/Logo';
 import { TileRows } from '@/components/kit2';
-import { GameArt } from '@/components/GameArt';
+import { GameThumb } from './htmlGames';
+import type { HtmlGame } from '@/lib/games';
 import { demoNote } from '@/components/kit';
 import { useApi } from '@/lib/useApi';
 import { useBase } from '@/lib/useBase';
@@ -15,13 +16,7 @@ import { useAuth } from '@/lib/auth';
 import type { Course } from '@/lib/types';
 import { colors, fonts, gradients } from '@/theme/tokens';
 
-// Play Area slider (design: Main · Campus)
-const games = [
-  { key: 'builder', name: 'Harf Lab', tag: 'LETTER LAB', desc: 'Build letters with nuqta and harakath', icon: 'shapes', g: ['#8A6CFF', '#5B43E0'], xp: 40 },
-  { key: 'car', name: 'Car with Harakath', tag: 'NEW GAME', desc: 'Drive to the sign with the right harakah!', icon: 'car-sport', g: ['#FF9A3D', '#FF5E7E'], xp: 50 },
-  { key: 'river', name: 'River of Letters', tag: 'ADVENTURE', desc: 'Help Froggy hop on the right letter', icon: 'boat', g: ['#3CC6F0', '#1F6FE0'], xp: 60 },
-  { key: 'road', name: 'Town Road', tag: 'BOARD GAME', desc: 'Roll the dice and read your way home', icon: 'dice', g: ['#4ED68A', '#14945A'], xp: 30 },
-] as const;
+const SLIDE_G: [string, string][] = [['#8A6CFF', '#5B43E0'], ['#FF9A3D', '#FF5E7E'], ['#3CC6F0', '#1F6FE0'], ['#4ED68A', '#14945A']];
 
 const CAMPUS_LIFE = [
   { name: 'Arts Fest', meta: 'Entries open', icon: 'color-palette-outline', tint: colors.pink },
@@ -130,8 +125,10 @@ function GameCarousel({ base }: { base: string }) {
   const [i, setI] = useState(0);
   const ref = useRef<ScrollView>(null);
   const slideW = device === 'phone' ? width - gutter * 2 : Math.min(520, (Math.min(width, 1200) - 300) / 1.6);
-  const n = games.length;
+  const games = useApi<HtmlGame[]>('/games').data ?? [];
+  const n = Math.max(1, games.length);
   const go = (k: number) => { const j = (k + n) % n; setI(j); ref.current?.scrollTo({ x: j * (slideW + 12), animated: true }); };
+  if (!games.length) return null;
   return (
     <View style={{ marginTop: 18 }}>
       <Row style={{ justifyContent: 'space-between', marginBottom: 10 }}>
@@ -143,29 +140,30 @@ function GameCarousel({ base }: { base: string }) {
       </Row>
       <ScrollView ref={ref} horizontal pagingEnabled={device === 'phone'} snapToInterval={slideW + 12} decelerationRate="fast" showsHorizontalScrollIndicator={false}
         onMomentumScrollEnd={(e) => setI(Math.round(e.nativeEvent.contentOffset.x / (slideW + 12)))}>
-        {games.map((g) => (
-          <Pressable key={g.name} accessibilityRole="button" accessibilityLabel={`Play ${g.name}`} onPress={() => router.push(`${base}/games/${g.key}` as any)} style={{ marginRight: 12 }}>
-            <LinearGradient colors={g.g as unknown as [string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: slideW, height: 180, borderRadius: 30, padding: 16, overflow: 'hidden' }}>
-              <View style={{ position: 'absolute', right: -30, top: -30, width: 200, height: 200, borderRadius: 100, backgroundColor: 'rgba(255,255,255,0.16)' }} />
-              <View style={{ position: 'absolute', right: 6, bottom: 8 }}><GameArt kind={g.key} size={150} /></View>
-              <Pill text={g.tag} tint="rgba(255,255,255,0.25)" ink="#FFF" />
-              <T style={{ fontFamily: fonts.fun, fontSize: 26, color: '#FFF', marginTop: 8, maxWidth: '60%' }}>{g.name}</T>
-              <T style={{ color: '#FFF', fontSize: 12, opacity: 0.92, maxWidth: '55%' }}>{g.desc}</T>
-              <Row style={{ marginTop: 'auto' }}>
-                <View style={{ backgroundColor: '#FFF', borderRadius: 21, height: 42, paddingLeft: 6, paddingRight: 16, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: g.g[1], alignItems: 'center', justifyContent: 'center' }}><Ionicons name="play" size={13} color="#FFF" /></View>
-                  <T style={{ fontFamily: fonts.fun, fontSize: 16, color: g.g[1] }}>Play</T>
-                </View>
-                <View style={{ alignSelf: 'center' }}><Pill text={`★ +${g.xp} XP`} tint="rgba(0,0,0,0.16)" ink="#FFF" /></View>
-              </Row>
-            </LinearGradient>
-          </Pressable>
-        ))}
+        {games.map((g, k) => {
+          const c = SLIDE_G[k % SLIDE_G.length];
+          return (
+            <Pressable key={g.id} accessibilityRole="button" accessibilityLabel={`Play ${g.title}`} onPress={() => router.push(`${base}/games/play/${g.id}` as any)} style={{ marginRight: 12 }}>
+              <LinearGradient colors={c} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: slideW, height: 180, borderRadius: 30, padding: 16, overflow: 'hidden' }}>
+                <View style={{ position: 'absolute', right: 14, top: 14 }}><GameThumb g={g} size={150} radius={22} /></View>
+                <Pill text={g.mode === 'group' ? 'GROUP GAME' : 'NOON GAME'} tint="rgba(255,255,255,0.25)" ink="#FFF" />
+                <T style={{ fontFamily: fonts.fun, fontSize: 24, color: '#FFF', marginTop: 8, maxWidth: '50%' }} numberOfLines={3}>{g.title}</T>
+                {g.age_group ? <T style={{ color: '#FFF', fontSize: 12, opacity: 0.92 }}>Age {g.age_group}</T> : null}
+                <Row style={{ marginTop: 'auto' }}>
+                  <View style={{ backgroundColor: '#FFF', borderRadius: 21, height: 42, paddingLeft: 6, paddingRight: 16, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: c[1], alignItems: 'center', justifyContent: 'center' }}><Ionicons name="play" size={13} color="#FFF" /></View>
+                    <T style={{ fontFamily: fonts.fun, fontSize: 16, color: c[1] }}>Play</T>
+                  </View>
+                </Row>
+              </LinearGradient>
+            </Pressable>
+          );
+        })}
       </ScrollView>
       <Row gap={6} style={{ justifyContent: 'center', marginTop: 8 }}>
         {games.map((g, k) => (
-          <Pressable key={g.name} accessibilityRole="tab" accessibilityLabel={g.name} accessibilityState={{ selected: k === i }} onPress={() => go(k)} hitSlop={8}
-            style={{ width: k === i ? 22 : 8, height: 8, borderRadius: 4, backgroundColor: k === i ? games[i].g[1] : '#C9D6DB' }} />
+          <Pressable key={g.id} accessibilityRole="tab" accessibilityLabel={g.title} accessibilityState={{ selected: k === i }} onPress={() => go(k)} hitSlop={8}
+            style={{ width: k === i ? 22 : 8, height: 8, borderRadius: 4, backgroundColor: k === i ? SLIDE_G[i % SLIDE_G.length][1] : '#C9D6DB' }} />
         ))}
       </Row>
     </View>

@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Logo } from '@/components/Logo';
 import { TileRows } from '@/components/kit2';
-import { GameArt } from '@/components/GameArt';
+import { UploadedGames } from './htmlGames';
 import { Button, Card, Grid, Header, IconButton, Row, Screen, T } from '@/components/ui';
 import { Chips, demoNote, Glyph, ListRow, pastel, Section, Tag } from '@/components/kit';
 import { Field } from './auth';
@@ -18,7 +18,6 @@ import { colors, fonts, gradients } from '@/theme/tokens';
 const FREE_LESSONS = 2;
 
 /* ---------- Home ---------- */
-const PLAY = [['Car with Harakath', 'car', ['#FF9A3D', '#FF5E7E'], 'car-sport-outline'], ['Harakath Builder', 'builder', ['#8A6CFF', '#5B43E0'], 'extension-puzzle-outline'], ['River of Letters', 'river', ['#3CC6F0', '#1F6FE0'], 'map-outline'], ['Town Road', 'road', ['#4ED68A', '#14945A'], 'dice-outline']] as const;
 const FEATURES: [string, keyof typeof Ionicons.glyphMap, [string, string], string | null][] = [
   ['Quran & Hifz', 'book', ['#3DD9A8', '#0E7A50'], '/guest/quran'], ['Ask AI', 'sparkles', ['#7D9BFF', '#4255E0'], '/guest/ai'],
   ['Adkar', 'ellipse', ['#FFD25A', '#F08A24'], '/guest/tools/adkar'], ['Charts', 'stats-chart', ['#FFB86B', '#E8681E'], '/guest/tools/chart'],
@@ -57,20 +56,7 @@ export function GuestHomeScreen() {
         </Pressable>
       </View>
 
-      <Section title="Play & learn · free" />
-      <TileRows cols={2} gap={10}>
-        {PLAY.map(([name, key, g]) => (
-          <Pressable key={key} accessibilityRole="button" accessibilityLabel={`Play ${name}`} onPress={() => router.push(`/guest/games/${key}` as any)}>
-            <LinearGradient colors={g as unknown as [string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ height: 104, borderRadius: 22, padding: 14, overflow: 'hidden' }}>
-              <T style={{ color: '#FFF', fontFamily: fonts.fun, fontSize: 15, lineHeight: 17, maxWidth: '70%' }}>{name}</T>
-              <View style={{ marginTop: 'auto', alignSelf: 'flex-start', backgroundColor: 'rgba(255,255,255,0.25)', borderRadius: 11, paddingHorizontal: 10, height: 22, justifyContent: 'center' }}>
-                <T style={{ color: '#FFF', fontFamily: fonts.semibold, fontSize: 10 }}>PLAY</T>
-              </View>
-              <View style={{ position: 'absolute', right: 0, bottom: 0 }}><GameArt kind={key} size={84} /></View>
-            </LinearGradient>
-          </Pressable>
-        ))}
-      </TileRows>
+      <UploadedGames />
 
       <Section title="All features" />
       <TileRows cols={4} gap={8}>

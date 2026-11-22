@@ -53,7 +53,7 @@ function ClassTiles({ space, lesson }: { space: LearnSpace | null; lesson?: numb
       <AppTile label="Text book" icon="book" g={G.indigo} tint="#EEF1FF" onPress={pdf('textbook')} />
       <AppTile label="Work book" icon="pencil" g={G.orange} tint="#FFF6E2" tag={{ text: 'DUE', bg: '#FBD9DC', ink: colors.red }} onPress={pdf('workbook')} />
       <AppTile label="Class note" icon="document-text" g={G.pink} tint="#FDF0F7" onPress={pdf('note')} />
-      <AppTile label="Puzzle" icon="extension-puzzle" g={G.green} tint="#ECF9F2" onPress={() => router.push(`${base}/games/builder` as any)} />
+      <AppTile label="Puzzle" icon="extension-puzzle" g={G.green} tint="#ECF9F2" onPress={() => router.push(`${base}/games` as any)} />
       <AppTile label="Test" icon="checkmark-circle" g={G.purple} tint="#F5EEFE" tag={{ text: 'NEW', bg: colors.mint[0], ink: colors.mint[1] }} onPress={learn('exam')} />
       <AppTile label="Report" icon="bar-chart" g={G.blue} tint="#EDF4FF" onPress={() => router.push(`${base}/performance` as any)} />
     </TileRows>
@@ -339,7 +339,7 @@ export function ExploreScreen() {
       <T v="h1" style={{ marginTop: 8 }}>Explore</T>
       <T v="small">Play, listen and learn</T>
 
-      <BigCard g={['#FF9A3D', '#FF5E7E']} tag="9 GAMES · +50 XP" title="Games" cta="Play" icon="game-controller-outline" onPress={go('/games')} />
+      <BigCard g={['#FF9A3D', '#FF5E7E']} tag="NOON GAMES" title="Games" cta="Play" icon="game-controller-outline" onPress={go('/games')} />
       <BigCard g={['#5B43E0', '#9B7BE8']} tag="STORIES · SEERAH · DUAS" title="Audiobook" cta="Listen" icon="headset-outline" onPress={go('/audio')} />
       <BarCard g={['#0E7A50', '#22A86B']} icon="book-outline" title="Quran & Hifz" sub="Read, listen and memorise" onPress={go('/quran')} />
 

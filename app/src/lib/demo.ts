@@ -70,17 +70,6 @@ export const HELP_FAQ = [
   ['I forgot my password', 'Go to More › Settings › Change password, or ask the institution office to reset it.'],
 ] as const;
 
-export const GAMES = [
-  { key: 'car', name: 'Car with Harakath', tag: 'NEW GAME', desc: 'Drive to the sign with the right harakah!', art: 'بَ', g: ['#FF9A3D', '#FF5E7E'], xp: 50, ready: true },
-  { key: 'builder', name: 'Harakath Builder', tag: 'PUZZLE', desc: 'Stack letters, add nuqta and marks', art: 'بَا', g: ['#8A6CFF', '#5B43E0'], xp: 40, ready: true },
-  { key: 'river', name: 'River of Letters', tag: 'ADVENTURE', desc: 'Help Froggy hop on the right letter', art: 'تِ', g: ['#3CC6F0', '#1F6FE0'], xp: 60, ready: true },
-  { key: 'road', name: 'Town Road', tag: 'BOARD GAME', desc: 'Roll the dice and read your way home', art: 'ت ث', g: ['#4ED68A', '#14945A'], xp: 30, ready: true },
-  { key: 'surah', name: 'Surah Quiz', tag: 'QUIZ', desc: 'Which surah is this?', art: 'سُورَة', g: ['#B05CF0', '#7B2FD8'], xp: 30, ready: false },
-  { key: 'dua', name: 'Dua Builder', tag: 'PUZZLE', desc: 'Put the dua in order', art: 'دُعَاء', g: ['#7FD36A', '#2E9E57'], xp: 30, ready: false },
-  { key: 'numbers', name: 'Arabic Numbers', tag: 'COUNTING', desc: 'Count with Arabic numbers', art: '١٢٣', g: ['#FF8A5B', '#E0533A'], xp: 20, ready: false },
-  { key: 'sukoon', name: 'Sukoon Hunt', tag: 'FIND IT', desc: 'Find every letter with sukoon', art: 'نْ', g: ['#1FB5A8', '#0E7A70'], xp: 30, ready: false },
-  { key: 'word', name: 'Word Game', tag: 'WORDS', desc: 'Join letters into words', art: 'كِتَاب', g: ['#F06292', '#C2307E'], xp: 40, ready: false },
-] as const;
 
 // Home "My classes" slider (design: Main). Sample data until classes come from the API.
 // href is relative to the role base (/student …).
