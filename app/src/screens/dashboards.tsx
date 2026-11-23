@@ -273,7 +273,7 @@ export function TeacherDashboard() {
               <View style={{ width: 52, alignItems: 'center' }}><T style={{ fontFamily: fonts.semibold, color: c.state === 'live' ? '#DB2777' : colors.ink }}>{time(c.starts_at)}</T><T v="small">{c.duration_min}m</T></View>
               <View style={{ flex: 1 }}><T style={{ fontFamily: fonts.semibold }} numberOfLines={1}>{c.title}</T><T v="small">{c.batch?.name ?? 'All students'}</T></View>
               {c.state !== 'ended' ? (
-                <Pressable onPress={() => joinSession(c.id)} style={{ backgroundColor: '#DB2777', borderRadius: 16, height: 34, paddingHorizontal: 14, justifyContent: 'center' }}><T style={{ color: '#FFF', fontFamily: fonts.semibold }}>▶ Start</T></Pressable>
+                <Pressable onPress={() => joinSession(c.id)} style={{ backgroundColor: '#DB2777', borderRadius: 16, height: 34, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 5 }}><Ionicons name="play" size={13} color="#FFF" /><T style={{ color: '#FFF', fontFamily: fonts.semibold }}>Start</T></Pressable>
               ) : <Chip text={c.state === 'ended' ? 'Done' : 'Later'} tone={c.state === 'ended' ? 'green' : 'violet'} />}
             </View>
           )) : <T v="small">No live classes today. Plan one from Live classes.</T>}

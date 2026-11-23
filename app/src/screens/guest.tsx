@@ -50,7 +50,7 @@ export function GuestHomeScreen() {
             <T style={{ color: '#FFE6F6', fontFamily: fonts.semibold, fontSize: 12 }}>FREE DEMO LESSONS</T>
             <T style={{ color: '#FFF', fontFamily: fonts.fun, fontSize: 24 }}>Our Courses</T>
             <T style={{ color: '#EDE7FF' }}>Madrasa Support (Class 1 to +2) · Arabic, Thajweed, Fiqh, Seerah, Hifz</T>
-            <View style={{ marginTop: 12, alignSelf: 'flex-start', backgroundColor: '#FFF', borderRadius: 18, height: 36, paddingHorizontal: 14, justifyContent: 'center' }}><T style={{ color: colors.lav[1], fontFamily: fonts.semibold }}>▶ Try free lessons</T></View>
+            <View style={{ marginTop: 12, alignSelf: 'flex-start', backgroundColor: '#FFF', borderRadius: 18, height: 36, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 6 }}><Ionicons name="play" size={14} color={colors.lav[1]} /><T style={{ color: colors.lav[1], fontFamily: fonts.semibold }}>Try free lessons</T></View>
           </LinearGradient>
         </Pressable>
       </View>

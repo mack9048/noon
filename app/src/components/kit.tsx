@@ -82,12 +82,13 @@ export function ListRow({ left, title, sub, right, onPress, style }: {
 }
 
 /** Small outlined or filled pill button used on the right of rows. */
-export function SmallButton({ title, onPress, filled = false, tint = colors.teal, disabled }: {
-  title: string; onPress?: () => void; filled?: boolean; tint?: string; disabled?: boolean;
+export function SmallButton({ title, onPress, filled = false, tint = colors.teal, disabled, icon }: {
+  title: string; onPress?: () => void; filled?: boolean; tint?: string; disabled?: boolean; icon?: keyof typeof Ionicons.glyphMap;
 }) {
   return (
     <Pressable accessibilityRole="button" onPress={onPress} disabled={disabled}
-      style={({ pressed }) => ({ height: 36, paddingHorizontal: 14, borderRadius: 18, borderWidth: 1.5, borderColor: tint, backgroundColor: filled ? tint : 'transparent', alignItems: 'center', justifyContent: 'center', opacity: disabled ? 0.5 : pressed ? 0.8 : 1 })}>
+      style={({ pressed }) => ({ height: 36, paddingHorizontal: 14, borderRadius: 18, borderWidth: 1.5, borderColor: tint, backgroundColor: filled ? tint : 'transparent', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 5, opacity: disabled ? 0.5 : pressed ? 0.8 : 1 })}>
+      {icon ? <Ionicons name={icon} size={14} color={filled ? '#FFF' : tint} /> : null}
       <Text style={{ color: filled ? '#FFF' : tint, fontFamily: fonts.medium, fontSize: 13 }}>{title}</Text>
     </Pressable>
   );

@@ -43,7 +43,7 @@ export function TeacherHomeScreen() {
       <Section title="Today’s classes" action="All classes" onAction={() => router.push('/teacher/classes' as any)} />
       <View style={{ gap: 8 }}>
         <ListRow left={<Glyph text="ع" tint={pastel.lav} />} title="Arabic · Class 5" sub="4:30 PM · 28 students"
-          right={<SmallButton title="▶ Start" filled tint={colors.ink} onPress={() => router.push('/teacher/live' as any)} />} />
+          right={<SmallButton title="Start" icon="play" filled tint={colors.ink} onPress={() => router.push('/teacher/live' as any)} />} />
         <ListRow left={<Glyph text="أ" tint={pastel.mint} />} title="Akhlaq · Class 3" sub="7:00 PM · 22 students" right={<Tag text="In 3h" tone="white" />} />
       </View>
       <Section title="Quick actions" />

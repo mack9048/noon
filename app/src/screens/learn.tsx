@@ -297,7 +297,7 @@ function CourseIntro({ c, onJoin }: { c: CourseDetail; onJoin: () => Promise<voi
               style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 }}>
               <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: i < 2 ? colors.pink[0] : '#EEF3F5', alignItems: 'center', justifyContent: 'center' }}><T style={{ fontFamily: fonts.semibold, color: i < 2 ? colors.pink[1] : colors.muted }}>{i + 1}</T></View>
               <View style={{ flex: 1 }}><T style={{ fontFamily: fonts.semibold }} numberOfLines={1}>{it.title}</T><T v="small">{it.meta ?? it.kind}</T></View>
-              {i < 2 ? <View style={{ backgroundColor: colors.pink[0], borderRadius: 12, paddingHorizontal: 10, height: 26, justifyContent: 'center' }}><T style={{ color: colors.pink[1], fontSize: 12, fontFamily: fonts.semibold }}>▶ Preview</T></View>
+              {i < 2 ? <View style={{ backgroundColor: colors.pink[0], borderRadius: 12, paddingHorizontal: 10, height: 26, flexDirection: 'row', alignItems: 'center', gap: 4 }}><Ionicons name="play" size={11} color={colors.pink[1]} /><T style={{ color: colors.pink[1], fontSize: 12, fontFamily: fonts.semibold }}>Preview</T></View>
                 : <Ionicons name="lock-closed-outline" size={16} color={colors.muted} />}
             </Card>
           ))}
@@ -433,7 +433,7 @@ function LessonList({ c, locked }: { c: CourseDetail; locked?: boolean; onDone?:
                   <T style={{ fontFamily: fonts.semibold }} numberOfLines={2}>{l.title}</T>
                   <T v="small">{l.items.length} items{l.duration ? ` · ${l.duration}` : ''}{!locked && started && !done ? ` · ${l.items.filter((i) => i.done).length}/${l.items.length} done` : ''}</T>
                 </View>
-                {preview ? <View style={{ backgroundColor: colors.pink[0], borderRadius: 12, paddingHorizontal: 10, height: 26, justifyContent: 'center' }}><T style={{ color: colors.pink[1], fontSize: 12, fontFamily: fonts.semibold }}>▶ Free</T></View>
+                {preview ? <View style={{ backgroundColor: colors.pink[0], borderRadius: 12, paddingHorizontal: 10, height: 26, flexDirection: 'row', alignItems: 'center', gap: 4 }}><Ionicons name="play" size={11} color={colors.pink[1]} /><T style={{ color: colors.pink[1], fontSize: 12, fontFamily: fonts.semibold }}>Free</T></View>
                   : shut ? <Ionicons name="lock-closed-outline" size={16} color={colors.muted} /> : <Ionicons name="play-circle" size={26} color={colors.violet} />}
               </Card>
             );

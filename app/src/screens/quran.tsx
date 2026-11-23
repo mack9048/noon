@@ -341,7 +341,7 @@ export function QariScreen() {
           <ListRow key={r.id} onPress={() => { setSel(r.id); setPrefs({ reciter: r.id }); }} left={<Avatar name={r.name} size={44} tint={sel === r.id ? pastel.mint : pastel.pink} />}
             title={r.name} sub={r.style}
             right={<Row gap={8}>
-              <SmallButton title={sample === r.id ? '■ Stop' : '▶ Listen'} onPress={() => listen(r)} />
+              <SmallButton title={sample === r.id ? 'Stop' : 'Listen'} icon={sample === r.id ? 'stop' : 'play'} onPress={() => listen(r)} />
               {sel === r.id ? <Tag text="Selected" tone="mint" /> : null}
             </Row>} />
         ))}

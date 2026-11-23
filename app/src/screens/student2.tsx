@@ -214,7 +214,7 @@ export function ClassroomScreen() {
           <T style={{ color: '#EDE7FF', fontFamily: fonts.semibold, fontSize: 12, letterSpacing: 0.5 }}>{liveCourse ? (liveNext?.state === 'live' ? '● LIVE NOW' : 'NEXT LIVE CLASS') : next ? (next.finished ? 'ALL LESSONS DONE' : next.done ? 'UP NEXT' : 'START HERE') : 'CURRENT LESSON'}</T>
           <T style={{ color: '#EDE7FF', marginTop: 6 }} numberOfLines={1}>{lessonLine}</T>
           <T style={{ color: '#FFF', fontFamily: fonts.fun, fontSize: 30, lineHeight: 38 }} numberOfLines={2}>{heroTitle}</T>
-          {!liveCourse && next?.item ? <T style={{ color: '#EDE7FF', marginTop: 2 }} numberOfLines={1}>▶ {kindLabel(next.item.kind)} · {next.item.title}</T> : null}
+          {!liveCourse && next?.item ? <T style={{ color: '#EDE7FF', marginTop: 2 }} numberOfLines={1}><Ionicons name="play" size={12} color="#EDE7FF" /> {kindLabel(next.item.kind)} · {next.item.title}</T> : null}
           {liveCourse ? <T style={{ color: '#EDE7FF', marginTop: 2 }} numberOfLines={1}>{course?.live_summary ?? ''}{next?.attended ? ` · ${next.attended} attended` : ''}</T> : next && next.total ? (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8, maxWidth: 260 }}>
               <View style={{ flex: 1, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.3)', overflow: 'hidden' }}>

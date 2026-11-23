@@ -373,7 +373,7 @@ function LeadsTab({ leads, campaigns, reload }: { leads?: Lead[]; campaigns: Cam
           return (
             <ListRow key={l.id} onPress={() => setOpen(l)} left={<Avatar name={l.student} size={44} tint={TINTS[i % 4]} />}
               title={`${l.student}${l.cls ? ` · Class ${l.cls}` : ''}`}
-              sub={[l.parent, `+${l.phone}`, sourceLabel(l.source), l.follow_up_on ? `${l.overdue ? '⚠ ' : ''}follow up ${l.follow_up_on}` : null].filter(Boolean).join(' · ')}
+              sub={[l.parent, `+${l.phone}`, sourceLabel(l.source), l.follow_up_on ? `${l.overdue ? 'OVERDUE · ' : ''}follow up ${l.follow_up_on}` : null].filter(Boolean).join(' · ')}
               right={<Tag text={s.label} tone={s.tone} />} />
           );
         })}
