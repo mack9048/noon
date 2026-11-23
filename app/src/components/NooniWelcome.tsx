@@ -81,7 +81,7 @@ export function NooniWelcome({ size = 220, compact = false }: { size?: number; c
       <Star left="14%" top="62%" size={size * 0.1} delay={700} />
 
       {/* speech bubble: up by his raised hand, which waves in front of it */}
-      <Animated.View style={{ position: 'absolute', top: nooniTop + h * 0.08 - (compact ? 14 : 44), left: W / 2 + size * 0.34, width: compact ? 124 : 190, alignItems: 'center', backgroundColor: '#FFF', borderRadius: 20, paddingHorizontal: compact ? 10 : 14, paddingVertical: 8,
+      <Animated.View style={{ position: 'absolute', top: nooniTop + h * 0.08 - (compact ? 14 : 44) - size * 0.28, left: W / 2 + size * 0.14, width: compact ? 124 : 190, alignItems: 'center', backgroundColor: '#FFF', borderRadius: 20, paddingHorizontal: compact ? 10 : 14, paddingVertical: 8,
         shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 10, shadowOffset: { width: 0, height: 4 },
         opacity: pop, transform: [{ scale: pop.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] }) }] }}>
         <T style={{ fontFamily: fonts.fun, color: NOONI.deep, fontSize: compact ? 12 : 16, textAlign: 'center' }}>{GREETINGS[g]}</T>
