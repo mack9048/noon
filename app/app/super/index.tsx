@@ -1,3 +1,3 @@
-import { SuperOverviewScreen } from '@/screens/superadmin';
+import { SuperDashboard } from '@/screens/dashboards';
 
-export default SuperOverviewScreen;
+export default SuperDashboard;

@@ -1,3 +1,3 @@
-import { TeacherHomeScreen } from '@/screens/teacher';
+import { TeacherDashboard } from '@/screens/dashboards';
 
-export default TeacherHomeScreen;
+export default TeacherDashboard;

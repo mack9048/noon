@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\NooniController;
 use App\Http\Controllers\Api\ShopAdminController;
 use App\Http\Controllers\Api\ShopController;
 use App\Http\Controllers\Api\CourseController;
+use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\SiteController;
 use App\Http\Controllers\Api\FeeController;
 use App\Http\Controllers\Api\GameController;
@@ -95,6 +96,9 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::post('/courses/{course}/enroll', [CourseController::class, 'enroll']);
     Route::post('/courses/{course}/live/join', [CourseController::class, 'liveJoin']);
     Route::post('/courses/{course}/live/moderate', [CourseController::class, 'liveModerate']);
+    // Dashboard to-do list and note (every signed-in person)
+    Route::get('/me/board', [DashboardController::class, 'board']);
+    Route::put('/me/board', [DashboardController::class, 'saveBoard']);
     Route::post('/course-items/{item}/complete', [CourseController::class, 'complete']);
     Route::get('/course-items/{item}/open', [CourseBuilderController::class, 'open']);
     Route::get('/course-categories', [CourseBuilderController::class, 'categories']);
@@ -147,6 +151,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::post('/teacher/courses/{course}/items', [CourseController::class, 'teacherAddItem']);
         Route::post('/staff/assessments', [LearnController::class, 'store']);
         Route::get('/staff/batches', [LiveSessionController::class, 'batches']);
+        Route::get('/staff/dashboard', [DashboardController::class, 'teacher']);
         Route::get('/staff/attendance', [AttendanceController::class, 'sheet']);
         Route::post('/staff/attendance', [AttendanceController::class, 'save']);
         Route::post('/staff/live-sessions', [LiveSessionController::class, 'store']);
@@ -180,6 +185,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/campaigns/{id}', [CampaignController::class, 'show'])->whereNumber('id');
         Route::put('/campaigns/{id}', [CampaignController::class, 'update'])->whereNumber('id');
         Route::delete('/campaigns/{id}', [CampaignController::class, 'destroy'])->whereNumber('id');
+        Route::get('/dashboard', [DashboardController::class, 'admin']);
         Route::get('/institution', [InstitutionController::class, 'show']);
         Route::put('/institution', [InstitutionController::class, 'update']);
         Route::post('/institution/logo', [InstitutionController::class, 'logo']);
@@ -246,6 +252,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::delete('/course-categories/{category}', [CourseBuilderController::class, 'destroyCategory']);
         Route::post('/courses/{course}/logo', [CourseRequestController::class, 'logo']);
         Route::post('/courses/{course}/thumbnail', [CourseRequestController::class, 'thumbnail']);
+        Route::get('/dashboard', [DashboardController::class, 'super']);
         Route::get('/approvals', [CourseRequestController::class, 'index']);
         Route::patch('/approvals/{course}', [CourseRequestController::class, 'decide']);
 

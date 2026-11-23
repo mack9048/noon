@@ -31,6 +31,7 @@ class User extends Authenticatable
             'phone_verified_at' => 'datetime',
             'password' => 'hashed',
             'blocked' => 'boolean',
+            'dashboard_board' => 'array',
         ];
     }
 

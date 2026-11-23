@@ -1,3 +1,3 @@
-import { AdminDashboardScreen } from '@/screens/admin';
+import { AdminDashboard } from '@/screens/dashboards';
 
-export default AdminDashboardScreen;
+export default AdminDashboard;

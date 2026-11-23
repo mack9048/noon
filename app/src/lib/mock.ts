@@ -258,6 +258,7 @@ let mockInstitution = { id: 1, name: 'Noon Demo Institution', code: 'DEMO01', pl
   logo_url: null as string | null, tagline: null, website: null, email: null, registration_no: null, affiliation_no: null, principal: null, established: null,
   country: 'IN', currency: 'INR', dial_code: '+91', timezone: 'Asia/Kolkata', countries: COUNTRIES };
 let mockEnrol: Record<string, any> = {};
+let mockBoard: { todos: { id: string; text: string; done: boolean }[]; note: string } = { todos: [{ id: 'a', text: 'Fee collection', done: false }], note: '' };
 let mockAttendance: { student_id: number; date: string; status: string; batch_id: number }[] = [];
 
 type Handler = (m: RegExpMatchArray, body: any) => unknown;
@@ -574,6 +575,26 @@ const routes: [string, RegExp, Handler][] = [
   ['GET', /^\/super\/site\/([a-z-]+)$/, (m) => { const p = mockSite[m[1]]; return { page: m[1], draft: p?.draft ?? {}, published: p?.published ?? {}, changed: p ? siteChanged(p) : false }; }],
   ['PUT', /^\/super\/site\/([a-z-]+)$/, (m, b) => { mockSite[m[1]] = { draft: { fields: b.fields ?? {}, lists: b.lists ?? {} }, published: mockSite[m[1]]?.published ?? null }; const p = mockSite[m[1]]; return { page: m[1], draft: p.draft, published: p.published ?? {}, changed: siteChanged(p) }; }],
   ['POST', /^\/super\/site\/([a-z-]+)\/discard$/, (m) => { const p = mockSite[m[1]]; if (p) { if (p.published) p.draft = p.published; else delete mockSite[m[1]]; } const q = mockSite[m[1]]; return { page: m[1], draft: q?.draft ?? {}, published: q?.published ?? {}, changed: false }; }],
+  // Dashboards (demo numbers)
+  ['GET', /^\/admin\/dashboard$/, () => {
+    const M = ['Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov'];
+    return { students: { total: studentRows.length, blocked: 0, with_dues: 3 }, teachers: teacherRows.length,
+      fees: { month: new Date().toISOString().slice(0, 7), expected: 64000, collected: 41600, pending: 22400, receipts: 52, overdue: 4, overdue_total: 3200,
+        series: M.map((label, i) => ({ label, expected: 60000 + i * 800, collected: 48000 + i * 2100 })) },
+      recent_payments: [['Ayisha Abdulla', 800, 'upi'], ['Fathima Rahman', 800, 'cash'], ['Rayan Ashraf', 1600, 'upi']].map(([name, amount, method], i) => ({ id: i + 1, name, title: 'Monthly fee', amount, method, when: new Date(Date.now() - i * 86400e3).toISOString() })),
+      admissions: { new: 2, series: M.map((label, i) => ({ label, value: [4, 6, 5, 9, 7, 3][i] })) }, attendance_today: { present: 41, absent: 4, marked: 45 }, leave_pending: 1, today_classes: [] };
+  }],
+  ['GET', /^\/super\/dashboard$/, () => {
+    const M = ['Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov'];
+    return { tenants: { total: 5, active: 5 }, students: 412, teachers: 23, guests: 96,
+      shop: { month: 18400, total: 92600, orders_month: 31, to_handle: 4, verifying: 2, series: M.map((label, i) => ({ label, value: [6000, 9200, 12500, 15800, 21400, 18400][i] })) },
+      courses: { published: 12, pending: 2 }, games_live: 3, new_tenants: M.map((label, i) => ({ label, value: [0, 1, 1, 2, 1, 0][i] })), new_learners: M.map((label, i) => ({ label, value: [20, 34, 41, 52, 68, 47][i] })),
+      recent_orders: [], recent_tenants: [{ id: 1, name: 'Noon Demo Institution', code: 'DEMO01', students: 412, logo_url: null, when: new Date().toISOString() }] };
+  }],
+  ['GET', /^\/staff\/dashboard$/, () => ({ batches: [{ id: 1, name: 'Class 5 · Evening', students: 28, class_label: '5', class_teacher: true, marked_today: false }], students: 28, today: [], upcoming: [],
+    attendance_week: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((label, i) => ({ label, value: [92, 88, 95, 90, 0, 86, 93][i] })), leave_pending: 1 })],
+  ['GET', /^\/me\/board$/, () => mockBoard],
+  ['PUT', /^\/me\/board$/, (_, b) => { mockBoard = { todos: b?.todos ?? [], note: b?.note ?? '' }; return mockBoard; }],
   ['GET', /^\/admin\/institution$/, () => ({ ...mockInstitution, counts: { students: studentRows.length, teachers: teacherRows.length, admins: 1 } })],
   ['PUT', /^\/admin\/institution$/, (_, b) => { mockInstitution = { ...mockInstitution, ...b }; return { ...mockInstitution, counts: { students: studentRows.length, teachers: teacherRows.length, admins: 1 } }; }],
   ['GET', /^\/staff\/attendance\?batch_id=(\d+)(&date=([\d-]+))?$/, (m) => {
