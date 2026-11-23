@@ -676,7 +676,7 @@ export function PublicAdmissionScreen() {
   return (
     <Screen bar={false}>
       <LinearGradient colors={['#5B43E0', '#7A4BE6', '#2F6FE4']} style={{ marginHorizontal: -20, marginTop: -12, padding: 22, paddingBottom: 48, borderBottomLeftRadius: 32, borderBottomRightRadius: 32, gap: 6 }}>
-        <View style={{ alignSelf: 'flex-start', backgroundColor: '#FFF', borderRadius: 12, padding: 6 }}><Logo height={24} /></View>
+        <View style={{ alignSelf: 'flex-start' }}><Logo stacked height={52} /></View>
         <T style={{ color: '#E4DDFF', marginTop: 14 }}>{data.institution.name}</T>
         <T style={{ fontFamily: fonts.fun, fontSize: 30, lineHeight: 36, color: '#FFF' }}>{c?.title ?? 'Admissions'}</T>
         {c ? <T style={{ color: '#E4DDFF', fontSize: 13 }}>{[c.year, c.classes.length ? `Classes ${c.classes.join(', ')}` : null, c.closes_on ? `Last date ${c.closes_on}` : null, c.seats_left != null ? `${c.seats_left} seats left` : null].filter(Boolean).join(' · ')}</T> : null}

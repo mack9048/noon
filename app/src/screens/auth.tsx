@@ -61,8 +61,8 @@ function AuthLayout({ title, subtitle, children, onBack }: { title: string; subt
       style={wide ? { flex: 1, borderRadius: 36, padding: 32, justifyContent: 'space-between' } : { paddingTop: 18, paddingHorizontal: 20, paddingBottom: 56, borderBottomLeftRadius: 36, borderBottomRightRadius: 36 }}>
       <Row style={{ justifyContent: 'space-between' }}>
         <Pressable accessibilityRole="link" accessibilityLabel="Noon Learn website" onPress={() => { if (Platform.OS === 'web') window.location.href = '/'; }}
-          style={{ backgroundColor: '#FFF', borderRadius: 16, paddingHorizontal: 10, paddingVertical: 6 }}>
-          <Logo compact={!wide} />
+          >
+          <Logo stacked height={wide ? 84 : 60} />
         </Pressable>
         {onBack ? (
           <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={onBack}

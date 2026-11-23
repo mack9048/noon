@@ -175,7 +175,7 @@ export function AdmissionFormScreen() {
   return (
     <Screen bar={false} overlay={<BottomActions><Pressable accessibilityRole="button" onPress={submit} style={{ flex: 1, height: 56, borderRadius: 28, backgroundColor: colors.yellow, alignItems: 'center', justifyContent: 'center', borderBottomWidth: 5, borderBottomColor: colors.yellowDeep }}><T style={{ fontFamily: fonts.semibold, fontSize: 16, color: '#2A1E00' }}>{busy ? 'Sending…' : 'Submit application'}</T></Pressable></BottomActions>}>
       <LinearGradient colors={['#0B5166', '#5B43E0']} style={{ marginHorizontal: -20, marginTop: -12, padding: 20, paddingBottom: 46, borderBottomLeftRadius: 32, borderBottomRightRadius: 32 }}>
-        <View style={{ alignSelf: 'flex-start', backgroundColor: '#FFF', borderRadius: 12, padding: 6 }}><Logo height={24} /></View>
+        <View style={{ alignSelf: 'flex-start' }}><Logo stacked height={52} /></View>
         <T style={{ color: '#D9F2F5', marginTop: 16 }}>{[portal?.institution.name, portal?.campaign?.title ?? portal?.campaign?.year].filter(Boolean).join(' · ') || 'Admission'}</T>
         <Text style={{ fontFamily: fonts.fun, fontSize: 30, color: '#FFF' }}>Admission form</Text>
         <T style={{ color: '#D9F2F5', fontSize: 12 }}>Takes about 3 minutes{portal?.campaign?.closes_on ? ` · last date ${portal.campaign.closes_on}` : ''}</T>

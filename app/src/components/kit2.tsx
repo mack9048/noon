@@ -78,7 +78,7 @@ export function HeroHeader({ g, initials, name, sub, pill, stats, back = true, r
       style={{ marginHorizontal: -20, marginTop: -12, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 56, borderBottomLeftRadius: 36, borderBottomRightRadius: 36, overflow: 'hidden' }}>
       <View style={{ position: 'absolute', right: -60, top: -60, width: 240, height: 240, borderRadius: 120, backgroundColor: 'rgba(255,255,255,0.10)' }} />
       <Row style={{ justifyContent: 'space-between', minHeight: 44 }}>
-        {logo ? <View style={{ backgroundColor: '#FFF', borderRadius: 14, paddingHorizontal: 10, paddingVertical: 6 }}><Logo height={24} /></View>
+        {logo ? <Logo stacked height={52} />
           : back ? <IconButton name="chevron-back" label="Back" size={44} tint="rgba(255,255,255,0.18)" color="#FFF" onPress={() => goBack(path)} /> : <View />}
         {right}
       </Row>
