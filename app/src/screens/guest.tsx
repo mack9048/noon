@@ -36,8 +36,7 @@ export function GuestHomeScreen() {
         <View style={{ flex: 1 }} />
         <Button title="Sign up" kind="ghost" onPress={() => router.push('/guest/unlock' as any)} style={{ height: 40 }} />
       </Row>
-      <T v="fun" style={{ marginTop: 8 }}>Assalamu alaikum!</T>
-      <T v="h2">Explore Noon Learn</T>
+      <T v="h2" style={{ marginTop: 8 }}>Explore Noon Learn</T>
 
       <Card tint={colors.butter[0]} style={{ marginTop: 12, flexDirection: 'row', gap: 12, alignItems: 'center' }}>
         <Ionicons name="gift-outline" size={30} color={colors.butter[1]} />
