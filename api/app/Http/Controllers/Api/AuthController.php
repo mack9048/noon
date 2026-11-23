@@ -274,6 +274,10 @@ class AuthController extends Controller
     /** The learner's Madrasa Support choice: board and syllabus (chosen once, can be changed), and class. */
     public function updateLearning(Request $request)
     {
+        // Older app builds send medium ml|en instead of the syllabus.
+        if ($request->has('medium') && ! $request->has('syllabus')) {
+            $request->merge(['syllabus' => ['ml' => 'general', 'en' => 'english'][$request->input('medium')] ?? null]);
+        }
         $data = $request->validate([
             'board_id' => ['nullable', 'exists:boards,id'],
             'syllabus' => ['nullable', 'in:'.implode(',', array_keys(\App\Models\Board::SYLLABI))],

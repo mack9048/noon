@@ -91,6 +91,8 @@ class User extends Authenticatable
             'currency' => $this->tenant?->currency ?? 'INR',
             'dial_code' => $this->tenant?->dial_code ?? '+91',
             'syllabus' => $this->syllabus,
+            // For older app builds: ml = General, en = English Medium.
+            'medium' => $this->syllabus ? ($this->syllabus === 'english' ? 'en' : 'ml') : null,
             'board_id' => $this->board_id,
             'class_id' => $this->class_id,
             'avatar_initial' => mb_substr($this->name, 0, 1),

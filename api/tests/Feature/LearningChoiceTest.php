@@ -27,4 +27,14 @@ class LearningChoiceTest extends TestCase
             ->assertJsonPath('syllabus', 'general')->assertJsonPath('class_id', null);
         $this->getJson("/api/boards/{$board->id}/classes?syllabus=english")->assertOk()->assertJsonCount(12);
     }
+
+    public function test_older_app_medium_still_works(): void
+    {
+        $this->seed(CatalogSeeder::class);
+        $board = Board::where('code', 'EK')->first();
+        $u = User::factory()->create(['role' => 'guest']);
+        $this->actingAs($u)->putJson('/api/me/learning', ['board_id' => $board->id, 'medium' => 'en'])
+            ->assertOk()->assertJsonPath('syllabus', 'english')->assertJsonPath('medium', 'en');
+        $this->getJson("/api/boards/{$board->id}/classes?medium=en")->assertOk()->assertJsonPath('0.syllabus', 'english');
+    }
 }

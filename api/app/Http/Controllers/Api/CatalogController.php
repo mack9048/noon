@@ -23,7 +23,8 @@ class CatalogController extends Controller
     /** Classes of a board for one syllabus (?syllabus=general|english; general by default). */
     public function classes(Request $request, Board $board)
     {
-        $syllabus = in_array($request->query('syllabus'), array_keys(Board::SYLLABI), true) ? $request->query('syllabus') : 'general';
+        $asked = $request->query('syllabus') ?? ['ml' => 'general', 'en' => 'english'][$request->query('medium')] ?? null; // medium: older app builds
+        $syllabus = in_array($asked, array_keys(Board::SYLLABI), true) ? $asked : 'general';
 
         return $board->classes()->where('syllabus', $syllabus)->withCount('subjects')->get()
             ->map(fn (SchoolClass $c) => [
