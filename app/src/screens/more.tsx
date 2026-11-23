@@ -142,6 +142,22 @@ const DESC: Record<string, string> = {
   Help: 'Questions and support', 'Review work': 'Marks and feedback', 'Assess Salah': 'Practical checks',
 };
 
+/** Which section each tile belongs to, in the order shown. */
+const GROUPS: { key: string; title: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { key: 'learn', title: 'Teaching & learning', icon: 'school-outline' },
+  { key: 'people', title: 'Students & people', icon: 'people-outline' },
+  { key: 'money', title: 'Shop & website', icon: 'storefront-outline' },
+  { key: 'account', title: 'Account', icon: 'person-circle-outline' },
+];
+const GROUP_OF: Record<string, string> = {
+  'Course management': 'learn', Courses: 'learn', 'Madrasa Support': 'learn', Approvals: 'learn', Games: 'learn', 'Study tools': 'learn',
+  'Live classes': 'learn', Meetings: 'learn', 'Review work': 'learn', 'Assess Salah': 'learn', 'Audio Book': 'learn',
+  'Users · Log in as': 'people', 'People & passwords': 'people', Admissions: 'people', Batches: 'people', 'Bulk add': 'people',
+  Attendance: 'people', Leave: 'people', Fees: 'people',
+  'Shop · orders': 'money', Shop: 'money', Website: 'money',
+  Profile: 'account', Settings: 'account', Help: 'account',
+};
+
 /**
  * The "More" menu: a profile banner, then tiles with an icon, a name and one line about them.
  * Used as the phone pop-up above the tab bar (compact), and as the More page on tablet/desktop.
@@ -159,12 +175,16 @@ export function MoreMenu({ links, onNavigate, profileHref, logout: withLogout, p
   const sub = [role, user?.tenant_name].filter(Boolean).join(' · ');
   const shown = links.filter(([label]) => label.toLowerCase().includes(q.trim().toLowerCase()));
   const cols = page ? (device === 'desktop' ? 4 : device === 'tablet' ? 3 : 2) : 3;
-  const rows: (MoreLink | null)[][] = [];
-  for (let i = 0; i < shown.length; i += cols) {
-    const row: (MoreLink | null)[] = shown.slice(i, i + cols);
-    while (row.length < cols) row.push(null);
-    rows.push(row);
-  }
+  const toRows = (list: MoreLink[]) => {
+    const out: (MoreLink | null)[][] = [];
+    for (let i = 0; i < list.length; i += cols) {
+      const row: (MoreLink | null)[] = list.slice(i, i + cols);
+      while (row.length < cols) row.push(null);
+      out.push(row);
+    }
+    return out;
+  };
+  const sections = GROUPS.map((g) => ({ ...g, list: shown.filter(([label]) => (GROUP_OF[label] ?? 'learn') === g.key) })).filter((g) => g.list.length);
   return (
     <View style={{ gap: page ? 16 : 12 }}>
       <LinearGradient colors={['#0B5166', '#14776E']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
@@ -205,7 +225,15 @@ export function MoreMenu({ links, onNavigate, profileHref, logout: withLogout, p
         </View>
       ) : null}
 
-      {rows.map((row, r) => (
+      {sections.map((sec) => (
+        <View key={sec.key} style={{ gap: page ? 10 : 8 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: page ? 4 : 2 }}>
+            <Ionicons name={sec.icon} size={page ? 17 : 15} color={colors.teal} />
+            <T style={{ fontFamily: fonts.semibold, fontSize: page ? 13 : 12, letterSpacing: 0.8, color: colors.teal }}>{sec.title.toUpperCase()}</T>
+            <View style={{ flex: 1, height: 1, backgroundColor: '#D5E3E8' }} />
+            {page ? <T v="small">{sec.list.length}</T> : null}
+          </View>
+      {toRows(sec.list).map((row, r) => (
         <View key={r} style={{ flexDirection: 'row', gap: page ? 12 : 8 }}>
           {row.map((t, c) => t ? (
             <Pressable key={t[1]} accessibilityRole="button" accessibilityLabel={t[0]} onPress={() => go(t[1])} style={{ flex: 1 }}>
@@ -230,6 +258,8 @@ export function MoreMenu({ links, onNavigate, profileHref, logout: withLogout, p
               )}
             </Pressable>
           ) : <View key={`e${c}`} style={{ flex: 1 }} />)}
+        </View>
+      ))}
         </View>
       ))}
       {!shown.length ? <T v="small" style={{ textAlign: 'center', padding: 12 }}>Nothing matches “{q}”.</T> : null}

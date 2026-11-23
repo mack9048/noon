@@ -102,12 +102,12 @@ export function BigStat({ label, value, sub, g, icon, onPress, center }: { label
   return (
     <Pressable accessibilityRole={onPress ? 'button' : undefined} accessibilityLabel={`${label}: ${value}`} disabled={!onPress} onPress={onPress} style={{ flex: 1, minWidth: 150 }}>
       <LinearGradient colors={g} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 20, padding: 16, minHeight: 124, justifyContent: 'space-between', overflow: 'hidden' }}>
-        <View style={{ position: 'absolute', right: -24, bottom: -30, width: 110, height: 110, borderRadius: 55, backgroundColor: 'rgba(255,255,255,0.12)' }} />
+        <View style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '45%', backgroundColor: 'rgba(255,255,255,0.06)', borderTopLeftRadius: 80, borderBottomLeftRadius: 80 }} />
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: center ? 'center' : 'space-between' }}>
           <T style={{ color: '#FFF', fontFamily: fonts.semibold, fontSize: center ? 11 : 13, letterSpacing: center ? 0.8 : 0 }}>{center ? label.toUpperCase() : label}</T>
           {icon && !center ? <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: 'rgba(255,255,255,0.9)', alignItems: 'center', justifyContent: 'center' }}><Ionicons name={icon} size={15} color={g[1]} /></View> : null}
         </View>
-        <T style={{ color: '#FFF', fontFamily: fonts.semibold, fontSize: center ? 26 : 38, textAlign: center ? 'center' : 'left' }} numberOfLines={1} adjustsFontSizeToFit>{value}</T>
+        <T style={{ color: '#FFF', fontFamily: fonts.semibold, fontSize: center ? 26 : 34, lineHeight: center ? 32 : 40, letterSpacing: -0.5, fontVariant: ['tabular-nums'], textAlign: center ? 'center' : 'left' }} numberOfLines={1} adjustsFontSizeToFit>{value}</T>
         {sub ? <T style={{ color: 'rgba(255,255,255,0.92)', fontSize: 12, textAlign: center ? 'center' : 'left' }}>{sub}</T> : null}
       </LinearGradient>
     </Pressable>
