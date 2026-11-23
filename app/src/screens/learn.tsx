@@ -442,30 +442,125 @@ function Progress({ value }: { value: number }) {
 
 /* ================= Madrasa Support: board → class → subject → lessons ================= */
 
+const SYLLABUS_OPTS: { key: SyllabusKey; label: string; note: string; mark: string }[] = [
+  { key: 'general', label: 'General Madrasa Syllabus', note: 'Lessons taught in Malayalam', mark: 'മ' },
+  { key: 'english', label: 'English Medium Madrasa Syllabus', note: 'Lessons taught in English', mark: 'A' },
+];
+
+/**
+ * Madrasa Support home. The first time, the learner picks their board and syllabus once;
+ * it is saved on their profile. After that this opens straight to their classes,
+ * with a switch for the syllabus and a button to change the board.
+ */
 export function BoardsScreen() {
-  const base = useBase();
+  const { user } = useAuth();
   const boards = useApi<Board[]>('/boards');
+  const [changing, setChanging] = useState(false);
+  if (boards.loading || !user) return <Screen><Loading /></Screen>;
+  const board = (boards.data ?? []).find((b) => b.id === user.board_id);
+  const syl: SyllabusKey | null = user.syllabus === 'english' || user.syllabus === 'general' ? user.syllabus : board ? 'general' : null;
+  if (board && syl && !changing) return <MyClasses board={board} syllabus={syl} onChangeBoard={() => setChanging(true)} />;
+  return <ChooseBoardSyllabus boards={boards.data ?? []} initialBoard={board?.id ?? null} initialSyllabus={syl} onDone={() => setChanging(false)} />;
+}
+
+function BoardBadge({ b, i, size = 64 }: { b: Board; i: number; size?: number }) {
+  return (
+    <View style={{ width: size, height: size, borderRadius: size / 3.2, backgroundColor: b.logo_url ? '#FFF' : pastels[(i + 2) % 5][0], alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderWidth: b.logo_url ? 1 : 0, borderColor: colors.line }}>
+      {b.logo_url ? <Image source={{ uri: b.logo_url }} style={{ width: size - 6, height: size - 6 }} resizeMode="contain" accessibilityLabel={`${b.name} logo`} />
+        : <T style={{ fontFamily: fonts.semibold, fontSize: size / 3.4, color: pastels[(i + 2) % 5][1] }}>{b.code}</T>}
+    </View>
+  );
+}
+
+function ChooseBoardSyllabus({ boards, initialBoard, initialSyllabus, onDone }: { boards: Board[]; initialBoard: number | null; initialSyllabus: SyllabusKey | null; onDone: () => void }) {
+  const { refresh } = useAuth();
+  const [boardId, setBoardId] = useState<number | null>(initialBoard);
+  const [syl, setSyl] = useState<SyllabusKey | null>(initialSyllabus);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const save = async () => {
+    if (!boardId || !syl) return setErr('Choose your board and syllabus.');
+    setBusy(true); setErr(null);
+    try { await api.put('/me/learning', { board_id: boardId, syllabus: syl }); await refresh(); onDone(); }
+    catch (e: any) { setErr(e?.friendly ?? e?.message ?? 'Could not save. Please try again.'); }
+    finally { setBusy(false); }
+  };
   return (
     <Screen>
-      <Header title="Madrasa Support" subtitle="Step 1 · choose your board" />
-      {boards.loading ? <Loading /> : (
+      <View style={{ maxWidth: 760, width: '100%', alignSelf: 'center', gap: 14 }}>
+        <Header title="Madrasa Support" subtitle="Choose once · you can change it later" />
+        <T v="fun" style={{ fontSize: 20 }}>1. Your board</T>
         <Grid cols={{ phone: 1, tablet: 2, desktop: 2 }}>
-          {(boards.data ?? []).map((b, i) => (
-            <Card key={b.id} onPress={() => router.push(`${base}/support/board/${b.id}` as any)} style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 18 }}>
-              <View style={{ width: 76, height: 76, borderRadius: 22, backgroundColor: b.logo_url ? '#FFF' : pastels[(i + 2) % 5][0], alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderWidth: b.logo_url ? 1 : 0, borderColor: colors.line }}>
-                {b.logo_url ? <Image source={{ uri: b.logo_url }} style={{ width: 70, height: 70 }} resizeMode="contain" accessibilityLabel={`${b.name} logo`} />
-                  : <T style={{ fontFamily: fonts.semibold, fontSize: 18, color: pastels[(i + 2) % 5][1] }}>{b.code}</T>}
-              </View>
-              <View style={{ flex: 1 }}>
-                <T v="h3">{b.name}</T>
-                <T v="small">{b.full_name || b.meta}</T>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color={colors.muted} />
-            </Card>
-          ))}
+          {boards.map((b, i) => {
+            const on = b.id === boardId;
+            return (
+              <Card key={b.id} onPress={() => setBoardId(b.id)} style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 16, borderWidth: 3, borderColor: on ? colors.teal : 'transparent' }}>
+                <BoardBadge b={b} i={i} />
+                <View style={{ flex: 1 }}><T v="h3">{b.name}</T><T v="small">{b.full_name || b.meta}</T></View>
+                <Ionicons name={on ? 'checkmark-circle' : 'ellipse-outline'} size={28} color={on ? colors.teal : colors.line} />
+              </Card>
+            );
+          })}
         </Grid>
-      )}
+        <T v="fun" style={{ fontSize: 20 }}>2. Your syllabus</T>
+        <Grid cols={{ phone: 1, tablet: 2, desktop: 2 }}>
+          {SYLLABUS_OPTS.map((o) => {
+            const on = o.key === syl;
+            return (
+              <Card key={o.key} onPress={() => setSyl(o.key)} tint={on ? colors.lav[0] : '#FFF'} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 16, borderWidth: 3, borderColor: on ? colors.violet : 'transparent' }}>
+                <T style={{ width: 40, textAlign: 'center', fontSize: 28, fontFamily: fonts.semibold, color: colors.violet }}>{o.mark}</T>
+                <View style={{ flex: 1 }}><T v="h3">{o.label}</T><T v="small">{o.note}</T></View>
+                <Ionicons name={on ? 'checkmark-circle' : 'ellipse-outline'} size={26} color={on ? colors.violet : colors.line} />
+              </Card>
+            );
+          })}
+        </Grid>
+        {err ? <T style={{ color: colors.red, textAlign: 'center' }}>{err}</T> : null}
+        <Button title="Continue" icon="arrow-forward" loading={busy} disabled={!boardId || !syl} onPress={save} />
+      </View>
     </Screen>
+  );
+}
+
+/** The learner's own board in their syllabus, with a one-tap syllabus switch. */
+function MyClasses({ board, syllabus, onChangeBoard }: { board: Board; syllabus: SyllabusKey; onChangeBoard: () => void }) {
+  const { refresh } = useAuth();
+  const [busy, setBusy] = useState(false);
+  const switchSyllabus = async (k: SyllabusKey) => {
+    if (k === syllabus || busy) return;
+    setBusy(true);
+    try { await api.put('/me/learning', { syllabus: k }); await refresh(); } catch { /* keep the current syllabus */ } finally { setBusy(false); }
+  };
+  return (
+    <Screen>
+      <Header title="Madrasa Support" subtitle={board.full_name ?? board.name} right={<Button title="Change board" kind="ghost" onPress={onChangeBoard} />} />
+      <Row gap={12} style={{ marginBottom: 12, alignItems: 'center' }}>
+        <BoardBadge b={board} i={0} size={52} />
+        <T v="h3" style={{ flex: 1 }}>{board.name}</T>
+      </Row>
+      <View style={{ marginBottom: 12 }}>
+        <Segmented value={syllabus} onChange={switchSyllabus} options={[{ key: 'general', label: 'General Madrasa Syllabus' }, { key: 'english', label: 'English Medium Madrasa Syllabus' }]} />
+      </View>
+      {busy ? <Loading /> : <ClassGrid boardId={board.id} syllabus={syllabus} />}
+    </Screen>
+  );
+}
+
+function ClassGrid({ boardId, syllabus }: { boardId: number | string; syllabus: SyllabusKey }) {
+  const base = useBase();
+  const classes = useApi<SchoolClass[]>(`/boards/${boardId}/classes?syllabus=${syllabus}`);
+  if (classes.loading) return <Loading />;
+  if (!classes.data?.length) return <Empty text="Classes for this syllabus are coming soon, in sha Allah." />;
+  return (
+    <Grid cols={{ phone: 3, tablet: 4, desktop: 6 }}>
+      {classes.data.map((c, i) => (
+        <Card key={c.id} tint={pastels[i % 5][0]} onPress={() => router.push(`${base}/support/class/${c.id}` as any)} style={{ alignItems: 'center', paddingVertical: 20 }}>
+          <T v="small" style={{ color: pastels[i % 5][1] }}>{c.label.startsWith('+') ? 'Plus' : 'Class'}</T>
+          <T style={{ fontFamily: fonts.semibold, fontSize: 38, color: pastels[i % 5][1] }}>{c.label}</T>
+          <T v="small" style={{ color: pastels[i % 5][1] }}>{c.subjects_count} subjects</T>
+        </Card>
+      ))}
+    </Grid>
   );
 }
 

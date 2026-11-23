@@ -135,7 +135,7 @@ function LockedCard({ text }: { text: string }) {
 }
 
 export function GuestClassesDemoScreen() {
-  const [board, setBoard] = useState<'AP' | 'EK' | 'GEN'>('AP');
+  const [board, setBoard] = useState<'AP' | 'EK'>('AP');
   const [cls, setCls] = useState('5');
   const [subject, setSubject] = useState<string>('Fiqh');
   const [playing, setPlaying] = useState<number | null>(null);
@@ -145,7 +145,7 @@ export function GuestClassesDemoScreen() {
     <Screen bar={false}>
       <GuestBand g={['#0B5166', '#1F8AA8']} kicker="Free demo · 2 lessons per subject">
         <T style={{ color: '#FFF', fontFamily: fonts.fun, fontSize: 28, marginTop: -4 }}>Madrasa classes</T>
-        <BandChips value={board} onChange={setBoard} options={[{ key: 'AP', label: 'AP board' }, { key: 'EK', label: 'EK board' }, { key: 'GEN', label: 'General' }]} />
+        <BandChips value={board} onChange={setBoard} options={[{ key: 'AP', label: 'AP board' }, { key: 'EK', label: 'EK board' }]} />
         <Row gap={6} style={{ flexWrap: 'wrap' }}>
           {['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '+1', '+2'].map((c) => (
             <Pressable key={c} accessibilityLabel={`Class ${c}`} accessibilityState={{ selected: cls === c }} onPress={() => setCls(c)}

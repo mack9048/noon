@@ -226,10 +226,11 @@ class AuthController extends Controller
             $user->fill([
                 'name' => $data['name'],
                 'age' => $data['age'] ?? null,
-                'board_id' => $data['board_id'] ?? null,
-                'class_id' => $data['class_id'] ?? null,
+                // A returning guest keeps the board / syllabus / class they picked before.
+                'board_id' => $data['board_id'] ?? $user->board_id,
+                'class_id' => $data['class_id'] ?? $user->class_id,
                 // The class belongs to one syllabus (General / English Medium).
-                'syllabus' => isset($data['class_id']) ? \App\Models\SchoolClass::find($data['class_id'])?->syllabus : null,
+                'syllabus' => isset($data['class_id']) ? \App\Models\SchoolClass::find($data['class_id'])?->syllabus : $user->syllabus,
             ])->save();
 
             $courses = Course::whereIn('id', $data['course_ids'] ?? [])->where('status', 'published')->get();
@@ -270,18 +271,32 @@ class AuthController extends Controller
         return $user->toApp() + ($by ? ['impersonated_by' => $by] : []);
     }
 
+    /** The learner's Madrasa Support choice: board and syllabus (chosen once, can be changed), and class. */
     public function updateLearning(Request $request)
     {
         $data = $request->validate([
             'board_id' => ['nullable', 'exists:boards,id'],
+            'syllabus' => ['nullable', 'in:'.implode(',', array_keys(\App\Models\Board::SYLLABI))],
             'class_id' => ['nullable', 'exists:school_classes,id'],
         ]);
-        if (array_key_exists('class_id', $data)) {
-            $data['syllabus'] = $data['class_id'] ? \App\Models\SchoolClass::find($data['class_id'])?->syllabus : null;
+        $user = $request->user();
+        $class = isset($data['class_id']) ? \App\Models\SchoolClass::find($data['class_id']) : null;
+        if ($class) {
+            // Choosing a class also sets its board and syllabus.
+            $data['board_id'] = $class->board_id;
+            $data['syllabus'] = $class->syllabus;
+        } else {
+            // Keep the current class only while it still matches the board and syllabus.
+            $board = array_key_exists('board_id', $data) ? $data['board_id'] : $user->board_id;
+            $syllabus = array_key_exists('syllabus', $data) ? $data['syllabus'] : $user->syllabus;
+            $cur = $user->class_id ? \App\Models\SchoolClass::find($user->class_id) : null;
+            if ($cur && ($cur->board_id !== (int) $board || $cur->syllabus !== ($syllabus ?? 'general'))) {
+                $data['class_id'] = null;
+            }
         }
-        $request->user()->update($data);
+        $user->update($data);
 
-        return $request->user()->fresh()->load('tenant')->toApp();
+        return $user->fresh()->load('tenant')->toApp();
     }
 
     public function logout(Request $request)

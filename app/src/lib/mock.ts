@@ -319,7 +319,7 @@ const routes: [string, RegExp, Handler][] = [
     me = { ...demoUser(u.role, u.name), tenant_id: 1, tenant_name: u.tenant_name, impersonated_by: superMe?.name };
     return { token: 'demo-impersonated', user: me };
   }],
-  ['PUT', /^\/me\/learning$/, (_, b) => { if (me) Object.assign(me, { board_id: b.board_id, class_id: b.class_id }); return me; }],
+  ['PUT', /^\/me\/learning$/, (_, b) => { if (me) Object.assign(me, Object.fromEntries(['board_id', 'class_id', 'syllabus'].filter((k) => b && k in b).map((k) => [k, b[k]]))); return me; }],
 
   ['GET', /^\/boards$/, () => boards],
   ['GET', /^\/boards\/(\d+)\/classes(\?.*)?$/, (m) => classes.filter((c) => c.board_id === +m[1])],
