@@ -63,7 +63,7 @@ const BLINK = require('../../assets/nooni/blink.png');
 
 /** Nooni's face. The default face is alive: he blinks every few seconds and sometimes breaks into a big smile. */
 export function NooniAvatar({ size = 44, mood = 'wave', still }: { size?: number; mood?: NooniMood; still?: boolean }) {
-  const live = mood === 'wave' && !still;
+  const live = mood === 'wave' && !still; // blinks, and now and then a happy little head tilt
   const [frame, setFrame] = useState<'open' | 'blink' | 'smile'>('open');
   useEffect(() => {
     if (!live) return;
@@ -86,8 +86,12 @@ export function NooniAvatar({ size = 44, mood = 'wave', still }: { size?: number
     <Image source={src} accessibilityLabel={on ? 'Nooni' : undefined} style={{ position: 'absolute', width: size, height: size, opacity: on ? 1 : 0 }} resizeMode="cover" />
   );
   return (
-    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: NOONI.ivory, overflow: 'hidden', borderWidth: size > 40 ? 2 : 1.5, borderColor: '#FFF' }}>
-      {live ? <>{img(FACES.wave, frame === 'open')}{img(BLINK, frame === 'blink')}{img(FACES.delight, frame === 'smile')}</> : img(FACES[mood], true)}
+    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: live ? '#ECE7FF' : NOONI.ivory, overflow: 'hidden', borderWidth: size > 40 ? 2 : 1.5, borderColor: '#FFF' }}>
+      {live ? (
+        <View style={{ width: size, height: size, transform: frame === 'smile' ? [{ rotate: '-6deg' }, { scale: 1.06 }] : [] }}>
+          {img(FACES.wave, frame !== 'blink')}{img(BLINK, frame === 'blink')}
+        </View>
+      ) : img(FACES[mood], true)}
     </View>
   );
 }
@@ -114,8 +118,8 @@ export function NooniBadge({ size = 52 }: { size?: number }) {
   const s = size * 0.34;
   return (
     <Animated.View style={{ width: size, height: size, transform: [{ translateY: bob.interpolate({ inputRange: [0, 1], outputRange: [0, -size * 0.04] }) }] }}>
-      <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: '#E9E4FF', borderWidth: ring, borderColor: '#5B3FD9', overflow: 'hidden', alignItems: 'center', justifyContent: 'flex-end' }}>
-        <View style={{ marginBottom: -size * 0.04 }}><NooniAvatarBare size={size - ring * 2 + 2} /></View>
+      <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: '#E9E4FF', borderWidth: ring, borderColor: '#5B3FD9', overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }}>
+        <View><NooniAvatarBare size={size - ring * 2 + 2} /></View>
       </View>
       <Animated.View pointerEvents="none" style={{ position: 'absolute', right: -s * 0.18, top: -s * 0.12, width: s, height: s,
         opacity: star.interpolate({ inputRange: [0, 1], outputRange: [0.75, 1] }),

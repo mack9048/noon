@@ -4,8 +4,8 @@ import { NOONI } from './Nooni';
 
 const BODY = require('../../assets/nooni/nooni-body.png');
 const HAND = require('../../assets/nooni/nooni-hand.png');
-// The hand turns at the wrist: (320, 228) on the 420 × 689 picture.
-const WRIST = `${(320 / 420) * 100}% ${(228 / 689) * 100}%`;
+// The hand turns at the wrist: (370, 246) on the 512 × 768 picture.
+const WRIST = `${(370 / 512) * 100}% ${(246 / 768) * 100}%`;
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Image, Platform, View } from 'react-native';
 import { T } from './ui';
@@ -56,7 +56,7 @@ export function NooniWelcome({ size = 220, compact = false }: { size?: number; c
     return () => clearInterval(id);
   }, [pop]);
 
-  const h = size * (689 / 420);
+  const h = size * 1.5;
   return (
     <View accessibilityRole="image" accessibilityLabel="Nooni, the Noon Learn mascot, waving hello"
       style={{ width: size * (compact ? 3 : 1.6), height: h + (compact ? 10 : 40), alignItems: 'center', justifyContent: 'flex-end', alignSelf: 'center' }}>
