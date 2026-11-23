@@ -51,7 +51,7 @@ export function AppShell({ items }: { items: NavItem[] }) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.bg }}>
         <ImpersonationBar />
-        <View style={{ flex: 1 }}><Slot /></View>
+        <View style={{ flex: 1 }}><Slot /><ReloadButton top={insets.top + 6} /></View>
         {user && !sheetFor ? <NooniButton /> : null}
         {sheetFor ? (
           <>
@@ -87,8 +87,9 @@ export function AppShell({ items }: { items: NavItem[] }) {
     <ImpersonationBar />
     <View style={{ flex: 1, flexDirection: 'row' }}>
       <View style={[styles.side, { width: wide ? 248 : 96, paddingTop: insets.top + 20 }]}>
-        <View style={{ paddingHorizontal: wide ? 20 : 0, alignItems: wide ? 'flex-start' : 'center', marginBottom: 24 }}>
+        <View style={{ paddingHorizontal: wide ? 20 : 0, alignItems: 'center', justifyContent: wide ? 'space-between' : 'center', flexDirection: wide ? 'row' : 'column', gap: 12, marginBottom: 24 }}>
           <Logo compact={!wide} />
+          <ReloadButton />
         </View>
         {items.map((it) => {
           const on = isActive(it);
@@ -117,6 +118,26 @@ export function AppShell({ items }: { items: NavItem[] }) {
       <View style={{ flex: 1 }}><Slot />{user ? <NooniButton /> : null}</View>
     </View>
     </View>
+  );
+}
+
+/** Reload the app (the installed app has no browser reload button). */
+export const reloadApp = () => { if (typeof window !== 'undefined' && window.location) window.location.reload(); };
+
+function ReloadButton({ top }: { top?: number }) {
+  const path = usePathname();
+  // Dashboards have their own reload button in their header.
+  if (top !== undefined && /^\/(admin|super|teacher)\/?$/.test(path)) return null;
+  const reload = () => {
+    if (typeof window !== 'undefined' && window.location) window.location.reload();
+    else router.replace(path as any);
+  };
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel="Reload" onPress={reload}
+      style={({ pressed, hovered }: any) => ({ ...(top !== undefined ? { position: 'absolute', top, left: '50%', marginLeft: -17 } : {}), width: 34, height: 34, borderRadius: 17,
+        backgroundColor: hovered || pressed ? '#FFF' : 'rgba(255,255,255,0.85)', borderWidth: 1, borderColor: colors.line, alignItems: 'center', justifyContent: 'center', ...shadow.card })}>
+      <Ionicons name="refresh" size={17} color={colors.teal} />
+    </Pressable>
   );
 }
 

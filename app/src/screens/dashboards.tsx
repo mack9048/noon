@@ -1,5 +1,6 @@
 // Dashboards for the institution admin, super admin and teachers (students keep their own home).
 import React from 'react';
+import { reloadApp } from '@/components/AppShell';
 import { Image, Linking, Pressable, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -61,7 +62,7 @@ export function AdminDashboard() {
       <DashHeader badge={initials(user?.tenant_name)} logo={Logo({ url: user?.tenant_logo_url, text: user?.tenant_name ?? '' })} title={user?.tenant_name ?? 'Institution'} sub={inst?.tagline || 'Institution administration workspace'}
         right={<>
           {inst?.academic_year ? <HeadPill icon="checkmark-circle-outline" label={`${inst.academic_year} active`} tone="green" onPress={go('/admin/settings')} /> : null}
-          <HeadPill icon="refresh" label="" onPress={reload} />
+          <HeadPill icon="refresh" label="" onPress={reloadApp} />
           <HeadPill icon="notifications-outline" dot={d.leave_pending + d.admissions.new > 0} onPress={go('/admin/leave')} />
           <HeadPill icon="settings-outline" onPress={go('/admin/settings')} />
         </>} />
@@ -162,7 +163,7 @@ export function SuperDashboard() {
       <DashHeader badge="NL" title="Noon Learn" sub={`Super admin workspace · ${user?.name ?? ''}`}
         right={<>
           <HeadPill icon="add" label="New tenant" tone="green" onPress={go('/super/tenants/new')} />
-          <HeadPill icon="refresh" onPress={reload} />
+          <HeadPill icon="refresh" onPress={reloadApp} />
           <HeadPill icon="notifications-outline" dot={d.courses.pending + d.shop.verifying > 0} onPress={go('/super/approvals')} />
           <HeadPill icon="settings-outline" onPress={go('/super/settings')} />
         </>} />
@@ -251,7 +252,7 @@ export function TeacherDashboard() {
     <DashPage>
       <DashHeader badge={initials(user?.name)} title={`Assalamu alaikum, ${user?.name?.split(' ')[0] ?? ''}`} sub={`${user?.tenant_name ?? ''} · ${today}`}
         right={<>
-          <HeadPill icon="refresh" onPress={reload} />
+          <HeadPill icon="refresh" onPress={reloadApp} />
           <HeadPill icon="notifications-outline" dot={d.leave_pending > 0} onPress={go('/teacher/leave')} />
           <HeadPill icon="chatbubbles-outline" onPress={go('/teacher/chat')} />
         </>} />
