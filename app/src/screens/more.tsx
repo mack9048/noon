@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { View } from 'react-native';
+import { Image, Pressable, TextInput, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useLayout } from '@/lib/useLayout';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Button, Card, Grid, Header, Screen, T } from '@/components/ui';
@@ -8,7 +10,7 @@ import { InstallAppButton } from '@/components/InstallApp';
 import { api, ApiError } from '@/lib/api';
 import { homeFor, useAuth } from '@/lib/auth';
 import type { User } from '@/lib/types';
-import { colors } from '@/theme/tokens';
+import { colors, fonts } from '@/theme/tokens';
 
 const links: [string, string, keyof typeof Ionicons.glyphMap, readonly [string, string]][] = [
   ['Quran & Hifz', '/guest/quran', 'book', colors.mint],
@@ -128,52 +130,109 @@ export const SUPER_MORE: MoreLink[] = [
   ['Settings', '/super/settings', 'settings-outline', colors.lav],
 ];
 
+/** One line under each tile, so people know what is inside. */
+const DESC: Record<string, string> = {
+  'Shop · orders': 'Products, orders, payments', Shop: 'Books, charts and more', Website: 'Pages, pictures, publish',
+  'Users · Log in as': 'Everyone, open their app', 'Course management': 'Lessons, content, approvals', Courses: 'All courses and status',
+  'Madrasa Support': 'Boards, classes, subjects', Approvals: 'Courses from institutions', Games: 'Upload and arrange games',
+  'Study tools': 'Charts, adkar, slides, audio', Profile: 'Your details', Settings: 'App and account settings',
+  Meetings: 'Meet everyone together', 'Live classes': 'Times and links', 'People & passwords': 'Logins and resets',
+  Admissions: 'Enquiries and applications', Batches: 'Groups and timetables', Attendance: 'Daily marks and reports',
+  'Bulk add': 'Add many students at once', Leave: 'Requests to approve', Fees: 'Dues and receipts', 'Audio Book': 'Listen and learn',
+  Help: 'Questions and support', 'Review work': 'Marks and feedback', 'Assess Salah': 'Practical checks',
+};
+
 /**
- * The "More" menu (design: More menu): profile card, then tiles in rows of 3.
- * Used as the phone pop-up above the tab bar, and as the More page on tablet/desktop.
+ * The "More" menu: a profile banner, then tiles with an icon, a name and one line about them.
+ * Used as the phone pop-up above the tab bar (compact), and as the More page on tablet/desktop.
  */
-export function MoreMenu({ links, onNavigate, profileHref, logout: withLogout }: {
-  links: MoreLink[]; onNavigate?: () => void; profileHref?: string; logout?: boolean;
+export function MoreMenu({ links, onNavigate, profileHref, logout: withLogout, page }: {
+  links: MoreLink[]; onNavigate?: () => void; profileHref?: string; logout?: boolean; page?: boolean;
 }) {
   const { user, logout } = useAuth();
+  const { device } = useLayout();
+  const [q, setQ] = useState('');
   const go = (href: string) => { onNavigate?.(); router.push(href as any); };
   const signOut = () => { onNavigate?.(); logout().then(() => router.replace('/login' as any)); };
-  const tiles = withLogout ? [...links, ['Log out', '#logout', 'log-out-outline', ['#FBD9DC', colors.red]] as MoreLink] : links;
+  const name = user?.name ?? 'Me';
+  const role = roleName[user?.role ?? ''] ?? (user?.role === 'super' ? 'Super admin' : '');
+  const sub = [role, user?.tenant_name].filter(Boolean).join(' · ');
+  const shown = links.filter(([label]) => label.toLowerCase().includes(q.trim().toLowerCase()));
+  const cols = page ? (device === 'desktop' ? 4 : device === 'tablet' ? 3 : 2) : 3;
   const rows: (MoreLink | null)[][] = [];
-  for (let i = 0; i < tiles.length; i += 3) {
-    const row: (MoreLink | null)[] = tiles.slice(i, i + 3);
-    while (row.length < 3) row.push(null);
+  for (let i = 0; i < shown.length; i += cols) {
+    const row: (MoreLink | null)[] = shown.slice(i, i + cols);
+    while (row.length < cols) row.push(null);
     rows.push(row);
   }
-  const name = user?.name ?? 'Me';
-  const sub = user?.role === 'student' || user?.role === 'parent' ? `Class 5 · ${roleName[user.role]}` : roleName[user?.role ?? ''] ?? '';
   return (
-    <View style={{ gap: 12 }}>
-      <Card onPress={profileHref ? () => go(profileHref) : undefined} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, minHeight: 72 }}>
-        <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: colors.pink[0], alignItems: 'center', justifyContent: 'center' }}>
-          <T style={{ color: colors.pink[1], fontSize: 20 }}>{name[0]}</T>
-        </View>
+    <View style={{ gap: page ? 16 : 12 }}>
+      <LinearGradient colors={['#0B5166', '#14776E']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={{ borderRadius: 24, padding: page ? 18 : 14, flexDirection: 'row', alignItems: 'center', gap: 14, overflow: 'hidden' }}>
+        <View style={{ position: 'absolute', right: -40, top: -50, width: 170, height: 170, borderRadius: 85, backgroundColor: 'rgba(255,255,255,0.08)' }} />
+        <View style={{ position: 'absolute', right: 70, bottom: -60, width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.06)' }} />
+        {user?.tenant_logo_url && user.role !== 'student' ? (
+          <Image source={{ uri: user.tenant_logo_url }} style={{ width: page ? 58 : 48, height: page ? 58 : 48, borderRadius: 18, backgroundColor: '#FFF' }} resizeMode="contain" />
+        ) : (
+          <View style={{ width: page ? 58 : 48, height: page ? 58 : 48, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.95)', alignItems: 'center', justifyContent: 'center' }}>
+            <T style={{ color: colors.teal, fontSize: page ? 22 : 19, fontFamily: fonts.semibold }}>{name.split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase()}</T>
+          </View>
+        )}
         <View style={{ flex: 1 }}>
-          <T v="h3" numberOfLines={1}>{name}</T>
-          <T v="small" numberOfLines={1}>{sub}</T>
+          <T style={{ color: '#FFF', fontFamily: fonts.semibold, fontSize: page ? 19 : 16 }} numberOfLines={1}>{name}</T>
+          <T style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13 }} numberOfLines={1}>{sub}</T>
         </View>
         {profileHref ? (
-          <View style={{ width: 40, height: 40, borderRadius: 20, borderWidth: 1.5, borderColor: colors.line, alignItems: 'center', justifyContent: 'center' }}>
-            <Ionicons name="chevron-forward" size={18} color={colors.ink} />
-          </View>
+          <Pressable accessibilityRole="button" accessibilityLabel="My profile" onPress={() => go(profileHref)}
+            style={{ height: 38, paddingHorizontal: 14, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.16)', flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Ionicons name="person-outline" size={16} color="#FFF" />{page ? <T style={{ color: '#FFF', fontFamily: fonts.semibold, fontSize: 13 }}>Profile</T> : null}
+          </Pressable>
         ) : null}
-      </Card>
+        {withLogout ? (
+          <Pressable accessibilityRole="button" accessibilityLabel="Log out" onPress={signOut}
+            style={{ height: 38, paddingHorizontal: 14, borderRadius: 19, backgroundColor: '#FFF', flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Ionicons name="log-out-outline" size={16} color={colors.red} />{page || device !== 'phone' ? <T style={{ color: colors.red, fontFamily: fonts.semibold, fontSize: 13 }}>Log out</T> : null}
+          </Pressable>
+        ) : null}
+      </LinearGradient>
+
+      {page ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#FFF', borderRadius: 22, borderWidth: 1, borderColor: '#DCE7EB', paddingHorizontal: 16, height: 46 }}>
+          <Ionicons name="search" size={17} color={colors.muted} />
+          <TextInput value={q} onChangeText={setQ} placeholder="Find a section…" placeholderTextColor={colors.faint} accessibilityLabel="Find a section"
+            style={{ flex: 1, fontFamily: fonts.regular, fontSize: 15, color: colors.ink, outlineStyle: 'none' } as any} />
+          {q ? <Pressable onPress={() => setQ('')} accessibilityLabel="Clear"><Ionicons name="close-circle" size={18} color={colors.muted} /></Pressable> : null}
+        </View>
+      ) : null}
+
       {rows.map((row, r) => (
-        <View key={r} style={{ flexDirection: 'row', gap: 8 }}>
+        <View key={r} style={{ flexDirection: 'row', gap: page ? 12 : 8 }}>
           {row.map((t, c) => t ? (
-            <Card key={t[1]} onPress={() => (t[1] === '#logout' ? signOut() : go(t[1]))} tint={t[3][0]}
-              style={{ flex: 1, height: 84, padding: 10, paddingHorizontal: 12, justifyContent: 'space-between' }}>
-              <Ionicons name={t[2]} size={22} color={t[3][1]} />
-              <T numberOfLines={1} style={{ color: t[3][1], fontSize: 14 }}>{t[0]}</T>
-            </Card>
-          ) : <View key={`e${c}`} style={{ flex: 1, paddingHorizontal: 12 }} />)}
+            <Pressable key={t[1]} accessibilityRole="button" accessibilityLabel={t[0]} onPress={() => go(t[1])} style={{ flex: 1 }}>
+              {({ pressed, hovered }: any) => (
+                <View style={{
+                  backgroundColor: '#FFF', borderRadius: 20, borderWidth: 1, borderColor: hovered ? t[3][1] + '55' : '#E1EAEE',
+                  padding: page ? 14 : 10, gap: page ? 10 : 6, minHeight: page ? 120 : 88,
+                  shadowColor: '#10303A', shadowOpacity: hovered ? 0.1 : 0.04, shadowRadius: hovered ? 16 : 8, shadowOffset: { width: 0, height: 4 },
+                  transform: [{ translateY: hovered ? -2 : 0 }, { scale: pressed ? 0.98 : 1 }],
+                }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <View style={{ width: page ? 44 : 38, height: page ? 44 : 38, borderRadius: 14, backgroundColor: t[3][0], alignItems: 'center', justifyContent: 'center' }}>
+                      <Ionicons name={t[2]} size={page ? 21 : 19} color={t[3][1]} />
+                    </View>
+                    {page ? <Ionicons name="arrow-forward" size={16} color={hovered ? t[3][1] : '#B6C6CC'} /> : null}
+                  </View>
+                  <View style={{ marginTop: 'auto' }}>
+                    <T numberOfLines={page ? 1 : 2} style={{ fontFamily: fonts.semibold, fontSize: page ? 15 : 12.5, lineHeight: page ? undefined : 16, color: colors.ink }}>{t[0]}</T>
+                    {page && DESC[t[0]] ? <T v="small" numberOfLines={1}>{DESC[t[0]]}</T> : null}
+                  </View>
+                </View>
+              )}
+            </Pressable>
+          ) : <View key={`e${c}`} style={{ flex: 1 }} />)}
         </View>
       ))}
+      {!shown.length ? <T v="small" style={{ textAlign: 'center', padding: 12 }}>Nothing matches “{q}”.</T> : null}
       <InstallAppButton />
     </View>
   );
@@ -183,8 +242,10 @@ export function MoreMenu({ links, onNavigate, profileHref, logout: withLogout }:
 export function MorePage(props: { links: MoreLink[]; profileHref?: string; logout?: boolean }) {
   return (
     <Screen>
-      <Header title="More" back={false} />
-      <MoreMenu {...props} />
+      <View style={{ width: '100%', maxWidth: 1100, alignSelf: 'center' }}>
+        <Header title="More" back={false} />
+        <MoreMenu {...props} page />
+      </View>
     </Screen>
   );
 }
