@@ -575,6 +575,10 @@ const routes: [string, RegExp, Handler][] = [
   ['GET', /^\/super\/site\/([a-z-]+)$/, (m) => { const p = mockSite[m[1]]; return { page: m[1], draft: p?.draft ?? {}, published: p?.published ?? {}, changed: p ? siteChanged(p) : false }; }],
   ['PUT', /^\/super\/site\/([a-z-]+)$/, (m, b) => { mockSite[m[1]] = { draft: { fields: b.fields ?? {}, lists: b.lists ?? {} }, published: mockSite[m[1]]?.published ?? null }; const p = mockSite[m[1]]; return { page: m[1], draft: p.draft, published: p.published ?? {}, changed: siteChanged(p) }; }],
   ['POST', /^\/super\/site\/([a-z-]+)\/discard$/, (m) => { const p = mockSite[m[1]]; if (p) { if (p.published) p.draft = p.published; else delete mockSite[m[1]]; } const q = mockSite[m[1]]; return { page: m[1], draft: q?.draft ?? {}, published: q?.published ?? {}, changed: false }; }],
+  // Course management and meetings (demo: empty lists)
+  ['GET', /^\/(super\/)?manage\/courses$/, () => []],
+  ['GET', /^\/(super\/)?manage\/reviews/, () => []],
+  ['GET', /^\/meetings$/, () => []],
   // Dashboards (demo numbers)
   ['GET', /^\/admin\/dashboard$/, () => {
     const M = ['Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov'];

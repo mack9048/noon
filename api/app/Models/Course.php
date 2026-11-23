@@ -17,6 +17,12 @@ class Course extends Model
 
     protected $casts = ['is_free' => 'boolean', 'free_for_subscribers' => 'boolean'];
 
+    /** The course's live classes as a list; each can be dated later. */
+    public function liveClasses(): HasMany
+    {
+        return $this->hasMany(CourseLiveClass::class)->orderBy('position')->orderBy('id');
+    }
+
     public function liveSlots(): HasMany
     {
         return $this->hasMany(CourseLiveSlot::class)->orderBy('position')->orderBy('id');

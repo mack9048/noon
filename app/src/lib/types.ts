@@ -65,6 +65,8 @@ export interface LiveInfo {
   upcoming: LiveClass[]; attended: number; has_link: boolean; open_before_min: number;
   /** livekit = Noon Live inside the app; meet = Google Meet link. */
   provider?: 'meet' | 'livekit';
+  /** The course's live classes as a list (a class may not have a date yet). */
+  classes?: { id: number; title: string; notes: string | null; starts_at: string | null; duration_min: number; state: 'unscheduled' | 'upcoming' | 'live' | 'done' }[];
 }
 export interface CourseItem {
   id: number; course_id: number; kind: ContentKind; title: string; meta?: string;

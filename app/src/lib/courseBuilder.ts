@@ -5,10 +5,12 @@ import { api } from './api';
 import type { ContentKind } from '@/theme/tokens';
 
 export type BItem = {
+  review_state?: 'new' | 'delete' | null; replaces_id?: number | null;
   id: number; course_id: number; lesson_id: number | null; kind: ContentKind; title: string; meta?: string | null;
   url?: string | null; body?: string | null; has_file?: boolean; file_size?: number | null; starts_at?: string | null; done?: boolean;
 };
-export type BLesson = { id: number; subject_id: number | null; title: string; description?: string | null; duration?: string | null; free_preview: boolean; items: BItem[] };
+export type ReviewState = 'new' | 'delete' | null;
+export type BLesson = { id: number; subject_id: number | null; title: string; description?: string | null; duration?: string | null; free_preview: boolean; items: BItem[]; review_state?: ReviewState; pending?: Record<string, any> | null };
 export type BSubject = { id: number; title: string; thumbnail_url?: string | null };
 export type BCourse = {
   id: number; title: string; description?: string | null; category: string; level: string; cover: string; logo_url?: string | null;
@@ -18,7 +20,10 @@ export type BCourse = {
   subjects: BSubject[]; lessons: BLesson[]; loose_items: BItem[]; lessons_count: number;
   format?: 'recorded' | 'live'; live_provider?: 'meet' | 'livekit'; meet_url?: string | null; live_timezone?: string; live_summary?: string | null;
   live_slots?: LiveSlot[]; live_upcoming?: LiveClass[];
+  live_classes?: LiveClassRow[]; manage_mode?: 'full' | 'review'; pending_count?: number; tenant_id?: number | null;
 };
+/** One class of a live course: created first, dated later. */
+export type LiveClassRow = { id: number; position: number; title: string; notes: string | null; starts_at: string | null; duration_min: number; state: 'unscheduled' | 'upcoming' | 'live' | 'done' };
 /** A repeating live class time: days 0 = Sunday … 6 = Saturday, start "19:00" (course time zone). */
 export type LiveSlot = { id: number; days: number[]; start_time: string; duration_min: number; title?: string | null };
 export type LiveClass = { starts_at: string; ends_at: string; title?: string | null; state: 'live' | 'upcoming' };
@@ -42,7 +47,7 @@ export const kindLabel = (k: ContentKind) => KINDS.find((x) => x.kind === k)?.la
 export const fileSize = (n?: number | null) => (!n ? '' : n > 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
 
 /** Add a content item to a lesson (id null) or update one; the file is optional. */
-export async function saveItem(lessonId: number, itemId: number | null, fields: { kind: ContentKind; title: string; url?: string; body?: string; starts_at?: string | null; meta?: string }, file?: Picked | null) {
+export async function saveItem(lessonId: number, itemId: number | null, fields: { kind: ContentKind; title: string; url?: string; body?: string; starts_at?: string | null; meta?: string }, file?: Picked | null, apiBase = '/super/manage') {
   const fd = new FormData();
   if (!itemId) fd.append('kind', fields.kind);
   fd.append('title', fields.title);
@@ -54,7 +59,7 @@ export async function saveItem(lessonId: number, itemId: number | null, fields: 
     if (Platform.OS === 'web' && file.file) fd.append('file', file.file);
     else fd.append('file', { uri: file.uri, name: file.name ?? 'file', type: file.mimeType ?? 'application/octet-stream' } as any);
   }
-  return api.post<BItem>(itemId ? `/super/course-items/${itemId}` : `/super/course-lessons/${lessonId}/items`, fd);
+  return api.post<BItem>(itemId ? `${apiBase}/course-items/${itemId}` : `${apiBase}/course-lessons/${lessonId}/items`, fd);
 }
 
 /** Swap an element with its neighbour; returns null if it can't move. */

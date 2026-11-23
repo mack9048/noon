@@ -99,6 +99,25 @@ import { joinLiveCourse } from '@/lib/liveJoin';
 export function LiveTimetableView({ live }: { live: LiveInfo }) {
   return (
     <View style={{ gap: 10, marginTop: 16 }}>
+      {live.classes?.length ? (
+        <>
+          <T v="h2">Classes</T>
+          <Card style={{ gap: 8 }}>
+            {live.classes.map((c, i) => (
+              <Row key={c.id} gap={10}>
+                <View style={{ width: 34, height: 34, borderRadius: 12, backgroundColor: c.state === 'live' ? colors.pink[0] : c.state === 'done' ? colors.mint[0] : colors.lav[0], alignItems: 'center', justifyContent: 'center' }}>
+                  {c.state === 'done' ? <Ionicons name="checkmark" size={16} color={colors.mint[1]} /> : <T style={{ fontFamily: fonts.semibold, color: colors.lav[1] }}>{i + 1}</T>}
+                </View>
+                <View style={{ flex: 1 }}>
+                  <T style={{ fontFamily: fonts.semibold }}>{c.title}</T>
+                  <T v="small">{c.starts_at ? `${new Date(c.starts_at).toLocaleString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })} · ${c.duration_min} min` : 'Date to be announced'}{c.notes ? ` · ${c.notes}` : ''}</T>
+                </View>
+                {c.state === 'live' ? <View style={{ backgroundColor: colors.pink[1], borderRadius: 10, paddingHorizontal: 8, height: 22, justifyContent: 'center' }}><T style={{ color: '#FFF', fontSize: 11, fontFamily: fonts.semibold }}>LIVE</T></View> : null}
+              </Row>
+            ))}
+          </Card>
+        </>
+      ) : null}
       <T v="h2">Class timetable</T>
       {live.slots.length ? (
         <Card style={{ gap: 8 }}>
@@ -110,7 +129,7 @@ export function LiveTimetableView({ live }: { live: LiveInfo }) {
           ))}
           <T v="small">Times are India time (IST).</T>
         </Card>
-      ) : <T v="small">The timetable will be added soon.</T>}
+      ) : live.classes?.length ? null : <T v="small">The timetable will be added soon.</T>}
       {live.upcoming.length ? (
         <Card style={{ gap: 6 }}>
           <T v="h3">Next classes · your time</T>

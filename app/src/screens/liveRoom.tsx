@@ -71,7 +71,7 @@ function RoundBtn({ icon, label, on = true, danger, onPress }: { icon: keyof typ
   );
 }
 
-export function LiveRoomScreen() {
+export function LiveRoomScreen({ kind = 'course' }: { kind?: 'course' | 'meeting' }) {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [pass, setPass] = useState<LivePass | null>(handoff && String(handoff.course.id) === String(id) ? handoff : null);
   const [err, setErr] = useState<string | null>(null);
@@ -90,7 +90,7 @@ export function LiveRoomScreen() {
   useEffect(() => {
     handoff = null;
     if (pass) return;
-    api.post<LivePass | { provider: 'meet'; url: string }>(`/courses/${id}/live/join`)
+    api.post<LivePass | { provider: 'meet'; url: string }>(kind === 'meeting' ? `/meetings/${id}/join` : `/courses/${id}/live/join`)
       .then((r) => { if (r.provider === 'meet') { Linking.openURL(r.url); leave(); } else setPass(r); })
       .catch((e) => setErr(e instanceof ApiError ? e.friendly : 'Could not open the class.'));
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -120,7 +120,7 @@ export function LiveRoomScreen() {
       });
       r.on(E.AudioPlaybackStatusChanged, () => setNeedAudio(!r!.canPlaybackAudio));
       r.on(E.Disconnected, (reason?: number) => {
-        setEnded(reason === mod.DisconnectReason.PARTICIPANT_REMOVED ? 'The teacher removed you from this class.' : reason === mod.DisconnectReason.ROOM_DELETED ? 'The class has ended. JazakAllah khair!' : 'You left the class.');
+        setEnded(reason === mod.DisconnectReason.PARTICIPANT_REMOVED ? 'The teacher removed you from this class.' : reason === mod.DisconnectReason.ROOM_DELETED ? (kind === 'meeting' ? 'The meeting has ended. JazakAllah khair!' : 'The class has ended. JazakAllah khair!') : 'You left the class.');
       });
       try {
         await r.connect(pass.url, pass.token);
@@ -169,8 +169,8 @@ export function LiveRoomScreen() {
   const micOn = me.isMicrophoneEnabled; const camOn = me.isCameraEnabled;
   const moderate = async (action: 'mute' | 'remove' | 'end', identity?: string, name?: string) => {
     if (action === 'remove' && !(await confirmBox(`Remove ${name} from this class?`))) return;
-    if (action === 'end' && !(await confirmBox('End the class for everyone?'))) return;
-    try { await api.post(`/courses/${pass.course.id}/live/moderate`, { action, identity }); } catch (e) { setErr(e instanceof ApiError ? e.friendly : 'Could not do that.'); }
+    if (action === 'end' && !(await confirmBox(`End the ${kind === 'meeting' ? 'meeting' : 'class'} for everyone?`))) return;
+    try { await api.post(kind === 'meeting' ? `/meetings/${id}/moderate` : `/courses/${pass.course.id}/live/moderate`, { action, identity }); } catch (e) { setErr(e instanceof ApiError ? e.friendly : 'Could not do that.'); }
   };
 
   return (
@@ -197,7 +197,7 @@ export function LiveRoomScreen() {
       <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-start', gap: 22, paddingVertical: 14, borderTopWidth: 1, borderTopColor: '#22324C' }}>
         <RoundBtn icon={micOn ? 'mic' : 'mic-off'} label={micOn ? 'Mic on' : 'Mic off'} on={micOn} onPress={() => me.setMicrophoneEnabled(!micOn).then(() => setTick((n) => n + 1)).catch(() => setErr('Please allow the microphone in your browser.'))} />
         <RoundBtn icon={camOn ? 'videocam' : 'videocam-off'} label={camOn ? 'Camera on' : 'Camera off'} on={camOn} onPress={() => me.setCameraEnabled(!camOn).then(() => setTick((n) => n + 1)).catch(() => setErr('Please allow the camera in your browser.'))} />
-        {pass.host ? <RoundBtn icon="stop-circle" label="End class" danger onPress={() => moderate('end')} /> : null}
+        {pass.host ? <RoundBtn icon="stop-circle" label={kind === 'meeting' ? 'End meeting' : 'End class'} danger onPress={() => moderate('end')} /> : null}
         <RoundBtn icon="exit-outline" label="Leave" danger={!pass.host} on={false} onPress={leave} />
       </View>
     </View>

@@ -5,6 +5,7 @@ import React, { useEffect, useState } from 'react';
 import { Image, Linking, Modal, Platform, Pressable, ScrollView, Switch, View } from 'react-native';
 import { appendFile, pickImage } from '@/lib/pickImage';
 import { joinLiveCourse } from '@/lib/liveJoin';
+import { useManage } from '@/lib/manage';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
@@ -131,7 +132,8 @@ function SlotForm({ slot, onSave, onDelete, busy }: { slot?: LiveSlot; onSave: (
 
 /** Super admin: class times of a live-only course and a preview of the next classes. */
 export function LiveTimetable({ courseId }: { courseId: number }) {
-  const data = useApi<BCourse>(`/super/courses/${courseId}`);
+  const M = useManage();
+  const data = useApi<BCourse>(`${M.api}/courses/${courseId}`);
   const [c, setC] = useState<BCourse | null>(null);
   const [busy, setBusy] = useState<number | 'new' | null>(null);
   const [formKey, setFormKey] = useState(0);
@@ -154,11 +156,11 @@ export function LiveTimetable({ courseId }: { courseId: number }) {
       ) : !c.meet_url ? <T v="small" style={{ color: colors.red }}>Add the meeting link above (Course details) and save, so students can join.</T> : null}
       {(c.live_slots ?? []).map((s) => (
         <SlotForm key={`${s.id}-${s.days.join()}-${s.start_time}-${s.duration_min}-${s.title}`} slot={s} busy={busy === s.id}
-          onSave={(v) => run(s.id, () => api.put<BCourse>(`/super/course-live-slots/${s.id}`, v))}
-          onDelete={() => run(s.id, () => api.del<BCourse>(`/super/course-live-slots/${s.id}`))} />
+          onSave={(v) => run(s.id, () => api.put<BCourse>(`${M.api}/course-live-slots/${s.id}`, v))}
+          onDelete={() => run(s.id, () => api.del<BCourse>(`${M.api}/course-live-slots/${s.id}`))} />
       ))}
       <T v="small" style={{ fontFamily: fonts.medium, marginTop: 4 }}>{c.live_slots?.length ? 'Add another class time' : 'Add a class time'}</T>
-      <SlotForm key={`new-${formKey}`} busy={busy === 'new'} onSave={(v) => run('new', () => api.post<BCourse>(`/super/courses/${courseId}/live-slots`, v))} />
+      <SlotForm key={`new-${formKey}`} busy={busy === 'new'} onSave={(v) => run('new', () => api.post<BCourse>(`${M.api}/courses/${courseId}/live-slots`, v))} />
       {err ? <T style={{ color: colors.red }}>{err}</T> : null}
       {c.live_upcoming?.length ? (
         <View style={{ gap: 6, marginTop: 6 }}>
@@ -184,12 +186,13 @@ function groups(c: BCourse) {
 
 /** Subject picture so children recognise the subject; tap to upload or change. */
 function SubjectThumb({ subject, onChange }: { subject: BSubject; onChange: (c: BCourse) => void }) {
+  const M = useManage();
   const [busy, setBusy] = useState(false);
   const pick = async () => {
     try {
       const f = await pickImage(); if (!f) return;
       setBusy(true); const fd = new FormData(); appendFile(fd, 'thumbnail', f);
-      onChange(await api.post<BCourse>(`/super/course-subjects/${subject.id}/thumbnail`, fd));
+      onChange(await api.post<BCourse>(`${M.api}/course-subjects/${subject.id}/thumbnail`, fd));
     } catch (e) { demoNote(e instanceof ApiError ? e.friendly : e instanceof Error ? e.message : 'Could not upload.'); } finally { setBusy(false); }
   };
   return (
@@ -200,7 +203,15 @@ function SubjectThumb({ subject, onChange }: { subject: BSubject; onChange: (c: 
   );
 }
 
+/** "Waiting for approval" labels for teachers' changes. */
+export function ReviewTag({ lesson, item }: { lesson?: BLesson; item?: BItem }) {
+  const st = lesson?.review_state ?? item?.review_state;
+  const text = st === 'new' ? (item?.replaces_id ? 'Edit waiting for approval' : 'New · waiting for approval') : st === 'delete' ? 'Removal waiting for approval' : lesson?.pending ? 'Changes waiting for approval' : null;
+  return text ? <Tag text={text} tone={st === 'delete' ? 'pink' : 'butter'} /> : null;
+}
+
 export function CourseStructure({ course, onChange }: { course: BCourse; onChange: (c: BCourse) => void }) {
+  const M = useManage();
   const [newSubject, setNewSubject] = useState<string | null>(null);
   const [renaming, setRenaming] = useState<BSubject | null>(null);
   const [confirm, setConfirm] = useState<string | null>(null);
@@ -209,15 +220,17 @@ export function CourseStructure({ course, onChange }: { course: BCourse; onChang
   const g = groups(course);
   const ordered = g.flatMap((x) => x.lessons);
   const number = (id: number) => ordered.findIndex((l) => l.id === id) + 1;
-  const base = `/super/courses/${course.id}`;
+  const base = M.route(course.id);
+  // Teachers add and edit lessons; the admin approves. Subjects and order are the admin's.
+  const teacher = course.manage_mode === 'review';
 
-  const reload = async () => onChange(await api.get<BCourse>(`/super/courses/${course.id}`));
+  const reload = async () => onChange(await api.get<BCourse>(`${M.api}/courses/${course.id}`));
   const run = async (fn: () => Promise<unknown>) => {
     setBusy(true); setErr('');
     try { await fn(); await reload(); } catch (e) { setErr(errText(e, 'Could not save.')); } finally { setBusy(false); }
   };
   const sendOrder = (lists: { subject: BSubject | null; lessons: BLesson[] }[], subjects = course.subjects) =>
-    api.post<BCourse>(`/super/courses/${course.id}/order`, {
+    api.post<BCourse>(`${M.api}/courses/${course.id}/order`, {
       subjects: subjects.map((s) => s.id),
       lessons: lists.flatMap((x) => x.lessons.map((l) => ({ id: l.id, subject_id: x.subject?.id ?? null }))),
     });
@@ -226,7 +239,7 @@ export function CourseStructure({ course, onChange }: { course: BCourse; onChang
     if (!l) return;
     run(() => sendOrder(g.map((x, k) => (k === gi ? { ...x, lessons: l } : x))));
   };
-  const moveToSubject = (lesson: BLesson, sid: number | null) => run(() => api.put(`/super/course-lessons/${lesson.id}`, { subject_id: sid }));
+  const moveToSubject = (lesson: BLesson, sid: number | null) => run(() => api.put(`${M.api}/course-lessons/${lesson.id}`, { subject_id: sid }));
   const moveSubject = (i: number, d: -1 | 1) => {
     const s = moved(course.subjects, i, d);
     if (s) run(() => sendOrder(g, s));
@@ -234,7 +247,7 @@ export function CourseStructure({ course, onChange }: { course: BCourse; onChang
   const addLesson = async (sid: number | null) => {
     setBusy(true); setErr('');
     try {
-      const l = await api.post<BLesson>(`/super/courses/${course.id}/lessons`, { title: `Lesson ${course.lessons.length + 1}`, subject_id: sid });
+      const l = await api.post<BLesson>(`${M.api}/courses/${course.id}/lessons`, { title: `Lesson ${course.lessons.length + 1}`, subject_id: sid });
       router.push(`${base}/lessons/${l.id}?new=1` as any);
       reload();
     } catch (e) { setErr(errText(e, 'Could not add the lesson.')); } finally { setBusy(false); }
@@ -243,15 +256,16 @@ export function CourseStructure({ course, onChange }: { course: BCourse; onChang
 
   return (
     <Panel title="Subjects & lessons" right={<T v="small">{course.subjects.length ? `${plural(course.subjects.length, 'subject')} · ` : ''}{plural(course.lessons.length, 'lesson')}</T>} style={{ marginBottom: 100 }}>
+      {teacher ? <View style={{ backgroundColor: '#FFF4CC', borderRadius: 16, padding: 10, flexDirection: 'row', gap: 8 }}><Ionicons name="shield-checkmark-outline" size={18} color="#6A4D00" /><T style={{ flex: 1, fontSize: 13, color: '#6A4D00' }}>Your new lessons and changes go to the admin. Students see them once the admin approves.</T></View> : null}
       <T v="small">Subjects are optional. If the course has only one subject, just add lessons. Open a lesson to add its videos, audios, PDFs, HTML and notes.</T>
       <Row gap={8} style={{ flexWrap: 'wrap' }}>
         <Button title="Add lesson" icon="add" style={{ height: 44 }} loading={busy} onPress={() => addLesson(null)} />
-        <Button title="Add subject" icon="folder-open-outline" kind="ghost" style={{ height: 44 }} onPress={() => setNewSubject('')} />
+        {teacher ? null : <Button title="Add subject" icon="folder-open-outline" kind="ghost" style={{ height: 44 }} onPress={() => setNewSubject('')} />}
       </Row>
       {newSubject !== null ? (
         <Row gap={8}>
           <View style={{ flex: 1 }}><Input value={newSubject} onChangeText={setNewSubject} placeholder="Subject name, eg. Grammar" accessibilityLabel="Subject name" autoFocus /></View>
-          <Button title="Save" style={{ height: 50 }} disabled={!newSubject.trim()} onPress={() => run(async () => { await api.post(`/super/courses/${course.id}/subjects`, { title: newSubject.trim() }); setNewSubject(null); })} />
+          <Button title="Save" style={{ height: 50 }} disabled={!newSubject.trim()} onPress={() => run(async () => { await api.post(`${M.api}/courses/${course.id}/subjects`, { title: newSubject.trim() }); setNewSubject(null); })} />
           <IconButton name="close" label="Cancel" tint={colors.bg} size={44} onPress={() => setNewSubject(null)} />
         </Row>
       ) : null}
@@ -266,7 +280,7 @@ export function CourseStructure({ course, onChange }: { course: BCourse; onChang
               renaming?.id === grp.subject.id ? (
                 <Row gap={8}>
                   <View style={{ flex: 1 }}><Input value={renaming.title} onChangeText={(v) => setRenaming({ ...renaming, title: v })} accessibilityLabel="Subject name" /></View>
-                  <IconButton name="checkmark" label="Save subject name" tint={colors.mint[0]} color={colors.mint[1]} size={40} onPress={() => run(async () => { await api.put(`/super/course-subjects/${renaming.id}`, { title: renaming.title.trim() }); setRenaming(null); })} />
+                  <IconButton name="checkmark" label="Save subject name" tint={colors.mint[0]} color={colors.mint[1]} size={40} onPress={() => run(async () => { await api.put(`${M.api}/course-subjects/${renaming.id}`, { title: renaming.title.trim() }); setRenaming(null); })} />
                   <IconButton name="close" label="Cancel" tint="#FFF" size={40} onPress={() => setRenaming(null)} />
                 </Row>
               ) : (
@@ -274,17 +288,19 @@ export function CourseStructure({ course, onChange }: { course: BCourse; onChang
                   <SubjectThumb subject={grp.subject} onChange={onChange} />
                   <T v="h3" style={{ flex: 1 }} numberOfLines={1}>{grp.subject.title}</T>
                   <T v="small">{plural(grp.lessons.length, 'lesson')}</T>
+                  {teacher ? null : <>
                   <IconButton name="chevron-up" label={`Move ${grp.subject.title} up`} tint="transparent" size={34} onPress={() => moveSubject(si, -1)} />
                   <IconButton name="chevron-down" label={`Move ${grp.subject.title} down`} tint="transparent" size={34} onPress={() => moveSubject(si, 1)} />
                   <IconButton name="create-outline" label={`Rename ${grp.subject.title}`} tint="transparent" color={colors.teal} size={34} onPress={() => setRenaming(grp.subject)} />
                   <IconButton name="trash-outline" label={`Delete ${grp.subject.title}`} tint="transparent" color={colors.red} size={34} onPress={() => setConfirm(`s${grp.subject!.id}`)} />
+                  </>}
                 </Row>
               )
             ) : course.subjects.length ? <T v="small" style={{ fontFamily: fonts.semibold }}>Not in a subject</T> : null}
             {grp.subject && confirm === `s${grp.subject.id}` ? (
               <Row gap={8} style={{ backgroundColor: '#FFF', borderRadius: 16, padding: 10 }}>
                 <T v="small" style={{ flex: 1 }}>Delete the subject “{grp.subject.title}”? Its lessons stay in the course.</T>
-                <Button title="Delete" kind="danger" style={{ height: 38 }} onPress={() => { setConfirm(null); run(() => api.del(`/super/course-subjects/${grp.subject!.id}`)); }} />
+                <Button title="Delete" kind="danger" style={{ height: 38 }} onPress={() => { setConfirm(null); run(() => api.del(`${M.api}/course-subjects/${grp.subject!.id}`)); }} />
                 <Button title="Keep" kind="ghost" style={{ height: 38 }} onPress={() => setConfirm(null)} />
               </Row>
             ) : null}
@@ -300,24 +316,25 @@ export function CourseStructure({ course, onChange }: { course: BCourse; onChang
                     <Row gap={4} style={{ flexWrap: 'wrap' }}>
                       {l.items.length ? l.items.slice(0, 10).map((it) => <TypeIcon key={it.id} kind={it.kind} size={26} />) : <T v="small" style={{ color: colors.red }}>No content yet · tap to add</T>}
                     </Row>
-                    <Row gap={6}>
+                    <Row gap={6} style={{ flexWrap: 'wrap' }}>
                       <T v="small" style={{ flex: 1 }}>{plural(l.items.length, 'item')}{l.duration ? ` · ${l.duration}` : ''}</T>
                       {l.free_preview ? <Tag text="Free preview" tone="mint" /> : null}
+                      <ReviewTag lesson={l} />
                     </Row>
                   </Pressable>
                   {confirm === `l${l.id}` ? (
                     <Row gap={6}>
                       <T v="small" style={{ flex: 1 }}>Delete this lesson and its content?</T>
-                      <Button title="Delete" kind="danger" style={{ height: 36, paddingHorizontal: 10 }} onPress={() => { setConfirm(null); run(() => api.del(`/super/course-lessons/${l.id}`)); }} />
+                      <Button title="Delete" kind="danger" style={{ height: 36, paddingHorizontal: 10 }} onPress={() => { setConfirm(null); run(() => api.del(`${M.api}/course-lessons/${l.id}`)); }} />
                       <Button title="Keep" kind="ghost" style={{ height: 36, paddingHorizontal: 10 }} onPress={() => setConfirm(null)} />
                     </Row>
                   ) : (
                     <Row gap={2} style={{ borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 6 }}>
                       <IconButton name="create-outline" label={`Edit ${l.title}`} tint="transparent" color={colors.teal} size={36} onPress={() => router.push(`${base}/lessons/${l.id}` as any)} />
-                      <IconButton name="arrow-up" label={`Move ${l.title} up`} tint="transparent" size={36} onPress={() => moveLesson(gi, li, -1)} />
-                      <IconButton name="arrow-down" label={`Move ${l.title} down`} tint="transparent" size={36} onPress={() => moveLesson(gi, li, 1)} />
+                      {teacher ? null : <IconButton name="arrow-up" label={`Move ${l.title} up`} tint="transparent" size={36} onPress={() => moveLesson(gi, li, -1)} />}
+                      {teacher ? null : <IconButton name="arrow-down" label={`Move ${l.title} down`} tint="transparent" size={36} onPress={() => moveLesson(gi, li, 1)} />}
                       <View style={{ flex: 1 }} />
-                      {course.subjects.length ? <Select compact label={undefined} value={String(l.subject_id ?? 0)} options={subjectOptions} onChange={(v) => moveToSubject(l, Number(v) || null)} /> : null}
+                      {course.subjects.length && !teacher ? <Select compact label={undefined} value={String(l.subject_id ?? 0)} options={subjectOptions} onChange={(v) => moveToSubject(l, Number(v) || null)} /> : null}
                       <IconButton name="trash-outline" label={`Delete ${l.title}`} tint="transparent" color={colors.red} size={36} onPress={() => setConfirm(`l${l.id}`)} />
                     </Row>
                   )}
@@ -344,8 +361,8 @@ export function CourseStructure({ course, onChange }: { course: BCourse; onChang
               <TypeIcon kind={it.kind} size={34} />
               <T style={{ flex: 1 }} numberOfLines={1}>{it.title}</T>
               {course.lessons.length ? <Select compact value={'0' as string} options={[{ key: '0', label: 'Move to…' }, ...ordered.map((l) => ({ key: String(l.id), label: `${number(l.id)}. ${l.title}` }))]}
-                onChange={(v) => { if (+v) run(() => api.post(`/super/course-items/${it.id}/move`, { lesson_id: +v })); }} /> : null}
-              <IconButton name="trash-outline" label={`Remove ${it.title}`} tint="transparent" color={colors.red} size={36} onPress={() => run(() => api.del(`/super/course-items/${it.id}`))} />
+                onChange={(v) => { if (+v) run(() => api.post(`${M.api}/course-items/${it.id}/move`, { lesson_id: +v })); }} /> : null}
+              <IconButton name="trash-outline" label={`Remove ${it.title}`} tint="transparent" color={colors.red} size={36} onPress={() => run(() => api.del(`${M.api}/course-items/${it.id}`))} />
             </Row>
           ))}
         </View>
@@ -357,16 +374,18 @@ export function CourseStructure({ course, onChange }: { course: BCourse; onChang
 /* ================= One lesson: details + content ================= */
 
 export function LessonBuilderScreen() {
+  const M = useManage();
   const { id, lessonId, new: isNew } = useLocalSearchParams<{ id: string; lessonId: string; new?: string }>();
-  const lesson = useApi<LessonDetail>(/^\d+$/.test(String(lessonId)) ? `/super/course-lessons/${lessonId}` : null);
-  const course = useApi<BCourse>(/^\d+$/.test(String(id)) ? `/super/courses/${id}` : null);
+  const lesson = useApi<LessonDetail>(/^\d+$/.test(String(lessonId)) ? `${M.api}/course-lessons/${lessonId}` : null);
+  const course = useApi<BCourse>(/^\d+$/.test(String(id)) ? `${M.api}/courses/${id}` : null);
   const [form, setForm] = useState<{ title: string; description: string; duration: string; free_preview: boolean; subject: string } | null>(null);
   const [saved, setSaved] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const [sheet, setSheet] = useState<{ kind: ContentKind; item: BItem | null } | null>(null);
   const [confirm, setConfirm] = useState<number | null>(null);
-  const back = () => router.replace(`/super/courses/${id}` as any);
+  const back = () => router.replace(M.route(id) as any);
+  const teacher = course.data?.manage_mode === 'review';
 
   useEffect(() => {
     const l = lesson.data;
@@ -385,7 +404,7 @@ export function LessonBuilderScreen() {
     if (!form.title.trim()) { setErr('Give the lesson a title.'); return; }
     setBusy(true); setErr('');
     try {
-      await api.put(`/super/course-lessons/${l.id}`, { title: form.title.trim(), description: form.description.trim() || null, duration: form.duration.trim() || null, free_preview: form.free_preview, subject_id: Number(form.subject) || null });
+      await api.put(`${M.api}/course-lessons/${l.id}`, { title: form.title.trim(), description: form.description.trim() || null, duration: form.duration.trim() || null, free_preview: form.free_preview, subject_id: Number(form.subject) || null });
       await lesson.reload();
       setSaved('Saved.');
       then?.();
@@ -395,11 +414,11 @@ export function LessonBuilderScreen() {
     const list = moved(items, i, d);
     if (!list) return;
     lesson.setData({ ...l, items: list });
-    try { await api.post(`/super/course-lessons/${l.id}/order`, { items: list.map((x) => x.id) }); } catch (e) { setErr(errText(e, 'Could not move it.')); lesson.reload(); }
+    try { await api.post(`${M.api}/course-lessons/${l.id}/order`, { items: list.map((x) => x.id) }); } catch (e) { setErr(errText(e, 'Could not move it.')); lesson.reload(); }
   };
   const remove = async (itemId: number) => {
     setConfirm(null);
-    try { await api.del(`/super/course-items/${itemId}`); lesson.reload(); } catch (e) { setErr(errText(e, 'Could not remove it.')); }
+    try { await api.del(`${M.api}/course-items/${itemId}`); lesson.reload(); } catch (e) { setErr(errText(e, 'Could not remove it.')); }
   };
 
   return (
@@ -444,9 +463,10 @@ export function LessonBuilderScreen() {
                 <T style={{ fontFamily: fonts.semibold }} numberOfLines={1}>{it.title}</T>
                 <T v="small" numberOfLines={1}>{kindLabel(it.kind)}{itemSummary(it)}</T>
               </View>
-              <IconButton name="arrow-up" label={`Move ${it.title} up`} tint="transparent" size={34} onPress={() => reorder(i, -1)} />
-              <IconButton name="arrow-down" label={`Move ${it.title} down`} tint="transparent" size={34} onPress={() => reorder(i, 1)} />
+              {teacher ? null : <IconButton name="arrow-up" label={`Move ${it.title} up`} tint="transparent" size={34} onPress={() => reorder(i, -1)} />}
+              {teacher ? null : <IconButton name="arrow-down" label={`Move ${it.title} down`} tint="transparent" size={34} onPress={() => reorder(i, 1)} />}
             </Row>
+            {it.review_state ? <View style={{ paddingLeft: 30, flexDirection: 'row' }}><ReviewTag item={it} /></View> : null}
             {confirm === it.id ? (
               <Row gap={6}><T v="small" style={{ flex: 1 }}>Remove “{it.title}”?</T><Button title="Remove" kind="danger" style={{ height: 36, paddingHorizontal: 10 }} onPress={() => remove(it.id)} /><Button title="Keep" kind="ghost" style={{ height: 36, paddingHorizontal: 10 }} onPress={() => setConfirm(null)} /></Row>
             ) : (
@@ -490,6 +510,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
 
 /** Add or edit one piece of content. Audios etc. can be added one after another. */
 function ItemSheet({ lessonId, kind, item, onClose, onSaved }: { lessonId: number; kind: ContentKind; item: BItem | null; onClose: () => void; onSaved: (again: boolean) => void }) {
+  const M = useManage();
   const info = KINDS.find((k) => k.kind === kind) ?? { kind, label: kindLabel(kind), hint: '', link: true };
   const start = item?.starts_at ? new Date(item.starts_at) : null;
   const [title, setTitle] = useState(item?.title ?? '');
@@ -524,7 +545,7 @@ function ItemSheet({ lessonId, kind, item, onClose, onSaved }: { lessonId: numbe
         url: src === 'link' ? url.trim() : undefined,
         body: src === 'code' ? body : undefined,
         starts_at: kind === 'live' ? new Date(`${date}T${time}`).toISOString() : undefined,
-      }, src === 'file' ? file : null);
+      }, src === 'file' ? file : null, M.api);
       if (again) { setTitle(''); setUrl(''); setBody(''); setFile(null); }
       onSaved(again);
     } catch (e) { setErr(errText(e, 'Could not save.')); } finally { setBusy(false); }

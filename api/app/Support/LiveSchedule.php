@@ -24,11 +24,17 @@ class LiveSchedule
         $now = Carbon::now();
         $out = [];
         $slots = $course->liveSlots;
-        if ($slots->isEmpty()) {
-            return [];
+        // Classes from the course's class list that have a date.
+        foreach ($course->liveClasses()->whereNotNull('starts_at')->get() as $c) {
+            $start = Carbon::parse($c->starts_at);
+            $end = $start->copy()->addMinutes($c->duration_min);
+            if ($end->gt($now)) {
+                $out[] = ['starts_at' => $start->copy()->setTimezone($tz)->toIso8601String(), 'ends_at' => $end->copy()->setTimezone($tz)->toIso8601String(), 'title' => $c->title,
+                    'state' => $now->gte($start->copy()->subMinutes(self::OPEN_BEFORE)) ? 'live' : 'upcoming', 'start' => $start->copy()->utc()];
+            }
         }
         $day = Carbon::now($tz)->startOfDay();
-        for ($i = 0; $i < 62 && count($out) < $count * 3; $i++, $day = $day->copy()->addDay()) {
+        for ($i = 0; $slots->isNotEmpty() && $i < 62 && count($out) < $count * 3; $i++, $day = $day->copy()->addDay()) {
             foreach ($slots as $slot) {
                 if (! in_array($day->dayOfWeek, array_map('intval', $slot->days ?? []), true)) {
                     continue;
@@ -63,7 +69,9 @@ class LiveSchedule
     public static function summary(Course $course): ?string
     {
         if ($course->liveSlots->isEmpty()) {
-            return null;
+            $n = $course->liveClasses()->count();
+
+            return $n ? $n.' live class'.($n === 1 ? '' : 'es') : null;
         }
 
         return $course->liveSlots->map(function ($s) {

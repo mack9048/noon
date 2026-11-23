@@ -7,7 +7,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CourseItem extends Model
 {
-    protected $fillable = ['course_id', 'course_lesson_id', 'kind', 'title', 'meta', 'url', 'body', 'file_path', 'file_size', 'starts_at', 'position'];
+    /** Teachers' unapproved content is hidden from students (App\Support\Review). */
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new \App\Support\Review);
+    }
+
+    protected $fillable = ['course_id', 'course_lesson_id', 'kind', 'title', 'meta', 'url', 'body', 'file_path', 'file_size', 'starts_at', 'position', 'review_state', 'replaces_id', 'submitted_by'];
 
     protected $hidden = ['file_path'];
 

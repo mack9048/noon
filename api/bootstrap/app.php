@@ -24,11 +24,15 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => EnsureRole::class,
             'tenant' => ResolveTenant::class,
             'active' => EnsureActiveUser::class,
+            'manage' => \App\Http\Middleware\ManageCourse::class,
+            'pending' => \App\Http\Middleware\ShowPendingContent::class,
         ]);
         // The institution must be known before {leave}, {conversation} etc. are loaded,
         // so a row from another institution is simply "not found".
         $middleware->prependToPriorityList(before: SubstituteBindings::class, prepend: ResolveTenant::class);
         $middleware->prependToPriorityList(before: ResolveTenant::class, prepend: EnsureActiveUser::class);
+        // Editors must find lessons / content still waiting for approval when {lesson}, {item} are loaded.
+        $middleware->prependToPriorityList(before: SubstituteBindings::class, prepend: \App\Http\Middleware\ShowPendingContent::class);
 
         // Behind Hostinger's nginx / Cloudflare: trust proxy headers for correct https URLs
         $middleware->trustProxies(at: '*');

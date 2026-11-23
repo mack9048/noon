@@ -18,6 +18,8 @@ use App\Http\Controllers\Api\ShopAdminController;
 use App\Http\Controllers\Api\ShopController;
 use App\Http\Controllers\Api\CourseController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\ManageCourseController;
+use App\Http\Controllers\Api\MeetingController;
 use App\Http\Controllers\Api\SiteController;
 use App\Http\Controllers\Api\FeeController;
 use App\Http\Controllers\Api\GameController;
@@ -132,6 +134,13 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     // Institution members only. `tenant` limits every query to the user's own institution.
     Route::middleware(['role:student,parent,teacher,admin', 'tenant'])->group(function () {
         Route::get('/fees', [FeeController::class, 'mine']);
+        // Institution meetings (Noon Live): admins and teachers host; students join.
+        Route::get('/meetings', [MeetingController::class, 'index']);
+        Route::post('/meetings', [MeetingController::class, 'store']);
+        Route::put('/meetings/{meeting}', [MeetingController::class, 'update']);
+        Route::delete('/meetings/{meeting}', [MeetingController::class, 'destroy']);
+        Route::post('/meetings/{meeting}/join', [MeetingController::class, 'join']);
+        Route::post('/meetings/{meeting}/moderate', [MeetingController::class, 'moderate']);
         Route::get('/attendance', [AttendanceController::class, 'mine']);
         Route::get('/leave-requests', [LeaveController::class, 'index']);
         Route::post('/leave-requests', [LeaveController::class, 'store']);
@@ -208,7 +217,40 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     });
 
     // Super admin
-    Route::middleware('role:super')->prefix('super')->group(function () {
+    // Course Management (institution admins and teachers; super admin under /super/manage). Teachers' changes wait for approval.
+    $manage = function () {
+        Route::get('/courses', [ManageCourseController::class, 'index']);
+        Route::get('/courses/{course}', [CourseBuilderController::class, 'show']);
+        Route::put('/courses/{course}', [ManageCourseController::class, 'update']);
+        Route::post('/courses/{course}/thumbnail', [CourseRequestController::class, 'thumbnail']);
+        Route::post('/courses/{course}/order', [CourseBuilderController::class, 'reorder']);
+        Route::post('/courses/{course}/subjects', [CourseBuilderController::class, 'storeSubject']);
+        Route::put('/course-subjects/{subject}', [CourseBuilderController::class, 'updateSubject']);
+        Route::delete('/course-subjects/{subject}', [CourseBuilderController::class, 'destroySubject']);
+        Route::post('/course-subjects/{subject}/thumbnail', [CourseBuilderController::class, 'subjectThumbnail']);
+        Route::post('/courses/{course}/lessons', [CourseBuilderController::class, 'storeLesson']);
+        Route::get('/course-lessons/{lesson}', [CourseBuilderController::class, 'showLesson']);
+        Route::put('/course-lessons/{lesson}', [CourseBuilderController::class, 'updateLesson']);
+        Route::delete('/course-lessons/{lesson}', [CourseBuilderController::class, 'destroyLesson']);
+        Route::post('/course-lessons/{lesson}/items', [CourseBuilderController::class, 'storeItem']);
+        Route::post('/course-lessons/{lesson}/order', [CourseBuilderController::class, 'reorderItems']);
+        Route::post('/course-items/{item}', [CourseBuilderController::class, 'updateItem']);
+        Route::post('/course-items/{item}/move', [CourseBuilderController::class, 'moveItem']);
+        Route::delete('/course-items/{item}', [CourseBuilderController::class, 'destroyItem']);
+        Route::post('/courses/{course}/live-slots', [CourseBuilderController::class, 'storeLiveSlot']);
+        Route::put('/course-live-slots/{slot}', [CourseBuilderController::class, 'updateLiveSlot']);
+        Route::delete('/course-live-slots/{slot}', [CourseBuilderController::class, 'destroyLiveSlot']);
+        Route::post('/courses/{course}/live-classes', [ManageCourseController::class, 'storeLiveClasses']);
+        Route::post('/courses/{course}/live-classes/order', [ManageCourseController::class, 'reorderLiveClasses']);
+        Route::put('/course-live-classes/{class}', [ManageCourseController::class, 'updateLiveClass']);
+        Route::delete('/course-live-classes/{class}', [ManageCourseController::class, 'destroyLiveClass']);
+        Route::get('/reviews', [CourseBuilderController::class, 'reviews']);
+        Route::post('/reviews', [CourseBuilderController::class, 'decide']);
+    };
+    Route::middleware(['role:admin,teacher', 'tenant', 'pending', 'manage'])->prefix('manage')->group($manage);
+    Route::middleware(['role:super', 'pending', 'manage'])->prefix('super/manage')->group($manage);
+
+    Route::middleware(['role:super', 'pending'])->prefix('super')->group(function () {
         Route::apiResource('tenants', TenantController::class)->except('show');
         Route::post('/tenants/{tenant}/logo', [TenantController::class, 'logo']);
         Route::get('/users', [ImpersonationController::class, 'users']);

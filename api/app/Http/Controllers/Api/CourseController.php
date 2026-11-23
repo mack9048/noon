@@ -157,6 +157,7 @@ class CourseController extends Controller
         return [
             'timezone' => $course->live_timezone, 'summary' => LiveSchedule::summary($course),
             'slots' => $course->liveSlots->map(fn ($s) => $s->toApp())->values(),
+            'classes' => $course->liveClasses->map(fn ($c) => $c->toApp())->values(),
             'upcoming' => LiveSchedule::forApp(LiveSchedule::upcoming($course, 10)),
             'attended' => $user?->id ? DB::table('course_live_attendance')->where('course_id', $course->id)->where('user_id', $user->id)->count() : 0,
             'provider' => $this->provider($course),

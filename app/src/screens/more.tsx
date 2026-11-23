@@ -83,6 +83,7 @@ const roleName: Record<string, string> = { student: 'Student', parent: 'Parent',
 
 export const STUDENT_MORE: MoreLink[] = [
   ['Live classes', '/student/live', 'videocam-outline', colors.pink],
+  ['Meetings', '/student/meetings', 'people-circle-outline', colors.sky],
   ['Profile', '/student/profile', 'person-outline', colors.lav],
   ['Fees', '/student/fees', 'card-outline', colors.mint],
   ['Attendance', '/student/attendance', 'calendar-outline', colors.butter],
@@ -92,7 +93,8 @@ export const STUDENT_MORE: MoreLink[] = [
 ];
 export const TEACHER_MORE: MoreLink[] = [
   ['Live classes', '/teacher/live', 'videocam-outline', colors.pink],
-  ['Live class', '/teacher/course/1', 'videocam-outline', colors.pink],
+  ['Course management', '/teacher/manage', 'folder-open-outline', colors.lav],
+  ['Meetings', '/teacher/meetings', 'people-circle-outline', colors.sky],
   ['Review work', '/teacher/review', 'clipboard-outline', colors.sky],
   ['Assess Salah', '/teacher/assess', 'ribbon-outline', colors.mint],
   ['Leave', '/teacher/leave', 'calendar-outline', colors.lav],
@@ -103,6 +105,8 @@ export const ADMIN_MORE: MoreLink[] = [
   ['People & passwords', '/admin/people', 'key-outline', colors.butter],
   ['Admissions', '/admin/admissions', 'person-add-outline', colors.mint],
   ['Batches', '/admin/batches', 'people-outline', colors.sky],
+  ['Course management', '/admin/manage', 'folder-open-outline', colors.lav],
+  ['Meetings', '/admin/meetings', 'people-circle-outline', colors.mint],
   ['Courses', '/admin/courses', 'school-outline', colors.lav],
   ['Attendance', '/admin/attendance', 'stats-chart-outline', colors.butter],
   ['Bulk add', '/admin/bulk', 'cloud-upload-outline', colors.pink],
@@ -114,6 +118,7 @@ export const SUPER_MORE: MoreLink[] = [
   ['Shop · orders', '/super/shop', 'storefront-outline', colors.butter],
   ['Website', '/super/website', 'globe-outline', colors.mint],
   ['Users · Log in as', '/super/users', 'people-outline', colors.sky],
+  ['Course management', '/super/manage', 'folder-open-outline', colors.lav],
   ['Courses', '/super/courses', 'school-outline', colors.lav],
   ['Madrasa Support', '/super/madrasa', 'library-outline', colors.mint],
   ['Approvals', '/super/approvals', 'checkmark-done-outline', colors.mint],

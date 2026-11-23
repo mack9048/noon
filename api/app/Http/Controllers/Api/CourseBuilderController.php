@@ -70,6 +70,10 @@ class CourseBuilderController extends Controller
         return $course->toApp() + [
             'meet_url' => $course->meet_url, 'live_timezone' => $course->live_timezone,
             'live_slots' => $course->liveSlots->map(fn ($s) => $s->toApp())->values(),
+            'live_classes' => $course->liveClasses()->get()->map(fn ($c) => $c->toApp())->values(),
+            'manage_mode' => request()->attributes->get('manage_mode', 'full'),
+            'pending_count' => CourseLesson::where('course_id', $course->id)->where(fn ($q) => $q->whereNotNull('review_state')->orWhereNotNull('pending'))->count()
+                + CourseItem::where('course_id', $course->id)->whereNotNull('review_state')->count(),
             'live_upcoming' => $course->isLive() ? LiveSchedule::forApp(LiveSchedule::upcoming($course, 6)) : [],
             'tenant_ids' => $ids,
             'audience' => $course->visibility === 'madrasa' ? 'selected' : ($ids ? 'all' : 'guests'),
@@ -83,6 +87,7 @@ class CourseBuilderController extends Controller
     /** A course subject's thumbnail (helps children find their subject). */
     public function subjectThumbnail(Request $request, CourseSubject $subject)
     {
+        $this->adminOnly($request);
         $request->validate(['thumbnail' => ['nullable', 'file', 'max:2048', 'extensions:png,jpg,jpeg,webp,svg'], 'remove' => ['sometimes', 'boolean']]);
         $subject->thumbnail_path && Storage::disk('public')->delete($subject->thumbnail_path);
         $subject->update(['thumbnail_path' => $request->hasFile('thumbnail') ? $request->file('thumbnail')->store("courses/{$subject->course_id}/subjects", 'public') : null]);
@@ -142,6 +147,7 @@ class CourseBuilderController extends Controller
             'description' => $l->description,
             'duration' => $l->duration,
             'free_preview' => $l->free_preview,
+            'review_state' => $l->review_state, 'pending' => $l->pending,
             'items' => $l->items->map(fn (CourseItem $i) => self::itemData($i))->values(),
         ];
     }
@@ -161,13 +167,26 @@ class CourseBuilderController extends Controller
             'file_size' => $i->file_size,
             'starts_at' => $i->starts_at?->toIso8601String(),
             'done' => in_array($i->id, $done, true),
+            'review_state' => $i->review_state, 'replaces_id' => $i->replaces_id,
         ];
+    }
+
+    /** Course Management by a teacher: changes wait for the admin's approval. */
+    private function teacher(Request $request): bool
+    {
+        return $request->attributes->get('manage_mode') === 'review';
+    }
+
+    private function adminOnly(Request $request): void
+    {
+        abort_if($this->teacher($request), 403, 'Only the admin can change this. Ask your institution admin.');
     }
 
     /* ---------- Subjects ---------- */
 
     public function storeSubject(Request $request, Course $course)
     {
+        $this->adminOnly($request);
         $data = $request->validate(['title' => ['required', 'string', 'max:160']]);
         $s = $course->subjects()->create($data + ['position' => (int) $course->subjects()->max('position') + 1]);
 
@@ -176,14 +195,16 @@ class CourseBuilderController extends Controller
 
     public function updateSubject(Request $request, CourseSubject $subject)
     {
+        $this->adminOnly($request);
         $subject->update($request->validate(['title' => ['required', 'string', 'max:160']]));
 
         return ['id' => $subject->id, 'title' => $subject->title];
     }
 
     /** Deleting a subject keeps its lessons: they move to the course itself. */
-    public function destroySubject(CourseSubject $subject)
+    public function destroySubject(Request $request, CourseSubject $subject)
     {
+        $this->adminOnly($request);
         $subject->lessons()->update(['course_subject_id' => null]);
         $subject->delete();
 
@@ -213,7 +234,7 @@ class CourseBuilderController extends Controller
             'free_preview' => $data['free_preview'] ?? false,
             'course_subject_id' => $data['subject_id'] ?? null,
             'position' => (int) $course->lessons()->max('position') + 1,
-        ]);
+        ] + ($this->teacher($request) ? ['review_state' => 'new', 'submitted_by' => $request->user()->id] : []));
 
         return self::lessonData($lesson->load('items'));
     }
@@ -236,13 +257,24 @@ class CourseBuilderController extends Controller
             $data['course_subject_id'] = $data['subject_id'];
             unset($data['subject_id']);
         }
+        if ($this->teacher($request) && $lesson->review_state !== 'new') {
+            // A live lesson keeps showing until the admin approves the change.
+            $lesson->update(['pending' => array_merge($lesson->pending ?? [], $data), 'submitted_by' => $request->user()->id]);
+
+            return self::lessonData($lesson->load('items'));
+        }
         $lesson->update($data);
 
         return self::lessonData($lesson->load('items'));
     }
 
-    public function destroyLesson(CourseLesson $lesson)
+    public function destroyLesson(Request $request, CourseLesson $lesson)
     {
+        if ($this->teacher($request) && $lesson->review_state !== 'new') {
+            $lesson->update(['review_state' => 'delete', 'submitted_by' => $request->user()->id]);
+
+            return self::lessonData($lesson->load('items'));
+        }
         $lesson->items->each(fn (CourseItem $i) => $this->deleteFile($i));
         $lesson->delete();
 
@@ -252,6 +284,7 @@ class CourseBuilderController extends Controller
     /** New order of subjects and lessons (a lesson can also move to another subject). */
     public function reorder(Request $request, Course $course)
     {
+        $this->adminOnly($request);
         $data = $request->validate([
             'subjects' => ['sometimes', 'array', 'max:200'],
             'subjects.*' => ['integer'],
@@ -285,7 +318,7 @@ class CourseBuilderController extends Controller
         $item = $lesson->items()->create($data + [
             'course_id' => $lesson->course_id,
             'position' => (int) $lesson->items()->max('position') + 1,
-        ]);
+        ] + ($this->teacher($request) ? ['review_state' => 'new', 'submitted_by' => $request->user()->id] : []));
         $this->attachFile($request, $item);
 
         return self::itemData($item->fresh());
@@ -294,6 +327,19 @@ class CourseBuilderController extends Controller
     /** Update the title/link/note/date, or replace the file (multipart, so POST). */
     public function updateItem(Request $request, CourseItem $item)
     {
+        if ($this->teacher($request) && $item->review_state !== 'new') {
+            // Edit a copy; the live item stays until the admin approves the copy.
+            $copy = CourseItem::where('replaces_id', $item->id)->where('review_state', 'new')->first() ?? $item->replicate(['review_state', 'replaces_id', 'submitted_by']);
+            $copy->forceFill(['review_state' => 'new', 'replaces_id' => $item->id, 'submitted_by' => $request->user()->id]);
+            if (! $copy->exists && ($request->hasFile('file') || $request->filled('body'))) {
+                // New content: never touch the live item's files.
+                $copy->forceFill($item->kind === 'html' ? ['file_path' => null] : ['url' => null]);
+            }
+            $copy->fill($this->itemInput($request, $copy))->save();
+            $this->attachFile($request, $copy);
+
+            return self::itemData($copy->fresh());
+        }
         $item->update($this->itemInput($request, $item));
         $this->attachFile($request, $item);
 
@@ -302,6 +348,7 @@ class CourseBuilderController extends Controller
 
     public function reorderItems(Request $request, CourseLesson $lesson)
     {
+        $this->adminOnly($request);
         $data = $request->validate(['items' => ['required', 'array', 'max:500'], 'items.*' => ['integer']]);
         $ids = $lesson->items()->pluck('id')->all();
         DB::transaction(function () use ($data, $lesson, $ids) {
@@ -317,6 +364,7 @@ class CourseBuilderController extends Controller
     /** Move older content (added before lessons) into a lesson. */
     public function moveItem(Request $request, CourseItem $item)
     {
+        $this->adminOnly($request);
         $data = $request->validate(['lesson_id' => ['required', 'integer', Rule::exists('course_lessons', 'id')->where('course_id', $item->course_id)]]);
         $lesson = CourseLesson::findOrFail($data['lesson_id']);
         $item->update(['course_lesson_id' => $lesson->id, 'position' => (int) $lesson->items()->max('position') + 1]);
@@ -414,8 +462,18 @@ class CourseBuilderController extends Controller
         return $path;
     }
 
-    public function destroyItem(CourseItem $item)
+    public function destroyItem(Request $request, CourseItem $item)
     {
+        if ($this->teacher($request) && $item->review_state !== 'new') {
+            $item->update(['review_state' => 'delete', 'submitted_by' => $request->user()->id]);
+
+            return response()->noContent();
+        }
+        if ($item->review_state === 'new' && $item->replaces_id) {
+            $this->dropCopy($item);
+
+            return response()->noContent();
+        }
         $this->deleteFile($item);
         $this->deletePublicFile($item);
         $item->delete();
@@ -445,6 +503,112 @@ class CourseBuilderController extends Controller
         if ($item->url && str_starts_with($item->url, $prefix) && str_starts_with(substr($item->url, strlen($prefix)), "courses/{$item->course_id}/")) {
             Storage::disk('public')->delete(substr($item->url, strlen($prefix)));
         }
+    }
+
+    /* ---------- Teachers' changes waiting for approval ---------- */
+
+    /** GET: what is waiting in one course (or every course the approver looks after). */
+    public function reviews(Request $request)
+    {
+        $user = $request->user();
+        $courseId = $request->integer('course_id') ?: null;
+        $courses = Course::query()->when($courseId, fn ($q) => $q->whereKey($courseId))
+            ->when(! $user->hasRole('super'), fn ($q) => $user->hasRole('admin') ? $q->where('tenant_id', $user->tenant_id) : $q->where('teacher_id', $user->id))
+            ->pluck('title', 'id');
+        $who = fn ($id) => $id ? \App\Models\User::find($id)?->name : null;
+        $lessons = CourseLesson::whereIn('course_id', $courses->keys())->where(fn ($q) => $q->whereNotNull('review_state')->orWhereNotNull('pending'))->get()
+            ->map(fn (CourseLesson $l) => ['type' => 'lesson', 'id' => $l->id, 'course_id' => $l->course_id, 'course' => $courses[$l->course_id],
+                'change' => $l->review_state === 'new' ? 'new lesson' : ($l->review_state === 'delete' ? 'remove lesson' : 'edit lesson'),
+                'title' => $l->title, 'details' => $l->pending, 'by' => $who($l->submitted_by), 'when' => $l->updated_at?->toIso8601String()]);
+        $items = CourseItem::with('lesson')->whereIn('course_id', $courses->keys())->whereNotNull('review_state')->get()
+            ->map(fn (CourseItem $i) => ['type' => 'item', 'id' => $i->id, 'course_id' => $i->course_id, 'course' => $courses[$i->course_id],
+                'change' => $i->review_state === 'delete' ? 'remove content' : ($i->replaces_id ? 'edit content' : 'new content'),
+                'title' => $i->title, 'kind' => $i->kind, 'lesson' => $i->lesson?->title, 'item' => self::itemData($i), 'by' => $who($i->submitted_by), 'when' => $i->updated_at?->toIso8601String()]);
+
+        return $lessons->concat($items)->sortByDesc('when')->values();
+    }
+
+    /** POST {type: lesson|item, id, approve: bool} — or {course_id, approve: true} for everything in a course. */
+    public function decide(Request $request)
+    {
+        $data = $request->validate(['type' => ['required_without:course_id', 'in:lesson,item'], 'id' => ['required_without:course_id', 'integer'],
+            'course_id' => ['nullable', 'integer'], 'approve' => ['required', 'boolean']]);
+        $rows = isset($data['course_id'])
+            ? collect(CourseLesson::where('course_id', $data['course_id'])->where(fn ($q) => $q->whereNotNull('review_state')->orWhereNotNull('pending'))->get())
+                ->concat(CourseItem::where('course_id', $data['course_id'])->whereNotNull('review_state')->get())
+            : collect([$data['type'] === 'lesson' ? CourseLesson::findOrFail($data['id']) : CourseItem::findOrFail($data['id'])]);
+        foreach ($rows as $row) {
+            abort_unless(\App\Support\Review::canApprove($request->user(), Course::findOrFail($row->course_id)), 403);
+            DB::transaction(fn () => $row instanceof CourseLesson ? $this->decideLesson($row, $data['approve']) : $this->decideItem($row, $data['approve']));
+        }
+
+        return ['ok' => true, 'done' => $rows->count()];
+    }
+
+    private function decideLesson(CourseLesson $l, bool $ok): void
+    {
+        if ($l->review_state === 'new') {
+            $ok ? $l->update(['review_state' => null]) : $this->wipeLesson($l);
+        } elseif ($l->review_state === 'delete') {
+            $ok ? $this->wipeLesson($l) : $l->update(['review_state' => null]);
+        }
+        if ($l->exists && $l->pending) {
+            $l->update(($ok ? $l->pending : []) + ['pending' => null]);
+        }
+    }
+
+    private function wipeLesson(CourseLesson $l): void
+    {
+        CourseItem::where('course_lesson_id', $l->id)->get()->each(fn (CourseItem $i) => $this->dropItem($i));
+        $l->delete();
+    }
+
+    private function decideItem(CourseItem $i, bool $ok): void
+    {
+        if ($i->review_state === 'delete') {
+            $ok ? $this->dropItem($i) : $i->update(['review_state' => null]);
+
+            return;
+        }
+        if (! $ok) {
+            $i->replaces_id ? $this->dropCopy($i) : $this->dropItem($i);
+
+            return;
+        }
+        if ($i->replaces_id && ($old = CourseItem::find($i->replaces_id))) {
+            // The approved copy takes the old item's place; progress moves across.
+            DB::table('course_item_user')->where('course_item_id', $old->id)->whereNotIn('user_id', DB::table('course_item_user')->where('course_item_id', $i->id)->pluck('user_id'))
+                ->update(['course_item_id' => $i->id]);
+            if ($old->file_path && $old->file_path !== $i->file_path) {
+                $this->deleteFile($old);
+            }
+            if ($old->url !== $i->url) {
+                $this->deletePublicFile($old);
+            }
+            $i->forceFill(['course_lesson_id' => $old->course_lesson_id, 'position' => $old->position])->save();
+            $old->delete();
+        }
+        $i->update(['review_state' => null, 'replaces_id' => null]);
+    }
+
+    private function dropItem(CourseItem $i): void
+    {
+        $this->deleteFile($i);
+        $this->deletePublicFile($i);
+        $i->delete();
+    }
+
+    /** Throw away an edited copy without touching files the live item still uses. */
+    private function dropCopy(CourseItem $copy): void
+    {
+        $old = CourseItem::find($copy->replaces_id);
+        if ($copy->file_path && $copy->file_path !== $old?->file_path) {
+            $this->deleteFile($copy);
+        }
+        if ($copy->url !== $old?->url) {
+            $this->deletePublicFile($copy);
+        }
+        $copy->delete();
     }
 
     /* ---------- Opening HTML content (all roles) ---------- */
