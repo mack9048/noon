@@ -1,3 +1,3 @@
-import { AdminStudentsScreen } from '@/screens/admissionsPortal';
+import { StudentsDirectoryScreen } from '@/screens/people';
 
-export default AdminStudentsScreen;
+export default StudentsDirectoryScreen;

@@ -14,12 +14,53 @@ class StudentController extends Controller
     {
         $data = $request->validate(['q' => ['nullable', 'string', 'max:80'], 'class_id' => ['nullable', 'integer']]);
 
-        return User::query()->with(['schoolClass.board', 'parent'])
+        $rows = User::query()->with(['schoolClass.board', 'parent'])
             ->where('tenant_id', $request->user()->tenant_id)->where('role', 'student')
             ->when($data['class_id'] ?? null, fn ($q, $c) => $q->where('class_id', $c))
             ->when($data['q'] ?? null, fn ($q, $s) => $q->where(fn ($w) => $w->where('name', 'like', "%{$s}%")->orWhere('admission_no', 'like', "%{$s}%")))
-            ->orderBy('name')->limit(1000)->get()
-            ->map(fn (User $u) => $this->row($u));
+            ->orderBy('name')->limit(1000)->get();
+        $money = $this->money();
+        $batches = $this->batchNames();
+
+        return $rows->map(fn (User $u) => $this->row($u) + ($money[$u->id] ?? self::NO_FEES) + ['batch' => $batches[$u->id] ?? null]);
+    }
+
+    private const NO_FEES = ['fee_total' => 0.0, 'fee_paid' => 0.0, 'fee_due' => 0.0, 'fee_overdue' => 0.0, 'fee_status' => 'none'];
+
+    /** Fee totals per student (this institution): total, paid, due, overdue and a status for the list. */
+    private ?array $feeCache = null;
+
+    private function money(): array
+    {
+        if ($this->feeCache !== null) {
+            return $this->feeCache;
+        }
+        $today = now()->toDateString();
+        $cache = [];
+        foreach (\App\Models\Fee::where('status', '!=', 'waived')->get(['student_id', 'amount', 'paid_amount', 'status', 'due_date']) as $f) {
+            $r = $cache[$f->student_id] ??= self::NO_FEES;
+            $r['fee_total'] += (float) $f->amount;
+            if ($f->status === 'paid') {
+                $r['fee_paid'] += (float) ($f->paid_amount ?? $f->amount);
+            } else {
+                $r['fee_due'] += (float) $f->amount;
+                if ($f->due_date && $f->due_date->toDateString() < $today) {
+                    $r['fee_overdue'] += (float) $f->amount;
+                }
+            }
+            $r['fee_status'] = $r['fee_overdue'] > 0 ? 'overdue' : ($r['fee_due'] > 0 ? 'due' : 'paid');
+            $cache[$f->student_id] = $r;
+        }
+
+        return $this->feeCache = $cache;
+    }
+
+    /** First batch name of each student (shown as their class in the directory). */
+    private function batchNames(): array
+    {
+        return \Illuminate\Support\Facades\DB::table('batch_user')->join('batches', 'batches.id', '=', 'batch_user.batch_id')
+            ->where('batches.tenant_id', request()->user()->tenant_id)->orderBy('batches.name')->get(['batch_user.user_id', 'batches.name'])
+            ->groupBy('user_id')->map(fn ($g) => $g->pluck('name')->implode(', '))->all();
     }
 
     public function show(Request $request, int $id)
@@ -32,6 +73,30 @@ class StudentController extends Controller
             'batches' => $u->batches()->get(['batches.id', 'batches.name'])->map(fn ($b) => ['id' => $b->id, 'name' => $b->name]),
             'courses' => $u->courses()->get(['courses.id', 'courses.title'])->map(fn ($c) => ['id' => $c->id, 'title' => $c->title, 'progress' => (int) $c->pivot->progress]),
             'joined' => $u->created_at?->format('j M Y'),
+            'age' => $u->age,
+            // Payments tab: every fee of this student, oldest first, and the totals.
+            'fees' => \App\Models\Fee::with('student')->where('student_id', $u->id)->orderBy('due_date')->get()->map->toApp()->values(),
+            'fee_totals' => $this->money()[$u->id] ?? self::NO_FEES,
+        ];
+    }
+
+    /** GET /admin/teachers/{id}: a staff profile — contact, classes and subjects, and account history. */
+    public function showTeacher(Request $request, int $id)
+    {
+        $tid = $request->user()->tenant_id;
+        $u = User::where('tenant_id', $tid)->where('role', 'teacher')->findOrFail($id);
+        $batches = \App\Models\Batch::where('tenant_id', $tid)->withCount('students')->get()
+            ->filter(fn ($b) => $b->class_teacher_id === $u->id || in_array($u->id, array_map('intval', array_values($b->subject_teachers ?? [])), true));
+
+        return [
+            'id' => $u->id, 'name' => $u->name, 'phone' => $u->phone, 'email' => $u->email, 'blocked' => (bool) $u->blocked,
+            'joined' => $u->created_at?->toIso8601String(),
+            'classes' => $batches->map(fn ($b) => ['id' => $b->id, 'name' => $b->name, 'students' => (int) $b->students_count, 'class_teacher' => $b->class_teacher_id === $u->id,
+                'subjects' => collect($b->subject_teachers ?? [])->filter(fn ($t) => (int) $t === $u->id)->keys()->values()])->values(),
+            'students' => (int) $batches->sum('students_count'),
+            'live_classes' => \App\Models\LiveSession::where('created_by', $u->id)->count(),
+            'attendance_marked' => \App\Models\Attendance::where('marked_by', $u->id)->select('batch_id', 'date')->distinct()->get()->count(),
+            'courses' => \App\Models\Course::where('teacher_id', $u->id)->get(['id', 'title', 'status'])->map(fn ($c) => ['id' => $c->id, 'title' => $c->title, 'status' => $c->status])->values(),
         ];
     }
 

@@ -740,7 +740,7 @@ export function AdminTeachersRealScreen() {
       ) : (
         <View style={{ gap: 8 }}>
           {data.map((t, i) => (
-            <ListRow key={t.id} left={<Avatar name={t.name} size={44} tint={TINTS[i % 4]} />} title={t.name}
+            <ListRow key={t.id} onPress={() => router.push(`/admin/teachers/${t.id}` as any)} left={<Avatar name={t.name} size={44} tint={TINTS[i % 4]} />} title={t.name}
               sub={[t.subjects.length ? t.subjects.join(', ') : null, t.batches.length ? `${t.batches.length} batch${t.batches.length > 1 ? 'es' : ''}` : 'No batch yet', t.login].filter(Boolean).join(' · ')}
               right={t.blocked ? <Tag text="Blocked" tone="pink" /> : t.phone ? <SmallButton title="WhatsApp" onPress={() => wa(t.phone!, `Assalamu alaikum ${t.name},`)} /> : undefined} />
           ))}

@@ -190,6 +190,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::post('/students/{id}/courses', [StudentController::class, 'addCourse'])->whereNumber('id');
         Route::delete('/students/{id}/courses/{courseId}', [StudentController::class, 'removeCourse'])->whereNumber('id')->whereNumber('courseId');
         Route::get('/teachers', [StudentController::class, 'teachers']);
+        Route::get('/teachers/{id}', [StudentController::class, 'showTeacher'])->whereNumber('id');
         Route::post('/teachers', [StudentController::class, 'storeTeacher']);
         Route::get('/campaigns', [CampaignController::class, 'index']);
         Route::post('/campaigns', [CampaignController::class, 'store']);

@@ -41,4 +41,23 @@ class DashboardTest extends TestCase
         $this->actingAs($admin)->getJson('/api/me/board')->assertJsonPath('todos.0.text', 'Fee collection')->assertJsonPath('note', 'Call the printer');
         $this->actingAs($teacher)->getJson('/api/me/board')->assertJsonPath('note', '');
     }
+
+    public function test_student_directory_fee_totals_and_staff_profile(): void
+    {
+        $a = Tenant::create(['name' => 'A', 'code' => 'AAA111']);
+        $admin = User::create(['name' => 'Adm', 'email' => 'a@x.test', 'password' => 'secret123', 'role' => 'admin', 'tenant_id' => $a->id]);
+        $s1 = User::create(['name' => 'S1', 'email' => 's1@x.test', 'password' => 'secret123', 'role' => 'student', 'tenant_id' => $a->id]);
+        $t = User::create(['name' => 'Tea', 'email' => 't@x.test', 'password' => 'secret123', 'role' => 'teacher', 'tenant_id' => $a->id]);
+        app(TenantContext::class)->set($a);
+        Fee::create(['student_id' => $s1->id, 'title' => 'Term 1', 'month' => now()->format('Y-m'), 'amount' => 1500, 'due_date' => now()->subDays(3)->toDateString(), 'status' => 'due']);
+        Fee::create(['student_id' => $s1->id, 'title' => 'Term 2', 'month' => now()->format('Y-m'), 'amount' => 500, 'due_date' => now()->addDays(3)->toDateString(), 'status' => 'paid', 'paid_amount' => 500, 'paid_at' => now(), 'method' => 'cash']);
+        $b = \App\Models\Batch::create(['name' => 'Class 5 A', 'board' => 'AP', 'class_label' => '5', 'days' => [1, 3], 'start_time' => '16:30', 'class_teacher_id' => $t->id]);
+        $b->students()->attach($s1->id);
+        app(TenantContext::class)->set(null);
+
+        $this->actingAs($admin)->getJson('/api/admin/students')->assertOk()->assertJsonPath('0.fee_total', 2000)->assertJsonPath('0.fee_overdue', 1500)
+            ->assertJsonPath('0.fee_status', 'overdue')->assertJsonPath('0.batch', 'Class 5 A');
+        $this->actingAs($admin)->getJson("/api/admin/students/{$s1->id}")->assertOk()->assertJsonCount(2, 'fees')->assertJsonPath('fee_totals.fee_paid', 500);
+        $this->actingAs($admin)->getJson("/api/admin/teachers/{$t->id}")->assertOk()->assertJsonPath('classes.0.name', 'Class 5 A')->assertJsonPath('students', 1);
+    }
 }
