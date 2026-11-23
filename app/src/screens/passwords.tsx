@@ -91,7 +91,7 @@ export function SetPasswordModal({ person, scope, onClose }: { person: { id: num
           <T v="small">{person?.name}{person?.login ? ` · ${person.login}` : ''}. They will be signed out on all devices.</T>
           <PasswordInput label="New password" value={pw} onChange={setPw} placeholder="At least 8 characters" />
           <Pressable accessibilityRole="button" onPress={() => setPw(suggest())} style={{ alignSelf: 'flex-start' }}>
-            <T style={{ color: colors.violet, fontFamily: fonts.semibold }}>✨ Suggest a password</T>
+            <T style={{ color: colors.violet, fontFamily: fonts.semibold }}>Suggest a password</T>
           </Pressable>
           {msg ? <T style={{ color: msg.ok ? '#14945A' : colors.red }} selectable>{msg.text}</T> : null}
           <Row gap={10}>
@@ -132,7 +132,7 @@ export function AdminPeopleScreen() {
           {data.map((p, i) => (
             <ListRow key={p.id} left={<Avatar name={p.name} size={44} tint={tints[i % 4]} />} title={p.name}
               sub={[ROLE_LABEL[p.role], p.login, p.parent ? `Parent: ${p.parent.name}${p.parent.phone ? ` · ${p.parent.phone}` : ''}` : null, p.blocked ? 'Blocked' : null].filter(Boolean).join(' · ')}
-              right={<SmallButton title="🔑 Password" onPress={() => setPick(p)} />} />
+              right={<SmallButton title="Password" onPress={() => setPick(p)} />} />
           ))}
         </View>
       )}

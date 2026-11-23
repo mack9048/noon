@@ -55,7 +55,7 @@ export function SuperOverviewScreen() {
       </View>
       <Section title="Needs attention" />
       <View style={{ gap: 8 }}>
-        <ListRow left={<Glyph text="👤" size={44} tint={pastel.butter} />} title="Log in as a user" sub="See the app exactly as an admin, teacher, parent or student sees it" right={<SmallButton title="Users" filled tint={colors.ink} onPress={() => router.push('/super/users' as any)} />} />
+        <ListRow left={<Glyph text="U" size={44} tint={pastel.butter} />} title="Log in as a user" sub="See the app exactly as an admin, teacher, parent or student sees it" right={<SmallButton title="Users" filled tint={colors.ink} onPress={() => router.push('/super/users' as any)} />} />
         <ListRow left={<Glyph text="✓" size={44} tint={pastel.lav} />} title="3 items to review" sub="New games and an audio book" right={<SmallButton title="Review" filled tint={colors.ink} onPress={() => router.push('/super/content' as any)} />} />
       </View>
     </Screen>

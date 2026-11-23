@@ -144,7 +144,7 @@ function ChatThread({ id, embedded = false }: { id: number; embedded?: boolean }
           <View style={{ alignItems: 'center', gap: 8, marginBottom: 6 }}>
             <View style={{ backgroundColor: '#FFF', borderRadius: 12, paddingHorizontal: 12, height: 26, justifyContent: 'center' }}><T v="small" style={{ fontFamily: fonts.semibold }}>TODAY</T></View>
             <View style={{ backgroundColor: '#FFF4CC', borderRadius: 14, paddingHorizontal: 12, paddingVertical: 6, maxWidth: 320 }}>
-              <T v="small" style={{ textAlign: 'center', color: '#6A4D00' }}>🔒 Safe chat — only your institution's teachers, staff and parents can message you.</T>
+              <T v="small" style={{ textAlign: 'center', color: '#6A4D00' }}>Safe chat — only your institution's teachers, staff and parents can message you.</T>
             </View>
           </View>
         )}
@@ -159,7 +159,7 @@ function ChatThread({ id, embedded = false }: { id: number; embedded?: boolean }
         )}
       />
       <Row gap={6} style={{ paddingHorizontal: 10, paddingBottom: 6 }}>
-        {['JazakAllah khair', 'InshaAllah', 'Okay Ustad 👍'].map((q) => (
+        {['JazakAllah khair', 'InshaAllah', 'Okay Ustad'].map((q) => (
           <Pressable key={q} onPress={() => send(q)} style={{ borderRadius: 16, borderWidth: 1.5, borderColor: '#C9D7F0', backgroundColor: '#FFF', paddingHorizontal: 12, height: 32, justifyContent: 'center' }}><T v="small" style={{ color: colors.teal }}>{q}</T></Pressable>
         ))}
       </Row>
@@ -277,7 +277,7 @@ export function ComingSoon({ title }: { title: string }) {
     <Screen>
       <Header title={title} />
       <Card style={{ alignItems: 'center', gap: 8, paddingVertical: 40 }}>
-        <T style={{ fontSize: 40 }}>🛠️</T>
+        <Ionicons name="construct-outline" size={40} color={colors.muted} />
         <T v="h3">Coming soon</T>
         <T v="small">This screen is designed in the canvas — build it next.</T>
       </Card>

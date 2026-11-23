@@ -72,7 +72,7 @@ function UserList({ rows, showTenant }: { rows: UserRow[]; showTenant: boolean }
           title={u.name}
           sub={[ROLE_LABEL[u.role], u.login, u.parent ? `Parent: ${u.parent.name}${u.parent.phone ? ` · ${u.parent.phone}` : ''}` : null, showTenant ? u.tenant_name : null, u.blocked ? 'Blocked' : null].filter(Boolean).join(' · ')}
           right={<Row gap={6}>
-            <SmallButton title="🔑" onPress={() => setPick(u)} />
+            <SmallButton title="Password" onPress={() => setPick(u)} />
             <SmallButton title={busyId === u.id ? 'Opening…' : 'Log in as'} filled tint={colors.violet} disabled={busyId !== null || u.blocked} onPress={() => go(u)} />
           </Row>} />
       ))}

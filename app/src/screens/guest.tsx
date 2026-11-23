@@ -36,11 +36,11 @@ export function GuestHomeScreen() {
         <View style={{ flex: 1 }} />
         <Button title="Sign up" kind="ghost" onPress={() => router.push('/guest/unlock' as any)} style={{ height: 40 }} />
       </Row>
-      <T v="fun" style={{ marginTop: 8 }}>Assalamu alaikum! 👋</T>
+      <T v="fun" style={{ marginTop: 8 }}>Assalamu alaikum!</T>
       <T v="h2">Explore Noon Learn</T>
 
       <Card tint={colors.butter[0]} style={{ marginTop: 12, flexDirection: 'row', gap: 12, alignItems: 'center' }}>
-        <T style={{ fontSize: 30 }}>🎁</T>
+        <Ionicons name="gift-outline" size={30} color={colors.butter[1]} />
         <T style={{ flex: 1, color: colors.butter[1] }}><T style={{ fontFamily: fonts.semibold, color: colors.butter[1] }}>2 free demo lessons </T>in every subject of every class. Sign up or join your institution to unlock all.</T>
       </Card>
 
@@ -125,7 +125,7 @@ const DEMO_SUBJECTS: Record<string, string[]> = {
 function LockedCard({ text }: { text: string }) {
   return (
     <Card tint={colors.ink} style={{ marginTop: 12, gap: 8 }}>
-      <T v="h3" style={{ color: '#FFF' }}>🔒 This lesson is locked</T>
+      <Row gap={8}><Ionicons name="lock-closed" size={18} color="#FFF" /><T v="h3" style={{ color: '#FFF' }}>This lesson is locked</T></Row>
       <T style={{ color: '#D9E6EA' }}>{text}</T>
       <Row gap={10}>
         <View style={{ flex: 1 }}><Button title="Unlock all lessons" kind="yellow" onPress={() => router.push('/guest/unlock' as any)} /></View>
@@ -240,9 +240,9 @@ export function UnlockScreen() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const options = [
-    ['code', '🕌', colors.sky[0], 'Join my institution', 'Enter the code from your institution office'],
-    ['plan', '⭐', colors.butter[0], 'Subscribe to Noon Learn', 'Learn on your own — all classes and courses'],
-    ['login', '🔑', colors.lav[0], 'I already have an account', 'Log in to your institution account'],
+    ['code', 'business-outline', colors.sky[0], 'Join my institution', 'Enter the code from your institution office'],
+    ['plan', 'star-outline', colors.butter[0], 'Subscribe to Noon Learn', 'Learn on your own — all classes and courses'],
+    ['login', 'key-outline', colors.lav[0], 'I already have an account', 'Log in to your institution account'],
   ] as const;
   const go = async () => {
     setErr(null);
@@ -269,7 +269,7 @@ export function UnlockScreen() {
         {options.map(([k, icon, bg, title, desc]) => (
           <Pressable key={k} accessibilityRole="radio" accessibilityState={{ checked: opt === k }} onPress={() => setOpt(k)}
             style={{ backgroundColor: '#FFF', borderRadius: 24, borderWidth: 2, borderColor: opt === k ? colors.violet : 'transparent', padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <View style={{ width: 48, height: 48, borderRadius: 16, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }}><T style={{ fontSize: 22 }}>{icon}</T></View>
+            <View style={{ width: 48, height: 48, borderRadius: 16, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }}><Ionicons name={icon} size={24} color={colors.ink} /></View>
             <View style={{ flex: 1 }}><T v="h3">{title}</T><T v="small">{desc}</T></View>
             <Ionicons name={opt === k ? 'checkmark-circle' : 'ellipse-outline'} size={24} color={opt === k ? colors.violet : colors.line} />
           </Pressable>

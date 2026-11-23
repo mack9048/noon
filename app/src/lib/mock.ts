@@ -61,7 +61,7 @@ const conversations: Conversation[] = [
   { id: 3, title: 'Noon Learn office', kind: 'office', role_label: 'Admin', last_message: 'Classes are off on Friday.', last_at: '3:58 PM', unread: 0 },
 ];
 const messages: Message[] = [
-  { id: 1, conversation_id: 1, mine: false, sender_name: 'Ustad Ahmed', kind: 'text', body: 'Assalamu alaikum 🌙', created_at: '4:02 PM' },
+  { id: 1, conversation_id: 1, mine: false, sender_name: 'Ustad Ahmed', kind: 'text', body: 'Assalamu alaikum', created_at: '4:02 PM' },
   { id: 2, conversation_id: 1, mine: true, sender_name: 'Me', kind: 'text', body: 'Wa alaikum assalam Ustad', created_at: '4:03 PM', seen: true },
   { id: 3, conversation_id: 1, mine: false, sender_name: 'Ustad Ahmed', kind: 'file', body: 'Worksheet 7 – Harakath.pdf', created_at: '4:04 PM' },
   { id: 4, conversation_id: 1, mine: false, sender_name: 'Ustad Ahmed', kind: 'text', body: 'Fatha — the mark is on top. MashaAllah!', created_at: '4:23 PM' },

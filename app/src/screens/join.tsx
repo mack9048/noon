@@ -50,7 +50,7 @@ export function JoinScreen() {
   return (
     <Screen bottomSpace={40}>
       <View style={{ maxWidth: 640, width: '100%', alignSelf: 'center', gap: 14 }}>
-        <Header title="Hi! Let's start learning 👋" subtitle="Tell us who is learning" />
+        <Header title="Hi! Let's start learning" subtitle="Tell us who is learning" />
         <Card style={{ gap: 12 }}>
           <Field label="Student name" value={name} onChangeText={setName} placeholder="eg. Hamdan" />
           <Row gap={10}>
@@ -62,7 +62,7 @@ export function JoinScreen() {
           ) : null}
         </Card>
         {err ? <T style={{ color: colors.red, textAlign: 'center' }}>{err}</T> : null}
-        <Button title="Start learning 🚀" kind="yellow" loading={busy} disabled={needOtp && otp.length !== 6} onPress={finish} />
+        <Button title="Lets learn" icon="arrow-forward" kind="yellow" loading={busy} disabled={needOtp && otp.length !== 6} onPress={finish} />
       </View>
     </Screen>
   );
