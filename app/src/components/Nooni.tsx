@@ -108,6 +108,7 @@ export function NooniChat({ onClose }: { onClose?: () => void }) {
   const [talking, setTalking] = useState(false);
   const [voiceOn, setVoiceOn] = useState(canSpeak);
   const [err, setErr] = useState('');
+  const [tips, setTips] = useState<string[]>([]);
   const rec = useRef<any>(null);
   const scroll = useRef<ScrollView>(null);
   const setLang = (l: NooniLang) => { setLangState(l); saveLang(l); };
@@ -117,12 +118,13 @@ export function NooniChat({ onClose }: { onClose?: () => void }) {
   const send = async (text: string) => {
     const q = text.trim();
     if (!q || busy || !user) return;
-    setErr(''); setDraft(''); setHeard('');
+    setErr(''); setDraft(''); setHeard(''); setTips([]);
     const next: NooniMsg[] = [...msgs, { role: 'user', content: q }];
     setMsgs(next); setBusy(true);
     try {
       const r = await askNooni(user.role, next, lang, path);
       setMsgs([...next, { role: 'assistant', content: r.reply }]);
+      setTips(r.suggestions);
       if (voiceOn) { setTalking(true); speak(r.reply, lang, () => setTalking(false)); }
       if (r.href) setTimeout(() => { onClose?.(); router.push(r.href as any); }, voiceOn ? 1200 : 400);
     } catch (e) {
@@ -196,6 +198,16 @@ export function NooniChat({ onClose }: { onClose?: () => void }) {
             ) : null}
           </View>
         ))}
+        {tips.length && !busy ? (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingLeft: 38 }}>
+            {tips.map((q) => (
+              <Pressable key={q} accessibilityRole="button" accessibilityLabel={`Ask: ${q}`} onPress={() => send(q)}
+                style={{ borderRadius: 16, borderWidth: 1.5, borderColor: NOONI.teal, backgroundColor: '#FFF', paddingHorizontal: 12, paddingVertical: 7 }}>
+                <T style={{ color: NOONI.deep, fontSize: 13, fontFamily: fonts.medium }}>{q}</T>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
         {busy ? <Row gap={8} style={{ alignSelf: 'flex-start' }}><NooniAvatar size={30} mood="thinking" /><View style={{ backgroundColor: '#FFF', borderRadius: 18, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1, borderColor: colors.line }}><T style={{ color: colors.muted }}>Nooni is thinking…</T></View></Row> : null}
         {!msgs.length ? (
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>

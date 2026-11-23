@@ -56,8 +56,9 @@ class NooniTest extends TestCase
         $s = $this->member($t, 'student');
         $ask = fn () => $this->as($s)->postJson('/api/nooni', ['messages' => [['role' => 'user', 'content' => 'Salam']]]);
 
+        // Without the AI key Nooni answers from the free question list.
         $this->fakeBrain(['reply' => 'x', 'open' => null], configured: false);
-        $ask()->assertStatus(503);
+        $ask()->assertOk()->assertJsonPath('free', true)->assertJsonPath('reply', 'Wa alaikum assalam! I am Nooni. What shall we do today?');
 
         $this->fakeBrain(['reply' => 'Wa alaikum salam', 'open' => null]);
         $this->as($s)->postJson('/api/nooni', ['messages' => [['role' => 'user', 'content' => 'x']], 'screens' => [['key' => 'Bad Key!', 'label' => 'x']]])->assertUnprocessable();
@@ -67,11 +68,35 @@ class NooniTest extends TestCase
         config(['services.anthropic.daily_limit' => 2]);
         $ask()->assertOk();
         $ask()->assertOk();
-        $this->assertSame(429, $ask()->status());
+        // AI questions used up for today: free answers keep working.
+        $ask()->assertOk()->assertJsonPath('free', true);
 
-        // AI failure is a friendly 503, and guests can use Nooni too.
+        // AI failure falls back to free answers, and guests can use Nooni too.
         $this->fakeBrain(null);
         $g = User::create(['name' => 'G', 'email' => 'g@x.test', 'password' => 'secret123', 'role' => 'guest']);
-        $this->as($g)->postJson('/api/nooni', ['messages' => [['role' => 'user', 'content' => 'Hi']]])->assertStatus(503);
+        $this->as($g)->postJson('/api/nooni', ['messages' => [['role' => 'user', 'content' => 'Hi']]])->assertOk()->assertJsonPath('free', true);
+    }
+
+    public function test_free_mode_answers_from_the_list_and_super_admin_edits_it(): void
+    {
+        $t = $this->madrasa('NOON01');
+        $s = $this->member($t, 'student');
+        $boss = User::create(['name' => 'Boss', 'email' => 'b@x.test', 'password' => 'secret123', 'role' => 'super']);
+        $this->fakeBrain(['reply' => 'AI answer', 'open' => null]);
+        $this->as($s)->getJson('/api/super/nooni')->assertForbidden();
+        $this->as($boss)->putJson('/api/super/nooni/mode', ['mode' => 'free'])->assertOk()->assertJsonPath('mode', 'free');
+        $ask = fn ($q, $lang = 'en') => $this->as($s)->postJson('/api/nooni', ['messages' => [['role' => 'user', 'content' => $q]], 'lang' => $lang, 'screens' => [['key' => 'fees', 'label' => 'Fees'], ['key' => 'live', 'label' => 'Live classes']]]);
+
+        $ask('where can I pay my fees')->assertOk()->assertJsonPath('open', 'fees')->assertJsonPath('reply', 'Your fees are in Fees. You can see what is due and what is paid.');
+        $ask('ഫീസ് എവിടെ', 'ml')->assertOk()->assertJsonPath('open', 'fees')->assertJsonPath('reply', 'ഫീസ് വിവരങ്ങൾ Fees-ൽ ഉണ്ട്. അടയ്ക്കാനുള്ളതും അടച്ചതും കാണാം.');
+        $ask('tell me about dinosaurs')->assertOk()->assertJsonPath('open', null)->assertJsonCount(4, 'suggestions');
+
+        // The super admin adds a question; it works straight away.
+        $this->as($boss)->postJson('/api/super/nooni/faqs', ['question' => 'When is the Eid holiday?', 'keywords' => 'eid, holiday, പെരുന്നാൾ', 'answer' => 'The madrasa is closed for three days for Eid.'])->assertOk();
+        $ask('eid holiday')->assertOk()->assertJsonPath('reply', 'The madrasa is closed for three days for Eid.');
+
+        // AI mode uses the AI again.
+        $this->as($boss)->putJson('/api/super/nooni/mode', ['mode' => 'ai'])->assertOk();
+        $ask('where can I pay my fees')->assertOk()->assertJsonPath('reply', 'AI answer');
     }
 }

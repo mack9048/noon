@@ -123,6 +123,7 @@ export const SUPER_MORE: MoreLink[] = [
   ['Course management', '/super/manage', 'folder-open-outline', colors.lav],
   ['Courses', '/super/courses', 'school-outline', colors.lav],
   ['Madrasa Support', '/super/madrasa', 'library-outline', colors.mint],
+  ['Nooni', '/super/nooni', 'chatbubble-ellipses-outline', colors.sky],
   ['Approvals', '/super/approvals', 'checkmark-done-outline', colors.mint],
   ['Games', '/super/games', 'game-controller-outline', colors.pink],
   ['Study tools', '/super/tools', 'document-text-outline', colors.butter],
@@ -134,7 +135,7 @@ export const SUPER_MORE: MoreLink[] = [
 const DESC: Record<string, string> = {
   'Shop · orders': 'Products, orders, payments', Shop: 'Books, charts and more', Website: 'Pages, pictures, publish',
   'Users · Log in as': 'Everyone, open their app', 'Course management': 'Lessons, content, approvals', Courses: 'All courses and status',
-  'Madrasa Support': 'Boards, classes, subjects', Approvals: 'Courses from institutions', Games: 'Upload and arrange games',
+  'Madrasa Support': 'Boards, classes, subjects', Nooni: 'AI or free mode, answers', Approvals: 'Courses from institutions', Games: 'Upload and arrange games',
   'Study tools': 'Charts, adkar, slides, audio', Profile: 'Your details', Settings: 'App and account settings',
   Meetings: 'Meet everyone together', 'Live classes': 'Times and links', 'People & passwords': 'Logins and resets',
   Admissions: 'Enquiries and applications', Batches: 'Groups and timetables', Attendance: 'Daily marks and reports',
@@ -150,7 +151,7 @@ const GROUPS: { key: string; title: string; icon: keyof typeof Ionicons.glyphMap
   { key: 'account', title: 'Account', icon: 'person-circle-outline' },
 ];
 const GROUP_OF: Record<string, string> = {
-  'Course management': 'learn', Courses: 'learn', 'Madrasa Support': 'learn', Approvals: 'learn', Games: 'learn', 'Study tools': 'learn',
+  'Course management': 'learn', Courses: 'learn', Nooni: 'learn', 'Madrasa Support': 'learn', Approvals: 'learn', Games: 'learn', 'Study tools': 'learn',
   'Live classes': 'learn', Meetings: 'learn', 'Review work': 'learn', 'Assess Salah': 'learn', 'Audio Book': 'learn',
   'Users · Log in as': 'people', 'People & passwords': 'people', Admissions: 'people', Batches: 'people', 'Bulk add': 'people',
   Attendance: 'people', Leave: 'people', Fees: 'people',

@@ -297,6 +297,11 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::post('/courses/{course}/logo', [CourseRequestController::class, 'logo']);
         Route::post('/courses/{course}/thumbnail', [CourseRequestController::class, 'thumbnail']);
         Route::get('/dashboard', [DashboardController::class, 'super']);
+        Route::get('/nooni', [NooniController::class, 'adminIndex']);
+        Route::put('/nooni/mode', [NooniController::class, 'setMode']);
+        Route::post('/nooni/faqs', [NooniController::class, 'storeFaq']);
+        Route::put('/nooni/faqs/{faq}', [NooniController::class, 'updateFaq']);
+        Route::delete('/nooni/faqs/{faq}', [NooniController::class, 'destroyFaq']);
         Route::get('/approvals', [CourseRequestController::class, 'index']);
         Route::patch('/approvals/{course}', [CourseRequestController::class, 'decide']);
 

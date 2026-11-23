@@ -10,8 +10,8 @@ type Screen = { key: string; label: string; href: string };
 const S = (key: string, label: string, href: string): Screen => ({ key, label, href });
 
 const STUDENT: Screen[] = [
-  S('home', 'Campus (home)', '/student'), S('classroom', 'Classroom', '/student/classroom'), S('courses', 'Our Courses (Madrasa Support and Noon Courses)', '/student/courses'),
-  S('madrasa-support', 'Madrasa Support (board, class, subjects)', '/student/support'), S('live', 'Live classes', '/student/live'),
+  S('home', 'Campus (home)', '/student'), S('classroom', 'Classroom', '/student/classroom'), S('courses', 'Our Courses (all courses)', '/student/courses'),
+  S('madrasa-support', 'Madrasa Support (board, class)', '/student/support'), S('live', 'Live classes', '/student/live'),
   S('games', 'Games', '/student/games'), S('quran', 'Quran', '/student/quran'), S('tools', 'Study tools', '/student/tools'),
   S('noon-buds', 'Noon Buds (age 4–6)', '/student/noon-buds'), S('attendance', 'Attendance', '/student/attendance'), S('fees', 'Fees', '/student/fees'),
   S('performance', 'Marks and performance', '/student/performance'), S('leave', 'Leave request', '/student/leave'), S('chat', 'Chat', '/student/chat'),
@@ -23,8 +23,8 @@ export const NOONI_SCREENS: Record<Role, Screen[]> = {
   parent: STUDENT,
   guest: [
     S('home', 'Home', '/guest'), S('madrasa-support', 'Madrasa Support', '/guest/support'),
-    S('courses', 'Our Courses (Madrasa Support and Noon Courses)', '/guest/courses'), S('games', 'Games', '/guest/games'), S('quran', 'Quran', '/guest/quran'),
-    S('tools', 'Study tools', '/guest/tools'), S('unlock', 'Unlock / subscribe / join an institution', '/guest/unlock'),
+    S('courses', 'Our Courses (all courses)', '/guest/courses'), S('games', 'Games', '/guest/games'), S('quran', 'Quran', '/guest/quran'),
+    S('tools', 'Study tools', '/guest/tools'), S('unlock', 'Unlock or join an institution', '/guest/unlock'),
   ],
   teacher: [
     S('home', 'Home', '/teacher'), S('classes', 'My classes', '/teacher/classes'), S('attendance', 'Attendance', '/teacher/attendance'),
@@ -52,13 +52,13 @@ export const setNooniContext = (c: Ctx) => { current = c; };
 
 export async function askNooni(role: Role, messages: NooniMsg[], lang: NooniLang, screen: string) {
   const screens = NOONI_SCREENS[role] ?? [];
-  const r = await api.post<{ reply: string; open: string | null }>('/nooni', {
+  const r = await api.post<{ reply: string; open: string | null; free?: boolean; suggestions?: string[] }>('/nooni', {
     messages: messages.slice(-12),
     lang,
     screens: screens.map(({ key, label }) => ({ key, label })),
     context: { ...current, screen },
   });
-  return { reply: r.reply, href: r.open ? screens.find((s) => s.key === r.open)?.href ?? null : null };
+  return { reply: r.reply, href: r.open ? screens.find((s) => s.key === r.open)?.href ?? null : null, suggestions: r.suggestions ?? [] };
 }
 
 export const SPEECH_LANG: Record<NooniLang, string> = { ml: 'ml-IN', en: 'en-IN', ar: 'ar-SA' };

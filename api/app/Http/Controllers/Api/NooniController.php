@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Services\NooniBrain;
+use App\Services\NooniFree;
+use App\Support\AppSetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
@@ -12,7 +14,20 @@ class NooniController extends Controller
 {
     private const LANGS = ['ml' => 'Malayalam', 'en' => 'English', 'ar' => 'Arabic'];
 
-    public function ask(Request $request, NooniBrain $brain)
+    /** A free-mode answer (no AI). Unknown questions get a gentle reply and a few questions to tap. */
+    private function free(NooniFree $free, string $question, string $role, ?string $lang, array $screens): array
+    {
+        $f = $free->match($question, $role);
+        $ml = $lang === 'ml';
+        if (! $f) {
+            return ['reply' => $ml ? 'ക്ഷമിക്കണം, എനിക്ക് അത് മനസ്സിലായില്ല. താഴെയുള്ള ഒരു ചോദ്യം തിരഞ്ഞെടുക്കൂ.' : "Sorry, I didn't understand that. Try one of these questions.",
+                'open' => null, 'free' => true, 'suggestions' => $free->suggestions($role)];
+        }
+
+        return ['reply' => $ml && $f->answer_ml ? $f->answer_ml : $f->answer, 'open' => $f->open && in_array($f->open, $screens, true) ? $f->open : null, 'free' => true, 'suggestions' => []];
+    }
+
+    public function ask(Request $request, NooniBrain $brain, NooniFree $free)
     {
         $data = $request->validate([
             'messages' => ['required', 'array', 'min:1', 'max:12'],
@@ -21,7 +36,7 @@ class NooniController extends Controller
             'lang' => ['nullable', 'in:ml,en,ar'],
             'screens' => ['nullable', 'array', 'max:24'],
             'screens.*.key' => ['required', 'string', 'regex:/^[a-z][a-z0-9-]{0,23}$/'],
-            'screens.*.label' => ['required', 'string', 'max:40'],
+            'screens.*.label' => ['required', 'string', 'max:80'],
             'context' => ['nullable', 'array'],
             'context.course' => ['nullable', 'string', 'max:160'],
             'context.lesson' => ['nullable', 'string', 'max:160'],
@@ -36,17 +51,25 @@ class NooniController extends Controller
         }
         abort_unless($messages && end($messages)['role'] === 'user', 422, 'Ask Nooni a question.');
 
-        if (! $brain->configured()) {
-            return response()->json(['message' => 'Nooni is not switched on yet. Please try again later.'], 503);
+        $screens = collect($data['screens'] ?? [])->unique('key')->values();
+        $question = (string) end($messages)['content'];
+        $freeAnswer = fn () => $this->free($free, $question, $user->role, $data['lang'] ?? null, $screens->pluck('key')->all());
+        // Mode (super admin → Nooni): ai, free (no AI at all), or auto (AI when it is set up).
+        $mode = AppSetting::get('nooni_mode', 'auto');
+        if ($mode === 'free' || ! $brain->configured()) {
+            return $freeAnswer();
+        }
+        // In auto mode a question that matches the list well is answered for free too.
+        if ($mode === 'auto' && $free->match($question, $user->role, 2) && count(NooniFree::words($question)) <= 6) {
+            return $freeAnswer();
         }
         $key = "nooni:{$user->id}:".now()->toDateString();
         $limit = (int) config('services.anthropic.daily_limit');
         if ((int) Cache::get($key, 0) >= $limit) {
-            return response()->json(['message' => "You have asked Nooni {$limit} questions today. Come back tomorrow, in sha Allah!"], 429);
+            return $freeAnswer(); // AI questions for today are used up: free answers still work
         }
         Cache::put($key, (int) Cache::get($key, 0) + 1, now()->endOfDay());
 
-        $screens = collect($data['screens'] ?? [])->unique('key')->values();
         $ctx = $data['context'] ?? [];
         $about = implode("\n", array_filter([
             "The user is {$user->name}, role: ".($user->role === 'guest' ? 'guest exploring the free app' : $user->role).'.',
@@ -61,9 +84,56 @@ class NooniController extends Controller
 
         $answer = $brain->answer($about, array_map(fn ($m) => ['role' => $m['role'], 'content' => $m['content']], $messages), $screens->pluck('key')->all());
         if (! $answer) {
-            return response()->json(['message' => 'Nooni could not answer right now. Please try again.'], 503);
+            return $freeAnswer();
         }
 
         return $answer;
+    }
+
+    /* ---------- Super admin: mode and the question list ---------- */
+
+    public function adminIndex(NooniBrain $brain)
+    {
+        return ['mode' => AppSetting::get('nooni_mode', 'auto'), 'ai_ready' => $brain->configured(),
+            'faqs' => \App\Models\NooniFaq::orderBy('position')->orderBy('id')->get()];
+    }
+
+    public function setMode(Request $request, NooniBrain $brain)
+    {
+        AppSetting::set('nooni_mode', $request->validate(['mode' => ['required', 'in:ai,free,auto']])['mode']);
+
+        return $this->adminIndex($brain);
+    }
+
+    private function faqRules(bool $partial): array
+    {
+        $r = $partial ? 'sometimes' : 'required';
+
+        return [
+            'audience' => ['sometimes', 'in:'.implode(',', \App\Models\NooniFaq::AUDIENCES)], 'question' => [$r, 'string', 'max:200'],
+            'keywords' => ['nullable', 'string', 'max:300'], 'answer' => [$r, 'string', 'max:2000'], 'answer_ml' => ['nullable', 'string', 'max:2000'],
+            'open' => ['nullable', 'string', 'regex:/^[a-z][a-z0-9-]{0,23}$/'], 'active' => ['sometimes', 'boolean'],
+        ];
+    }
+
+    public function storeFaq(Request $request, NooniBrain $brain)
+    {
+        \App\Models\NooniFaq::create($request->validate($this->faqRules(false)) + ['position' => (int) \App\Models\NooniFaq::max('position') + 1]);
+
+        return $this->adminIndex($brain);
+    }
+
+    public function updateFaq(Request $request, \App\Models\NooniFaq $faq, NooniBrain $brain)
+    {
+        $faq->update($request->validate($this->faqRules(true)));
+
+        return $this->adminIndex($brain);
+    }
+
+    public function destroyFaq(\App\Models\NooniFaq $faq, NooniBrain $brain)
+    {
+        $faq->delete();
+
+        return $this->adminIndex($brain);
     }
 }
