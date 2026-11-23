@@ -163,6 +163,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::post('/teacher/courses/{course}/items', [CourseController::class, 'teacherAddItem']);
         Route::post('/staff/assessments', [LearnController::class, 'store']);
         Route::get('/staff/batches', [LiveSessionController::class, 'batches']);
+        Route::get('/staff/classes', [StudentController::class, 'myClasses']);
+        Route::get('/staff/classes/{id}', [StudentController::class, 'myClass'])->whereNumber('id');
         Route::get('/staff/dashboard', [DashboardController::class, 'teacher']);
         Route::get('/staff/attendance', [AttendanceController::class, 'sheet']);
         Route::post('/staff/attendance', [AttendanceController::class, 'save']);

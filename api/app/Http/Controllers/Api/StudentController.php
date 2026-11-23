@@ -100,6 +100,42 @@ class StudentController extends Controller
         ];
     }
 
+    /** Batches a teacher teaches (class teacher, or teaches a subject). Admins see every batch. */
+    private function myBatches(User $u)
+    {
+        return \App\Models\Batch::where('tenant_id', $u->tenant_id)->withCount('students')->orderBy('name')->get()
+            ->filter(fn ($b) => $u->role === 'admin' || $b->class_teacher_id === $u->id || in_array($u->id, array_map('intval', array_values($b->subject_teachers ?? [])), true))->values();
+    }
+
+    /** GET /staff/classes — the signed-in teacher's own classes. */
+    public function myClasses(Request $request)
+    {
+        $u = $request->user();
+
+        return $this->myBatches($u)->map(fn ($b) => [
+            'id' => $b->id, 'name' => $b->name, 'board' => $b->board, 'class_label' => $b->class_label,
+            'days' => $b->days ?? [], 'start_time' => $b->start_time, 'students' => (int) $b->students_count,
+            'class_teacher' => $b->class_teacher_id === $u->id,
+            'subjects' => collect($b->subject_teachers ?? [])->filter(fn ($t) => $u->role === 'admin' || (int) $t === $u->id)->keys()->values(),
+        ]);
+    }
+
+    /** GET /staff/classes/{id} — one of the teacher's classes, with its students and subject teachers. */
+    public function myClass(Request $request, int $id)
+    {
+        $u = $request->user();
+        $b = $this->myBatches($u)->firstWhere('id', $id);
+        abort_unless($b, 404);
+        $teachers = User::where('tenant_id', $u->tenant_id)->whereIn('id', array_merge([(int) $b->class_teacher_id], array_map('intval', array_values($b->subject_teachers ?? []))))->pluck('name', 'id');
+
+        return [
+            'id' => $b->id, 'name' => $b->name, 'board' => $b->board, 'class_label' => $b->class_label, 'days' => $b->days ?? [], 'start_time' => $b->start_time,
+            'class_teacher' => $b->class_teacher_id === $u->id, 'class_teacher_name' => $teachers[$b->class_teacher_id] ?? null,
+            'subjects' => collect($b->subject_teachers ?? [])->map(fn ($t, $s) => ['name' => $s, 'teacher' => $teachers[(int) $t] ?? null, 'mine' => (int) $t === $u->id])->values(),
+            'students' => $b->students()->orderBy('name')->get(['users.id', 'users.name', 'users.admission_no'])->map(fn ($s) => ['id' => $s->id, 'name' => $s->name, 'admission_no' => $s->admission_no])->values(),
+        ];
+    }
+
     /** POST /admin/students — admit one student by hand. */
     public function store(Request $request, Enrolment $enrolment)
     {

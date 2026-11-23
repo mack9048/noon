@@ -1,5 +1,6 @@
 // Play Land (games hub), Ayah Puzzle game and Noon Buds (kids club).
 import React, { useState } from 'react';
+import { splitName } from '@/lib/profile';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -91,7 +92,7 @@ export function NoonBudsScreen() {
       </Row>
       <Row gap={12} style={{ marginTop: 8 }}>
         <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#FFC93C', alignItems: 'center', justifyContent: 'center' }}><Ionicons name="person-outline" size={30} color="#2A1600" /></View>
-        <View><T v="small">Assalamu alaikum,</T><Text style={{ fontFamily: fonts.fun, fontSize: 28, color: colors.ink }}>{user?.name ?? 'Zayan'}!</Text></View>
+        <View><T v="small">Assalamu alaikum,</T><Text style={{ fontFamily: fonts.fun, fontSize: 28, color: colors.ink }}>{splitName(user?.name).first}!</Text></View>
       </Row>
 
       <LinearGradient colors={['#14945A', '#4ED68A']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ marginTop: 14, borderRadius: 28, padding: 18, overflow: 'hidden', borderBottomWidth: 6, borderBottomColor: '#0E6B40' }}>

@@ -35,42 +35,59 @@ function useClassSubjects(label: string) {
   return subjects.data ?? [];
 }
 
-/* ---------- My classes ---------- */
+/* ---------- My classes (the signed-in teacher's own batches) ---------- */
+type MyClass = { id: number; name: string; board: string | null; class_label: string | null; days: string[]; start_time: string | null; students: number; class_teacher: boolean; subjects: string[] };
+type MyClassDetail = Omit<MyClass, 'students' | 'subjects'> & { class_teacher_name: string | null; subjects: { name: string; teacher: string | null; mine: boolean }[]; students: { id: number; name: string; admission_no: string | null }[] };
+const GRADS: [string, string][] = [['#5B43E0', '#9B7BE8'], ['#0B5166', '#1F8AA8'], ['#14945A', '#4ED68A'], ['#FF9A3D', '#FF5E7E']];
+const TINTS = [colors.lav, colors.sky, colors.mint, colors.pink, colors.butter];
+const initialsOf = (n: string) => n.split(/\s+/).map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
+const when = (c: { days: string[]; start_time: string | null }) => [c.days.join(', '), c.start_time?.slice(0, 5)].filter(Boolean).join(' · ');
+
 export function TeacherClassesScreen() {
+  const { user } = useAuth();
+  const { data, loading } = useApi<MyClass[]>('/staff/classes');
+  const list = data ?? [];
+  const subjects = Array.from(new Set(list.flatMap((c) => c.subjects)));
   const [f, setF] = useState('All');
-  const list = CLASSES.filter((c) => f === 'All' || (c.subjects as readonly string[]).includes(f));
+  const shown = list.filter((c) => f === 'All' || c.subjects.includes(f));
+  const name = user?.name ?? '';
   return (
     <Screen>
       <Row style={{ justifyContent: 'space-between' }}>
-        <View><T v="h1">My classes</T><T v="small">Ustad Ahmed · 4 classes · 3 subjects</T></View>
+        <View style={{ flex: 1 }}><T v="h1">My classes</T><T v="small">{[name, `${list.length} class${list.length === 1 ? '' : 'es'}`, subjects.length ? `${subjects.length} subject${subjects.length === 1 ? '' : 's'}` : null].filter(Boolean).join(' · ')}</T></View>
         <Pressable accessibilityRole="button" accessibilityLabel="My profile" onPress={() => router.push('/teacher/profile' as any)}
           style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: colors.lav[0], alignItems: 'center', justifyContent: 'center' }}>
-          <T style={{ fontFamily: fonts.semibold, color: colors.lav[1] }}>UA</T>
+          <T style={{ fontFamily: fonts.semibold, color: colors.lav[1] }}>{initialsOf(name || 'T')}</T>
         </Pressable>
       </Row>
-      <View style={{ marginTop: 12 }}>
-        <ChoiceChips value={f} onChange={setF} options={['All', 'Arabic', 'Fiqh', 'Thajweed', 'Quran'].map((k) => ({ key: k, label: k === 'All' ? 'All classes · 4' : k }))} />
-      </View>
+      {subjects.length ? (
+        <View style={{ marginTop: 12 }}>
+          <ChoiceChips value={f} onChange={setF} options={['All', ...subjects].map((k) => ({ key: k, label: k === 'All' ? `All classes · ${list.length}` : k }))} />
+        </View>
+      ) : null}
       <View style={{ gap: 12, marginTop: 12 }}>
-        {list.map((c) => (
-          <Pressable key={c.id} accessibilityRole="button" accessibilityLabel={c.batch} onPress={() => router.push(`/teacher/classes/${c.id}` as any)}
+        {loading && !data ? <T v="small">Loading…</T> : !shown.length ? (
+          <Card><T v="small">No classes yet. Your institution office adds you to a batch as class teacher or subject teacher.</T></Card>
+        ) : shown.map((c, i) => (
+          <Pressable key={c.id} accessibilityRole="button" accessibilityLabel={c.name} onPress={() => router.push(`/teacher/classes/${c.id}` as any)}
             style={{ backgroundColor: '#FFF', borderRadius: 26, padding: 14, gap: 10 }}>
             <Row gap={12}>
-              <LinearGradient colors={c.g as unknown as [string, string]} style={{ width: 56, height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center' }}>
+              <LinearGradient colors={GRADS[i % GRADS.length]} style={{ width: 56, height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center' }}>
                 <Text style={{ color: '#FFF', fontSize: 9, fontFamily: fonts.semibold }}>CLASS</Text>
-                <Text style={{ color: '#FFF', fontSize: 22, fontFamily: fonts.fun, lineHeight: 24 }}>{c.n}</Text>
+                <Text style={{ color: '#FFF', fontSize: 22, fontFamily: fonts.fun, lineHeight: 24 }}>{c.class_label ?? '–'}</Text>
               </LinearGradient>
-              <View style={{ flex: 1 }}><T v="h3">{c.batch}</T><T v="small">{c.board} · {c.students} students</T></View>
-              {c.ct ? <Tag text="★ CLASS TEACHER" tone="butter" /> : null}
+              <View style={{ flex: 1 }}><T v="h3">{c.name}</T><T v="small">{[c.board ? `${c.board} board` : null, `${c.students} students`].filter(Boolean).join(' · ')}</T></View>
+              {c.class_teacher ? <Tag text="★ CLASS TEACHER" tone="butter" /> : null}
             </Row>
-            <Row gap={6}>
-              <T v="small">You teach:</T>
-              {c.subjects.map((s) => <View key={s} style={{ backgroundColor: SUBJ[s][0], borderRadius: 12, paddingHorizontal: 10, height: 24, justifyContent: 'center' }}><T style={{ color: SUBJ[s][1], fontSize: 12, fontFamily: fonts.semibold }}>{s}</T></View>)}
-            </Row>
-            <Row style={{ justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: '#EEF3F5', paddingTop: 10 }}>
-              <Row gap={6}><Ionicons name="time-outline" size={14} color={colors.muted} /><T v="small">{c.next}</T></Row>
-              <T style={{ color: colors.green, fontFamily: fonts.semibold, fontSize: 13 }}>{c.att} present</T>
-            </Row>
+            {c.subjects.length ? (
+              <Row gap={6} style={{ flexWrap: 'wrap' }}>
+                <T v="small">You teach:</T>
+                {c.subjects.map((sj, k) => <View key={sj} style={{ backgroundColor: TINTS[k % 5][0], borderRadius: 12, paddingHorizontal: 10, height: 24, justifyContent: 'center' }}><T style={{ color: TINTS[k % 5][1], fontSize: 12, fontFamily: fonts.semibold }}>{sj}</T></View>)}
+              </Row>
+            ) : null}
+            {when(c) ? (
+              <Row gap={6} style={{ borderTopWidth: 1, borderTopColor: '#EEF3F5', paddingTop: 10 }}><Ionicons name="time-outline" size={14} color={colors.muted} /><T v="small">{when(c)}</T></Row>
+            ) : null}
           </Pressable>
         ))}
       </View>
@@ -79,36 +96,36 @@ export function TeacherClassesScreen() {
 }
 
 /* ---------- Class detail ---------- */
-const STUDENTS = ['Ayisha Rahman', 'Fathima Nasrin', 'Hamdan P', 'Muhammed Adil', 'Nihal T', 'Rayan Ahmed', 'Shifa K', 'Zayan M', 'Amna Sherin', 'Bilal K'];
-const ATT = [98, 95, 72, 90, 64, 93, 88, 97, 85, 91];
-const TINTS = [colors.lav, colors.sky, colors.mint, colors.pink, colors.butter];
-
 export function ClassDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const c = CLASSES.find((x) => x.id === id) ?? CLASSES[0];
+  const { data: c } = useApi<MyClassDetail>(`/staff/classes/${id}`);
   const [tab, setTab] = useState<'students' | 'subjects'>('students');
   const [q, setQ] = useState('');
-  const students = STUDENTS.map((n, i) => ({ n, a: ATT[i], roll: i + 1 })).filter((s) => s.n.toLowerCase().includes(q.trim().toLowerCase()));
-  const subjects = [['Arabic', 'لغة', 'Ustad Ahmed', true], ['Fiqh', 'فقه', 'Ustad Ahmed', true], ['Quran', 'قرآن', 'Safwan Usthad', false], ['Thajweed', 'تجويد', 'Safwan Usthad', false], ['Thareekh', 'تاريخ', 'Ayisha Miss', false], ['Akhlaq', 'أخلاق', 'Ayisha Miss', false]] as const;
+  if (!c) return <Screen><T v="small">Loading…</T></Screen>;
+  const students = c.students.filter((s) => `${s.name} ${s.admission_no ?? ''}`.toLowerCase().includes(q.trim().toLowerCase()));
   return (
     <Screen bar={false}>
       <LinearGradient colors={['#5B43E0', '#9B7BE8']} style={{ marginHorizontal: -20, marginTop: -12, padding: 20, paddingBottom: 30, borderBottomLeftRadius: 32, borderBottomRightRadius: 32 }}>
         <Row style={{ justifyContent: 'space-between' }}>
           <IconButton name="chevron-back" label="Back" size={44} tint="rgba(255,255,255,0.18)" color="#FFF" onPress={back('/teacher/classes')} />
-          {c.ct ? <View style={{ backgroundColor: '#F7C948', borderRadius: 14, paddingHorizontal: 12, height: 28, justifyContent: 'center' }}><T style={{ fontSize: 11, fontFamily: fonts.semibold, color: '#3F2E00' }}>★ YOU ARE CLASS TEACHER</T></View> : null}
+          {c.class_teacher ? <View style={{ backgroundColor: '#F7C948', borderRadius: 14, paddingHorizontal: 12, height: 28, justifyContent: 'center' }}><T style={{ fontSize: 11, fontFamily: fonts.semibold, color: '#3F2E00' }}>★ YOU ARE CLASS TEACHER</T></View> : null}
         </Row>
-        <Text style={{ fontFamily: fonts.fun, fontSize: 32, color: '#FFF', marginTop: 10 }}>Class {c.n}</Text>
-        <T style={{ color: '#EDE7FF' }}>{c.batch} · {c.board} · {c.students} students</T>
+        <Text style={{ fontFamily: fonts.fun, fontSize: 32, color: '#FFF', marginTop: 10 }}>{c.name}</Text>
+        <T style={{ color: '#EDE7FF' }}>{[c.board ? `${c.board} board` : null, `${c.students.length} students`, when(c) || null].filter(Boolean).join(' · ')}</T>
         <Row gap={8} style={{ marginTop: 12 }}>
-          {[[c.att, 'Attendance'], [c.next.split(' · ')[0].replace('Today ', ''), 'Next class'], ['6', 'To review']].map(([v, l]) => (
-            <View key={l} style={{ flex: 1, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.16)', paddingVertical: 10, alignItems: 'center' }}>
-              <Text style={{ fontFamily: fonts.semibold, fontSize: 18, color: '#FFF' }}>{v}</Text><Text style={{ fontSize: 11, color: '#EDE7FF' }}>{l}</Text>
-            </View>
-          ))}
+          <Pressable accessibilityRole="button" onPress={() => router.push('/teacher/attendance' as any)} style={{ flex: 1, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.16)', paddingVertical: 10, alignItems: 'center', gap: 2 }}>
+            <Ionicons name="checkmark-done-outline" size={18} color="#FFF" /><Text style={{ fontSize: 12, color: '#EDE7FF' }}>Attendance</Text>
+          </Pressable>
+          <Pressable accessibilityRole="button" onPress={() => router.push('/teacher/live' as any)} style={{ flex: 1, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.16)', paddingVertical: 10, alignItems: 'center', gap: 2 }}>
+            <Ionicons name="videocam-outline" size={18} color="#FFF" /><Text style={{ fontSize: 12, color: '#EDE7FF' }}>Live class</Text>
+          </Pressable>
+          <Pressable accessibilityRole="button" onPress={() => router.push('/teacher/chat' as any)} style={{ flex: 1, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.16)', paddingVertical: 10, alignItems: 'center', gap: 2 }}>
+            <Ionicons name="chatbubbles-outline" size={18} color="#FFF" /><Text style={{ fontSize: 12, color: '#EDE7FF' }}>Chat</Text>
+          </Pressable>
         </Row>
       </LinearGradient>
       <Row gap={6} style={{ marginTop: 12, backgroundColor: '#FFF', borderRadius: 26, padding: 4 }}>
-        {([['students', `Students · ${c.students}`], ['subjects', 'Subjects & teachers']] as const).map(([k, l]) => (
+        {([['students', `Students · ${c.students.length}`], ['subjects', 'Subjects & teachers']] as const).map(([k, l]) => (
           <Pressable key={k} accessibilityRole="tab" accessibilityState={{ selected: tab === k }} onPress={() => setTab(k)}
             style={{ flex: 1, height: 44, borderRadius: 22, backgroundColor: tab === k ? colors.violet : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
             <T style={{ color: tab === k ? '#FFF' : colors.muted, fontFamily: fonts.semibold }}>{l}</T>
@@ -119,17 +136,16 @@ export function ClassDetailScreen() {
         <>
           <View style={{ marginTop: 10, height: 48, borderRadius: 24, backgroundColor: '#FFF', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, gap: 8 }}>
             <Ionicons name="search" size={18} color={colors.muted} />
-            <TextInput accessibilityLabel="Search students" value={q} onChangeText={setQ} placeholder={`Search ${c.students} students`} placeholderTextColor={colors.faint} style={{ flex: 1, fontFamily: fonts.regular, fontSize: 14, color: colors.ink }} />
+            <TextInput accessibilityLabel="Search students" value={q} onChangeText={setQ} placeholder={`Search ${c.students.length} students`} placeholderTextColor={colors.faint} style={{ flex: 1, fontFamily: fonts.regular, fontSize: 14, color: colors.ink }} />
           </View>
           <Card style={{ marginTop: 10, padding: 6 }}>
-            {students.map((s, i) => {
-              const low = s.a < 75; const t = TINTS[i % 5];
+            {!students.length ? <T v="small" style={{ padding: 10 }}>No students in this class yet.</T> : students.map((s, i) => {
+              const t = TINTS[i % 5];
               return (
-                <Pressable key={s.n} accessibilityRole="button" onPress={() => router.push('/teacher/chat' as any)} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 8 }}>
-                  <T v="small" style={{ width: 18 }}>{s.roll}</T>
-                  <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: t[0], alignItems: 'center', justifyContent: 'center' }}><T style={{ color: t[1], fontFamily: fonts.semibold, fontSize: 13 }}>{s.n.split(' ').map((w) => w[0]).join('')}</T></View>
-                  <View style={{ flex: 1 }}><T style={{ fontFamily: fonts.semibold }}>{s.n}</T><T v="small">{low ? 'Missed 3 classes this month' : `Parent: +971 5${s.roll} ••• ••${10 + i}`}</T></View>
-                  <View style={{ backgroundColor: low ? '#FBD9DC' : colors.mint[0], borderRadius: 10, paddingHorizontal: 8, height: 22, justifyContent: 'center' }}><T style={{ fontSize: 11, fontFamily: fonts.semibold, color: low ? colors.red : colors.mint[1] }}>{s.a}%</T></View>
+                <Pressable key={s.id} accessibilityRole="button" onPress={() => router.push('/teacher/chat' as any)} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 8 }}>
+                  <T v="small" style={{ width: 22 }}>{i + 1}</T>
+                  <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: t[0], alignItems: 'center', justifyContent: 'center' }}><T style={{ color: t[1], fontFamily: fonts.semibold, fontSize: 13 }}>{initialsOf(s.name)}</T></View>
+                  <View style={{ flex: 1 }}><T style={{ fontFamily: fonts.semibold }}>{s.name}</T>{s.admission_no ? <T v="small">{s.admission_no}</T> : null}</View>
                 </Pressable>
               );
             })}
@@ -137,13 +153,20 @@ export function ClassDetailScreen() {
         </>
       ) : (
         <View style={{ gap: 8, marginTop: 10 }}>
-          {subjects.map(([n, ar, t, mine], i) => (
-            <Card key={n} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: mine ? '#FFF' : '#F7FBFC' }}>
-              <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: TINTS[i % 5][0], alignItems: 'center', justifyContent: 'center' }}><T style={{ fontFamily: fonts.arabic, fontSize: 16, color: TINTS[i % 5][1] }}>{ar}</T></View>
-              <View style={{ flex: 1 }}><T style={{ fontFamily: fonts.semibold }}>{n}</T><T v="small">{t}</T></View>
-              {mine ? <Tag text="YOU" tone="lav" /> : null}
+          {c.class_teacher_name ? (
+            <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: colors.butter[0], alignItems: 'center', justifyContent: 'center' }}><Ionicons name="star" size={18} color={colors.butter[1]} /></View>
+              <View style={{ flex: 1 }}><T style={{ fontFamily: fonts.semibold }}>Class teacher</T><T v="small">{c.class_teacher_name}</T></View>
+              {c.class_teacher ? <Tag text="YOU" tone="lav" /> : null}
             </Card>
-          ))}
+          ) : null}
+          {c.subjects.length ? c.subjects.map((sj, i) => (
+            <Card key={sj.name} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: sj.mine ? '#FFF' : '#F7FBFC' }}>
+              <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: TINTS[i % 5][0], alignItems: 'center', justifyContent: 'center' }}><Ionicons name="book-outline" size={18} color={TINTS[i % 5][1]} /></View>
+              <View style={{ flex: 1 }}><T style={{ fontFamily: fonts.semibold }}>{sj.name}</T><T v="small">{sj.teacher ?? 'No teacher yet'}</T></View>
+              {sj.mine ? <Tag text="YOU" tone="lav" /> : null}
+            </Card>
+          )) : <Card><T v="small">No subject teachers set for this class yet.</T></Card>}
         </View>
       )}
     </Screen>

@@ -102,11 +102,12 @@ function ScoreRows() {
 
 export function SalahReportScreen() {
   const base = useBase();
+  const { user } = useAuth();
   return (
     <Screen>
       <Band tint={colors.sky[0]} height={220} />
       <Header title="Salah Assessment" subtitle="October 2026" right={<Text style={{ fontFamily: fonts.arabic, fontSize: 30, color: colors.teal }}>الصلاة</Text>} />
-      <Tag text="Ayisha Abdulla · Checked by Abdul Vahid · 24 Oct" tone="white" />
+      <Tag text={user?.name ?? 'Student'} tone="white" />
       <Card style={{ marginTop: 12, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
         <View style={{ width: 64, height: 64, borderRadius: 32, borderWidth: 7, borderColor: colors.teal, alignItems: 'center', justifyContent: 'center' }}><T style={{ fontFamily: fonts.semibold }}>94%</T></View>
         <View style={{ flex: 1 }}><T v="h3">Excellent</T><T v="small">18 steps checked · 2 to practise</T></View>
@@ -124,6 +125,7 @@ export function SalahReportScreen() {
 }
 
 export function ReportPdfScreen() {
+  const { user } = useAuth();
   return (
     <Screen>
       <Header title="Report card" subtitle="salah-report-oct-2026.pdf" />
@@ -134,7 +136,7 @@ export function ReportPdfScreen() {
         </Row>
         <T v="label">STUDENT ASSESSMENT REPORT</T>
         <View style={{ backgroundColor: colors.bg, borderRadius: 12, padding: 10, flexDirection: 'row', flexWrap: 'wrap', rowGap: 4 }}>
-          {[['Name', 'Ayisha Abdulla'], ['Class', 'Class 5'], ['Month', 'October 2026'], ['Overall', '94% · Excellent']].map(([k, v]) => (
+          {[['Name', user?.name ?? '—'], ['Class', user?.class_label ? `Class ${user.class_label}` : '—'], ['Month', 'October 2026'], ['Overall', '94% · Excellent']].map(([k, v]) => (
             <T key={k} style={{ width: '50%', fontSize: 12 }}>{k} <T style={{ fontFamily: fonts.semibold, fontSize: 12 }}>{v}</T></T>
           ))}
         </View>
@@ -265,9 +267,11 @@ export function SettingsScreen() {
       <ListRow left={<Avatar name={user?.name ?? 'A'} tint={pastel.lav} />} title={user?.name ?? 'Me'} sub={profileLine(user)}
         right={<Ionicons name="chevron-down" size={20} color={colors.ink} />} onPress={() => demoNote('Demo: parents with more than one child switch here.')} />
       <T v="h1" style={{ marginTop: 16 }}>Settings</T>
-      <Card tint={colors.sky[0]} style={{ marginTop: 12, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-        <Avatar name="Muhammed" tint={pastel.white} /><View style={{ flex: 1 }}><T v="h3">Muhammed</T><T v="small">Parent account</T></View><Tag text="Valid" tone="mint" />
-      </Card>
+      {user?.parent?.name ? (
+        <Card tint={colors.sky[0]} style={{ marginTop: 12, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <Avatar name={user.parent.name} tint={pastel.white} /><View style={{ flex: 1 }}><T v="h3">{user.parent.name}</T><T v="small">Parent account{user.parent.phone ? ` · +${user.parent.phone}` : ''}</T></View>
+        </Card>
+      ) : null}
       <Section title="Account" />
       <Card style={{ paddingVertical: 4 }}>
         {row('calendar-outline', colors.lav, 'Academic year', <SmallButton title={year} onPress={() => setYear(year === '2026–27' ? '2025–26' : '2026–27')} />, undefined, true)}

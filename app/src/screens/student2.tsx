@@ -163,6 +163,9 @@ function LessonsBlock({ subjects, selected, onSelect, detail, doneFirst, course,
 /* ---------- My Classroom ---------- */
 export function ClassroomScreen() {
   const base = useBase();
+  const { user } = useAuth();
+  // "Zahra's Classroom · Class 5 · Noon Buds": the signed-in learner's own name, class and institution.
+  const roomLine = [`${splitName(user?.name).first}'s Classroom`, user?.class_label ? `Class ${user.class_label}` : null, user?.tenant_name].filter(Boolean).join(' · ');
   const { subjects, selected, select } = useSubjects();
   const detail = useApi<LearnDetail>(selected ? `/learn/subject/${selected.id}` : null);
   // The card shows a course the student bought: its next lesson, teacher and live time.
@@ -181,7 +184,7 @@ export function ClassroomScreen() {
   const courseDetail = useApi<LearnDetail>(course && !next ? `/learn/course/${course.id}` : null);
   const current = course ? courseDetail.data?.syllabus.find((l) => !l.done) : detail.data?.syllabus.find((l) => !l.done);
   const name = course ? course.title : selected?.title ?? CLASSROOM_INFO.live.subject;
-  const teacher = course?.teacher_name ?? CLASSROOM_INFO.live.teacher;
+  const teacher = course?.teacher_name ?? '';
   const liveWhen = course ? (course.next_live_at ? `LIVE ${course.next_live_at.toUpperCase()}` : null) : CLASSROOM_INFO.live.when;
   // Course items are named "Lesson 6 · Letters with harakath": split into the number and the name.
   const m = current?.title.match(/^lesson\s*(\d+)\s*[·:-]\s*(.+)$/i);
@@ -203,7 +206,7 @@ export function ClassroomScreen() {
   return (
     <Screen bar={false}>
       <BrandRow base={base} title="Classroom" />
-      <T style={{ marginTop: 8, fontFamily: fonts.medium, color: colors.muted }}>{CLASSROOM_INFO.title} · {CLASSROOM_INFO.cls}</T>
+      <T style={{ marginTop: 8, fontFamily: fonts.medium, color: colors.muted }}>{roomLine}</T>
 
       <MeetingBanner />
       {noCourse ? <ChooseCourse /> : null}
@@ -297,6 +300,7 @@ export function ClassDoneScreen() {
   const { space, pos } = useLocalSearchParams<{ space?: string; pos?: string }>();
   const { subjects, selected, select } = useSubjects();
   const subject = subjects.find((s) => s.key === space) ?? selected;
+  const { user } = useAuth();
   const detail = useApi<LearnDetail>(subject ? `/learn/subject/${subject.id}` : null);
   const lesson = detail.data?.syllabus.find((l) => String(l.position) === pos) ?? detail.data?.syllabus.filter((l) => l.done).pop();
   const video = detail.data?.materials.find((m) => m.kind === 'video' && lesson && m.title.startsWith(`Lesson ${lesson.position} `));
@@ -310,7 +314,7 @@ export function ClassDoneScreen() {
       </Row>
       <T style={{ color: colors.violet, fontFamily: fonts.semibold }}>{subject?.title ?? 'Fiqh'} · Lesson {pad(lesson?.position ?? 4)}</T>
       <T v="h1">{lesson?.title ?? 'Thahur'}</T>
-      <T v="small">{CLASSROOM_INFO.live.teacher} · 45 min · {subject?.subtitle ?? 'Class 5'}</T>
+      <T v="small">{[subject?.subtitle, user?.tenant_name].filter(Boolean).join(' · ')}</T>
 
       <View style={{ marginTop: 14 }}><ClassTiles space={subject} lesson={lesson?.position} /></View>
 
