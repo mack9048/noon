@@ -13,6 +13,7 @@ import { useApi } from '@/lib/useApi';
 import { useBase } from '@/lib/useBase';
 import { useLayout } from '@/lib/useLayout';
 import { useAuth } from '@/lib/auth';
+import { MeetingBanner } from '@/components/MeetingBanner';
 import type { Course } from '@/lib/types';
 import { colors, fonts, gradients } from '@/theme/tokens';
 
@@ -62,6 +63,7 @@ export function HomeScreen() {
       <BrandRow base={base} title="Campus" />
       <T v="h1" style={{ marginTop: 10 }}>My Campus</T>
       <T v="small">Noon Campus · everything in one place</T>
+      <MeetingBanner />
 
       <View style={{ marginTop: 12 }}>
 <CampusCard g={gradients.courses} tag={`MADRASA SUPPORT · ${mine.data?.length ?? 0} ENROLLED`} title={'Our\nCourses'} icon="school" ink={colors.lav[1]}

@@ -19,6 +19,7 @@ import { CLASSROOM_INFO, PERFORMANCE } from '@/lib/demo';
 import { kindLabel } from '@/lib/courseBuilder';
 import { CourseCard, joinLiveCourse, MadrasaSupportCard } from './learn';
 import { useMyAttendancePercent } from './attendance';
+import { MeetingBanner } from '@/components/MeetingBanner';
 import type { Course, CourseDetail, CourseLessonRow, LeaveSummary, LearnDetail, LearnSpace } from '@/lib/types';
 import { colors, fonts } from '@/theme/tokens';
 
@@ -204,6 +205,7 @@ export function ClassroomScreen() {
       <BrandRow base={base} title="Classroom" />
       <T style={{ marginTop: 8, fontFamily: fonts.medium, color: colors.muted }}>{CLASSROOM_INFO.title} · {CLASSROOM_INFO.cls}</T>
 
+      <MeetingBanner />
       {noCourse ? <ChooseCourse /> : null}
       {/* Current lesson of the course the student bought; its logo on the right (tap to switch course). */}
       {noCourse ? null : <LinearGradient colors={['#5B43E0', '#9B7BE8', '#D59BE0']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ marginTop: 10, borderRadius: 30, padding: 18, overflow: 'hidden', flexDirection: 'row', alignItems: 'center', gap: 12 }}>
