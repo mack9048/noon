@@ -129,7 +129,14 @@ export function LiveRoomScreen({ kind = 'course' }: { kind?: 'course' | 'meeting
         if (pass.host) { await r.localParticipant.setMicrophoneEnabled(true).catch(() => {}); await r.localParticipant.setCameraEnabled(true).catch(() => {}); }
         setNeedAudio(!r.canPlaybackAudio);
         bump();
-      } catch { setErr('Could not connect to the class. Check your internet and try again.'); }
+      } catch (e: any) {
+        const m = String(e?.message ?? e ?? '');
+        // eslint-disable-next-line no-console
+        console.warn('Noon Live connect failed:', m);
+        setErr(/401|invalid token|unauthori|signature/i.test(m) ? 'Noon Live is not set up correctly (the LiveKit key or secret on the server is wrong). Please tell the office.'
+          : /404|not found|getaddrinfo|ENOTFOUND|failed to fetch|could not establish/i.test(m) ? `Could not reach Noon Live. Check your internet; if it keeps happening, the LiveKit address on the server may be wrong. (${m.slice(0, 120)})`
+          : `Could not connect to the class. Check your internet and try again. (${m.slice(0, 120)})`);
+      }
     })();
     return () => { gone = true; r?.disconnect(); audioEls.current.forEach((el) => el.remove()); audioEls.current.clear(); };
   }, [pass]);

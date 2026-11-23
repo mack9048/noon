@@ -20,7 +20,20 @@ class LiveKit
 
     public static function url(): string
     {
-        return (string) config('services.livekit.url');
+        // Forgive common .env slips: quotes, spaces, a trailing slash, or https:// instead of wss://.
+        $u = rtrim(trim((string) config('services.livekit.url'), " \t\n\r\"'"), '/');
+
+        return preg_replace(['#^https://#i', '#^http://#i'], ['wss://', 'ws://'], $u);
+    }
+
+    private static function key(): string
+    {
+        return trim((string) config('services.livekit.key'), " \t\n\r\"'");
+    }
+
+    private static function secret(): string
+    {
+        return trim((string) config('services.livekit.secret'), " \t\n\r\"'");
     }
 
     /** One room per live course. */
@@ -66,10 +79,10 @@ class LiveKit
     private static function sign(array $claims, int $ttl): string
     {
         $now = time();
-        $payload = $claims + ['iss' => config('services.livekit.key'), 'nbf' => $now - 10, 'exp' => $now + $ttl, 'jti' => bin2hex(random_bytes(8))];
+        $payload = $claims + ['iss' => self::key(), 'nbf' => $now - 10, 'exp' => $now + $ttl, 'jti' => bin2hex(random_bytes(8))];
         $b64 = fn ($v) => rtrim(strtr(base64_encode(is_string($v) ? $v : json_encode($v, JSON_UNESCAPED_SLASHES)), '+/', '-_'), '=');
         $head = $b64(['alg' => 'HS256', 'typ' => 'JWT']).'.'.$b64($payload);
 
-        return $head.'.'.$b64(hash_hmac('sha256', $head, (string) config('services.livekit.secret'), true));
+        return $head.'.'.$b64(hash_hmac('sha256', $head, self::secret(), true));
     }
 }
