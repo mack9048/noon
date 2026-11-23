@@ -4,6 +4,7 @@
 import React, { useEffect, useState } from 'react';
 import { Image, Linking, Modal, Platform, Pressable, ScrollView, Switch, View } from 'react-native';
 import { appendFile, pickImage } from '@/lib/pickImage';
+import { joinLiveCourse } from '@/lib/liveJoin';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
@@ -144,7 +145,13 @@ export function LiveTimetable({ courseId }: { courseId: number }) {
   return (
     <Panel title="Live class timetable" right={<T v="small">India time (IST)</T>} style={{ marginBottom: 100 }}>
       {c.live_summary ? <Card tint="#F1EDFF"><T style={{ fontFamily: fonts.semibold, color: colors.violet }}>{c.live_summary}</T></Card> : <T v="small">No class times yet. Add one below: every day, or the days you choose.</T>}
-      {!c.meet_url ? <T v="small" style={{ color: colors.red }}>Add the meeting link above (Course details) and save, so students can join.</T> : null}
+      {c.live_provider === 'livekit' ? (
+        <Card tint="#E6F6F0" style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <Ionicons name="videocam" size={22} color={colors.green} />
+          <T style={{ flex: 1, fontSize: 14 }}>Noon Live: start the class here at class time. Students can join {''}15 minutes before it starts.</T>
+          <Button title="Start class" icon="play" style={{ height: 44 }} onPress={() => joinLiveCourse(c.id)} />
+        </Card>
+      ) : !c.meet_url ? <T v="small" style={{ color: colors.red }}>Add the meeting link above (Course details) and save, so students can join.</T> : null}
       {(c.live_slots ?? []).map((s) => (
         <SlotForm key={`${s.id}-${s.days.join()}-${s.start_time}-${s.duration_min}-${s.title}`} slot={s} busy={busy === s.id}
           onSave={(v) => run(s.id, () => api.put<BCourse>(`/super/course-live-slots/${s.id}`, v))}

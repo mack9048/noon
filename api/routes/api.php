@@ -94,6 +94,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::get('/courses/{course}', [CourseController::class, 'show']);
     Route::post('/courses/{course}/enroll', [CourseController::class, 'enroll']);
     Route::post('/courses/{course}/live/join', [CourseController::class, 'liveJoin']);
+    Route::post('/courses/{course}/live/moderate', [CourseController::class, 'liveModerate']);
     Route::post('/course-items/{item}/complete', [CourseController::class, 'complete']);
     Route::get('/course-items/{item}/open', [CourseBuilderController::class, 'open']);
     Route::get('/course-categories', [CourseBuilderController::class, 'categories']);

@@ -92,12 +92,8 @@ function untilText(iso: string, now: number) {
 }
 
 /** Open the meeting link of the class on now (the server checks the time and counts attendance). */
-export async function joinLiveCourse(courseId: number) {
-  try {
-    const r = await api.post<{ url: string }>(`/courses/${courseId}/live/join`);
-    await Linking.openURL(r.url);
-  } catch (e: any) { demoNote(e?.message ?? 'Could not open the class.'); }
-}
+export { joinLiveCourse } from '@/lib/liveJoin';
+import { joinLiveCourse } from '@/lib/liveJoin';
 
 /** The weekly timetable and the next classes (course page before and after joining). */
 export function LiveTimetableView({ live }: { live: LiveInfo }) {

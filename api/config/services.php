@@ -36,6 +36,13 @@ return [
     ],
 
     // Nooni, the AI voice assistant. The key stays in the server .env only.
+    // Noon Live classes (LiveKit Cloud). Keys live only in the server .env.
+    'livekit' => [
+        'url' => env('LIVEKIT_URL'),
+        'key' => env('LIVEKIT_API_KEY'),
+        'secret' => env('LIVEKIT_API_SECRET'),
+    ],
+
     'anthropic' => [
         'key' => env('ANTHROPIC_API_KEY'),
         'model' => env('NOONI_MODEL', 'claude-opus-5-5'),

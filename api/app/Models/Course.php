@@ -13,7 +13,7 @@ class Course extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = ['title', 'description', 'category', 'board_id', 'syllabus', 'class_id', 'thumbnail_path', 'trial_lessons', 'format', 'meet_url', 'live_timezone', 'level', 'cover', 'logo_url', 'status', 'is_free', 'price', 'offer_price', 'price_period', 'trial_days', 'free_for_subscribers', 'teacher_id', 'tenant_id', 'visibility', 'review_note'];
+    protected $fillable = ['title', 'description', 'category', 'board_id', 'syllabus', 'class_id', 'thumbnail_path', 'trial_lessons', 'format', 'live_provider', 'meet_url', 'live_timezone', 'level', 'cover', 'logo_url', 'status', 'is_free', 'price', 'offer_price', 'price_period', 'trial_days', 'free_for_subscribers', 'teacher_id', 'tenant_id', 'visibility', 'review_note'];
 
     protected $casts = ['is_free' => 'boolean', 'free_for_subscribers' => 'boolean'];
 
@@ -156,6 +156,7 @@ class Course extends Model
                 : $nextLive?->starts_at?->format('D g:i A'),
             // Live-only courses: regular live classes instead of lessons.
             'format' => $this->format ?? 'recorded',
+            'live_provider' => $this->live_provider ?? 'meet',
             'live_summary' => $this->isLive() ? \App\Support\LiveSchedule::summary($this) : null,
             'live_now' => $live && $live['state'] === 'live',
         ];

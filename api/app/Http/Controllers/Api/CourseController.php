@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use App\Support\LiveSchedule;
+use App\Support\LiveKit;
 use Illuminate\Validation\Rule;
 
 /**
@@ -158,20 +159,38 @@ class CourseController extends Controller
             'slots' => $course->liveSlots->map(fn ($s) => $s->toApp())->values(),
             'upcoming' => LiveSchedule::forApp(LiveSchedule::upcoming($course, 10)),
             'attended' => $user?->id ? DB::table('course_live_attendance')->where('course_id', $course->id)->where('user_id', $user->id)->count() : 0,
-            'has_link' => (bool) $course->meet_url,
+            'provider' => $this->provider($course),
+            'has_link' => $this->provider($course) === 'livekit' || (bool) $course->meet_url,
             'open_before_min' => LiveSchedule::OPEN_BEFORE,
         ];
     }
 
-    /** Join the live class that is on now: gives the meeting link and marks attendance. */
+    /** Noon Live (LiveKit) when chosen for the course and set up on the server; else the Google Meet link. */
+    private function provider(Course $course): string
+    {
+        return ($course->live_provider ?? 'meet') === 'livekit' && LiveKit::configured() ? 'livekit' : 'meet';
+    }
+
+    /** Teachers who run the class: super admin, the course teacher, and admins of an institution that owns the course. */
+    private function isHost($user, Course $course): bool
+    {
+        return $user->hasRole('super') || ($course->teacher_id && $course->teacher_id === $user->id)
+            || ($user->hasRole('admin') && $course->tenant_id && $course->tenant_id === $user->tenant_id);
+    }
+
+    /**
+     * Join the live class that is on now and mark attendance.
+     * Google Meet: gives the meeting link. Noon Live: gives a short-lived pass for the class room.
+     */
     public function liveJoin(Request $request, Course $course)
     {
         $user = $request->user();
         abort_unless($course->isLive(), 404);
-        $staff = $user->hasRole('super') || $course->teacher_id === $user->id;
+        $staff = $this->isHost($user, $course);
         $enrolled = $user->courses()->whereKey($course->id)->exists() && Course::visibleTo($user)->whereKey($course->id)->exists();
         abort_unless($staff || $enrolled, 403, 'Join the course first.');
-        abort_unless($course->meet_url, 422, 'The class link is not ready yet. Please check back soon.');
+        $provider = $this->provider($course);
+        abort_unless($provider === 'livekit' || $course->meet_url, 422, 'The class link is not ready yet. Please check back soon.');
         if (! $staff && $course->access($user)['trial_over']) {
             abort(422, 'Your free trial has ended. Please ask your institution or Noon Learn to continue the classes.');
         }
@@ -181,11 +200,34 @@ class CourseController extends Controller
             $next = LiveSchedule::upcoming($course, 1)[0] ?? null;
             abort(422, $next ? 'The next class starts '.$next['start']->setTimezone($course->live_timezone)->format('D j M, g:i A').'. You can join '.LiveSchedule::OPEN_BEFORE.' minutes before.' : 'No class is planned right now.');
         }
-        if ($now && $enrolled) {
+        if ($now && $enrolled && ! $staff) {
             DB::table('course_live_attendance')->insertOrIgnore(['course_id' => $course->id, 'user_id' => $user->id, 'session_at' => $now['start']->format('Y-m-d H:i:s'), 'joined_at' => now()]);
         }
+        if ($provider === 'meet') {
+            return ['provider' => 'meet', 'url' => $course->meet_url];
+        }
 
-        return ['url' => $course->meet_url];
+        return [
+            'provider' => 'livekit', 'url' => LiveKit::url(), 'room' => LiveKit::room($course), 'host' => $staff,
+            'token' => LiveKit::token(LiveKit::room($course), 'u'.$user->id, $user->name, $staff, ['role' => $user->role]),
+            'course' => ['id' => $course->id, 'title' => $course->title],
+        ];
+    }
+
+    /** Noon Live, teachers only: mute a child's microphone, remove someone, or end the class for everyone. */
+    public function liveModerate(Request $request, Course $course)
+    {
+        abort_unless($course->isLive() && $this->provider($course) === 'livekit', 404);
+        abort_unless($this->isHost($request->user(), $course), 403);
+        $data = $request->validate(['action' => ['required', 'in:mute,remove,end'], 'identity' => ['required_unless:action,end', 'string', 'max:40']]);
+        $room = LiveKit::room($course);
+        match ($data['action']) {
+            'mute' => LiveKit::muteMic($room, $data['identity']),
+            'remove' => LiveKit::call('RemoveParticipant', ['room' => $room, 'identity' => $data['identity']], $room),
+            'end' => LiveKit::call('DeleteRoom', ['room' => $room], $room),
+        };
+
+        return ['ok' => true];
     }
 
     public function enroll(Request $request, Course $course)
@@ -412,6 +454,7 @@ class CourseController extends Controller
             'class_id' => ['nullable', 'integer', Rule::exists('school_classes', 'id')],
             'format' => ['sometimes', 'in:recorded,live'],
             'meet_url' => ['nullable', 'string', 'max:500', 'url:https'],
+            'live_provider' => ['sometimes', 'in:meet,livekit'],
             'live_timezone' => ['sometimes', 'timezone'],
             'teacher_id' => ['nullable', 'integer', Rule::exists('users', 'id')->where('role', 'teacher')],
         ]);

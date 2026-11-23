@@ -437,6 +437,7 @@ export function CourseEditorScreen({ mode, id }: { mode: 'admin' | 'super'; id?:
   // Recorded lessons, or live classes only (a weekly timetable and a meeting link).
   const [format, setFormat] = useState<'recorded' | 'live'>('recorded');
   const [meetUrl, setMeetUrl] = useState('');
+  const [liveProvider, setLiveProvider] = useState<'livekit' | 'meet'>('livekit');
   const [pricing, setPricing] = useState<'free' | 'once' | 'monthly'>('once');
   const [price, setPrice] = useState('1499');
   const [offer, setOffer] = useState('999');
@@ -458,7 +459,7 @@ export function CourseEditorScreen({ mode, id }: { mode: 'admin' | 'super'; id?:
     setPricing(c.is_free ? 'free' : c.price_period === 'monthly' ? 'monthly' : 'once');
     setPrice(c.price != null ? String(c.price) : ''); setOffer(c.offer_price != null ? String(c.offer_price) : '');
     setTrial(!c.trial_days ? 'None' : `${c.trial_days} days`); setFreeForSubs(c.free_for_subscribers ?? true);
-    setFormat(c.format === 'live' ? 'live' : 'recorded'); setMeetUrl(c.meet_url ?? '');
+    setFormat(c.format === 'live' ? 'live' : 'recorded'); setMeetUrl(c.meet_url ?? ''); setLiveProvider(c.live_provider === 'meet' ? 'meet' : 'livekit');
     setThumb(c.thumbnail_url ?? null); setTrialLessons(String(c.trial_lessons ?? 0));
     setBoardId(c.board_id ? String(c.board_id) : ''); setSyllabus(c.syllabus === 'english' ? 'english' : 'general'); setClassId(c.class_id ? String(c.class_id) : '');
   }, [existing.data]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -471,7 +472,7 @@ export function CourseEditorScreen({ mode, id }: { mode: 'admin' | 'super'; id?:
       price_period: pricing === 'monthly' ? 'monthly' : 'once', trial_days: trial === 'None' ? 0 : parseInt(trial, 10), free_for_subscribers: freeForSubs,
       trial_lessons: Math.max(0, Math.min(50, parseInt(trialLessons, 10) || 0)),
       board_id: isMadrasa ? Number(boardId) || null : null, syllabus: isMadrasa ? syllabus : null, class_id: isMadrasa ? Number(classId) || null : null,
-      ...(mode === 'super' ? { format, meet_url: format === 'live' ? meetUrl.trim() || null : null } : {}),
+      ...(mode === 'super' ? { format, live_provider: liveProvider, meet_url: format === 'live' ? meetUrl.trim() || null : null } : {}),
       audience: visible === 'Selected institutions' ? 'selected' : visible === 'Guests only' ? 'guests' : 'all', tenant_ids: visible === 'Selected institutions' ? tenantIds : [],
     };
   };
@@ -479,7 +480,7 @@ export function CourseEditorScreen({ mode, id }: { mode: 'admin' | 'super'; id?:
     if (!title.trim()) return 'Give the course a name.';
     if (!cat) return 'Choose a category.';
     if (isMadrasa && (!boardId || !classId)) return 'Choose the board, syllabus and class for this Madrasa Support course.';
-    if (format === 'live' && meetUrl.trim() && !/^https:\/\/\S+$/.test(meetUrl.trim())) return 'The meeting link should start with https://';
+    if (format === 'live' && liveProvider === 'meet' && meetUrl.trim() && !/^https:\/\/\S+$/.test(meetUrl.trim())) return 'The meeting link should start with https://';
     if (mode === 'super' && visible === 'Selected institutions' && !tenantIds.length) return 'Pick at least one institution for this course.';
     return null;
   };
@@ -569,8 +570,16 @@ export function CourseEditorScreen({ mode, id }: { mode: 'admin' | 'super'; id?:
             <ChoiceChips value={format} onChange={setFormat} options={[{ key: 'recorded', label: 'Recorded lessons' }, { key: 'live', label: 'Live classes only' }]} />
             {format === 'live' ? (
               <>
-                <Input label="Meeting link (Google Meet, Zoom…)" value={meetUrl} onChangeText={setMeetUrl} placeholder="https://meet.google.com/abc-defg-hij" autoCapitalize="none" keyboardType="url" />
-                <T v="small">Students get this link only when a class is about to start, and only after joining the course.</T>
+                <T v="small" style={{ fontFamily: fonts.medium }}>Where the class happens</T>
+                <ChoiceChips value={liveProvider} onChange={setLiveProvider} options={[{ key: 'livekit', label: 'Noon Live (inside the app)' }, { key: 'meet', label: 'Google Meet link' }]} />
+                {liveProvider === 'livekit' ? (
+                  <T v="small">Children join inside Noon: no Google account and no link to share. Only students of this course get in. You can mute or remove anyone, and attendance is marked by itself. Open the course at class time and press Start class.</T>
+                ) : (
+                  <>
+                    <Input label="Meeting link (Google Meet, Zoom…)" value={meetUrl} onChangeText={setMeetUrl} placeholder="https://meet.google.com/abc-defg-hij" autoCapitalize="none" keyboardType="url" />
+                    <T v="small">Students get this link only when a class is about to start, and only after joining the course.</T>
+                  </>
+                )}
               </>
             ) : null}
           </View>

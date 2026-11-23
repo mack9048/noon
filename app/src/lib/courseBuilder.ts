@@ -16,7 +16,7 @@ export type BCourse = {
   audience: 'all' | 'selected' | 'guests'; tenant_ids: number[];
   thumbnail_url?: string | null; board_id?: number | null; syllabus?: 'general' | 'english' | null; class_id?: number | null; trial_lessons?: number; madrasa_label?: string | null;
   subjects: BSubject[]; lessons: BLesson[]; loose_items: BItem[]; lessons_count: number;
-  format?: 'recorded' | 'live'; meet_url?: string | null; live_timezone?: string; live_summary?: string | null;
+  format?: 'recorded' | 'live'; live_provider?: 'meet' | 'livekit'; meet_url?: string | null; live_timezone?: string; live_summary?: string | null;
   live_slots?: LiveSlot[]; live_upcoming?: LiveClass[];
 };
 /** A repeating live class time: days 0 = Sunday … 6 = Saturday, start "19:00" (course time zone). */

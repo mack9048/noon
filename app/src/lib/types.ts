@@ -51,7 +51,7 @@ export interface Course {
   /** Course logo uploaded when the course is created (shown on the Classroom card). */
   logo_url?: string | null;
   /** live: regular live classes only (no lessons). */
-  format?: 'recorded' | 'live'; live_summary?: string | null; live_now?: boolean;
+  format?: 'recorded' | 'live'; live_summary?: string | null; live_now?: boolean; live_provider?: 'meet' | 'livekit';
   /** Picture on the course card. */
   thumbnail_url?: string | null;
   /** Free trial: first N lessons (recorded) or N days (live). */
@@ -63,6 +63,8 @@ export interface LiveClass { starts_at: string; ends_at: string; title?: string 
 export interface LiveInfo {
   timezone: string; summary: string | null; slots: { id: number; days: number[]; start_time: string; duration_min: number; title?: string | null }[];
   upcoming: LiveClass[]; attended: number; has_link: boolean; open_before_min: number;
+  /** livekit = Noon Live inside the app; meet = Google Meet link. */
+  provider?: 'meet' | 'livekit';
 }
 export interface CourseItem {
   id: number; course_id: number; kind: ContentKind; title: string; meta?: string;
