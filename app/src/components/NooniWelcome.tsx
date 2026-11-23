@@ -1,5 +1,5 @@
 // Animated welcome scene for the login pages: Nooni bobs and waves hello,
-// a speech bubble pops in, stars twinkle and a little bird floats by.
+// a speech bubble pops in and stars twinkle.
 import { NOONI } from './Nooni';
 
 const BODY = require('../../assets/nooni/nooni-body.png');
@@ -41,7 +41,6 @@ export function NooniWelcome({ size = 220, compact = false }: { size?: number; c
   const bob = useLoop(1400);
   const wave = useLoop(500, 200);
   const hand = useLoop(320);
-  const bird = useLoop(2600, 400);
   const pop = useRef(new Animated.Value(0)).current;
   const [g, setG] = useState(0);
 
@@ -65,9 +64,6 @@ export function NooniWelcome({ size = 220, compact = false }: { size?: number; c
       <Star left="10%" top="40%" size={size * 0.16} delay={0} />
       <Star left="84%" top="30%" size={size * 0.12} delay={350} />
       <Star left="14%" top="62%" size={size * 0.1} delay={700} />
-      {compact ? null : <Animated.Image source={{ uri: '/art/bird.svg' }} accessibilityElementsHidden importantForAccessibility="no"
-        style={{ position: 'absolute', left: '0%', top: '0%', width: size * 0.3, height: size * 0.32,
-          transform: [{ translateY: bird.interpolate({ inputRange: [0, 1], outputRange: [0, -14] }) }, { translateX: bird.interpolate({ inputRange: [0, 1], outputRange: [0, -10] }) }] }} />}
 
       {/* speech bubble */}
       <Animated.View style={{ position: 'absolute', top: compact ? '4%' : -6, right: compact ? 0 : '-6%', backgroundColor: '#FFF', borderRadius: 20, paddingHorizontal: compact ? 10 : 14, paddingVertical: 8,
