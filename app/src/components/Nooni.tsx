@@ -2,7 +2,8 @@
 // talks (or types) in Malayalam, English or Arabic; Nooni answers out loud and can open screens.
 // Voice uses the browser's speech recognition and speech synthesis; typing works everywhere.
 import React, { useEffect, useRef, useState } from 'react';
-import { Image, Modal, Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { Animated, Easing, Image, Modal, Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { router, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -58,10 +59,80 @@ const FACES: Record<NooniMood, any> = {
 export const NOONI_FULL = require('../../assets/nooni/nooni-full.png');
 
 /** Nooni's face (the 5-year-old learning friend from the guide), with an expression for what he is doing. */
-export function NooniAvatar({ size = 44, mood = 'wave' }: { size?: number; mood?: NooniMood }) {
+const BLINK = require('../../assets/nooni/blink.png');
+
+/** Nooni's face. The default face is alive: he blinks every few seconds and sometimes breaks into a big smile. */
+export function NooniAvatar({ size = 44, mood = 'wave', still }: { size?: number; mood?: NooniMood; still?: boolean }) {
+  const live = mood === 'wave' && !still;
+  const [frame, setFrame] = useState<'open' | 'blink' | 'smile'>('open');
+  useEffect(() => {
+    if (!live) return;
+    let n = 0; const timers: ReturnType<typeof setTimeout>[] = [];
+    const later = (ms: number, f: () => void) => { timers.push(setTimeout(f, ms)); };
+    const loop = () => {
+      n += 1;
+      if (n % 4 === 0) { setFrame('smile'); later(1400, () => { setFrame('open'); later(2200 + Math.random() * 1200, loop); }); return; }
+      setFrame('blink');
+      later(140, () => {
+        setFrame('open');
+        if (Math.random() < 0.3) later(160, () => { setFrame('blink'); later(130, () => setFrame('open')); }); // a quick double blink now and then
+        later(2600 + Math.random() * 1800, loop);
+      });
+    };
+    later(1200 + Math.random() * 1500, loop);
+    return () => timers.forEach(clearTimeout);
+  }, [live]);
+  const img = (src: any, on: boolean) => (
+    <Image source={src} accessibilityLabel={on ? 'Nooni' : undefined} style={{ position: 'absolute', width: size, height: size, opacity: on ? 1 : 0 }} resizeMode="cover" />
+  );
   return (
     <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: NOONI.ivory, overflow: 'hidden', borderWidth: size > 40 ? 2 : 1.5, borderColor: '#FFF' }}>
-      <Image source={FACES[mood]} accessibilityLabel="Nooni" style={{ width: size, height: size }} resizeMode="cover" />
+      {live ? <>{img(FACES.wave, frame === 'open')}{img(BLINK, frame === 'blink')}{img(FACES.delight, frame === 'smile')}</> : img(FACES[mood], true)}
+    </View>
+  );
+}
+
+/** The app icon of Nooni: his live face in a purple ring with a twinkling star (like the brand artwork). */
+export function NooniBadge({ size = 52 }: { size?: number }) {
+  const bob = useRef(new Animated.Value(0)).current;
+  const star = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const native = Platform.OS !== 'web';
+    const a = Animated.loop(Animated.sequence([
+      Animated.timing(bob, { toValue: 1, duration: 1600, easing: Easing.inOut(Easing.sin), useNativeDriver: native }),
+      Animated.timing(bob, { toValue: 0, duration: 1600, easing: Easing.inOut(Easing.sin), useNativeDriver: native }),
+    ]));
+    const b = Animated.loop(Animated.sequence([
+      Animated.timing(star, { toValue: 1, duration: 900, easing: Easing.out(Easing.quad), useNativeDriver: native }),
+      Animated.timing(star, { toValue: 0, duration: 900, easing: Easing.in(Easing.quad), useNativeDriver: native }),
+      Animated.delay(600),
+    ]));
+    a.start(); b.start();
+    return () => { a.stop(); b.stop(); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const ring = Math.max(3, Math.round(size * 0.07));
+  const s = size * 0.34;
+  return (
+    <Animated.View style={{ width: size, height: size, transform: [{ translateY: bob.interpolate({ inputRange: [0, 1], outputRange: [0, -size * 0.04] }) }] }}>
+      <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: '#E9E4FF', borderWidth: ring, borderColor: '#5B3FD9', overflow: 'hidden', alignItems: 'center', justifyContent: 'flex-end' }}>
+        <View style={{ marginBottom: -size * 0.04 }}><NooniAvatarBare size={size - ring * 2 + 2} /></View>
+      </View>
+      <Animated.View pointerEvents="none" style={{ position: 'absolute', right: -s * 0.18, top: -s * 0.12, width: s, height: s,
+        opacity: star.interpolate({ inputRange: [0, 1], outputRange: [0.75, 1] }),
+        transform: [{ scale: star.interpolate({ inputRange: [0, 1], outputRange: [0.8, 1.12] }) }, { rotate: star.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '20deg'] }) }] }}>
+        <Svg width={s} height={s} viewBox="0 0 24 24">
+          <Path d="M12 0 C13 7 17 11 24 12 C17 13 13 17 12 24 C11 17 7 13 0 12 C7 11 11 7 12 0 Z" fill="#6D4CF0" stroke="#FFFFFF" strokeWidth={1.6} />
+        </Svg>
+      </Animated.View>
+    </Animated.View>
+  );
+}
+
+/** The live face without its own circle (for NooniBadge). */
+function NooniAvatarBare({ size }: { size: number }) {
+  return (
+    <View style={{ width: size, height: size, borderRadius: size / 2, overflow: 'hidden' }}>
+      <NooniAvatar size={size} />
     </View>
   );
 }
@@ -78,7 +149,7 @@ export function NooniButton() {
     <>
       <Pressable accessibilityRole="button" accessibilityLabel="Ask Nooni" onPress={() => setOpen(true)}
         style={({ pressed }) => ({ position: 'absolute', right: 16, bottom, flexDirection: 'row', alignItems: 'center', gap: 8, height: 56, paddingLeft: 6, paddingRight: device === 'phone' ? 6 : 18, borderRadius: 28, backgroundColor: NOONI.teal, opacity: pressed ? 0.9 : 1, ...shadow.lifted })}>
-        <NooniAvatar size={44} />
+        <NooniBadge size={46} />
         {device !== 'phone' ? <T style={{ color: '#FFF', fontFamily: fonts.semibold }}>Ask Nooni</T> : null}
       </Pressable>
       {open ? (
