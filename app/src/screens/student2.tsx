@@ -340,10 +340,12 @@ export function ExploreScreen() {
     <Screen bar={false}>
       <T v="h1" style={{ marginTop: 8 }}>Explore</T>
       <T v="small">Play, listen and learn</T>
+      <MeetingBanner />
 
       <BigCard g={['#FF9A3D', '#FF5E7E']} tag="NOON GAMES" title="Games" cta="Play" icon="game-controller-outline" onPress={go('/games')} />
       <BigCard g={['#5B43E0', '#9B7BE8']} tag="STORIES · SEERAH · DUAS" title="Audiobook" cta="Listen" icon="headset-outline" onPress={go('/audio')} />
       <BarCard g={['#0E7A50', '#22A86B']} icon="book-outline" title="Quran & Hifz" sub="Read, listen and memorise" onPress={go('/quran')} />
+      <BarCard g={['#0F766E', '#14B8A6']} icon="people-circle-outline" title="Meetings" sub="Join your madrasa's meetings with teachers" onPress={go('/meetings')} />
 
       <View style={{ marginTop: 12 }}>
         <TileRows cols={3} gap={10}>
