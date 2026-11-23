@@ -22,7 +22,7 @@ type StudentRow = { id: number; name: string; admission_no: string | null; cls: 
 type StudentDetail = StudentRow & { email: string | null; batch_ids?: number[]; batches: { id: number; name: string }[]; courses: { id: number; title: string; progress: number }[]; joined: string };
 export type Campaign = { id: number; code: string; title: string; year: string | null; classes: string[]; seats: number | null; opens_on: string | null; closes_on: string | null; description: string | null; fee_note: string | null; status: 'open' | 'closed'; is_open: boolean; leads: number; applications: number; admitted: number; seats_left: number | null };
 type LeadStatus = 'new' | 'contacted' | 'interested' | 'visit' | 'applied' | 'admitted' | 'lost';
-type Lead = { id: number; student: string; parent: string | null; phone: string; email: string | null; cls: string | null; source: string; status: LeadStatus; follow_up_on: string | null; overdue: boolean; notes: { text: string; by: string | null; at: string }[]; campaign: { id: number; title: string } | null; admission: string | null; when: string };
+type Lead = { id: number; student: string; parent: string | null; phone: string; email: string | null; cls: string | null; source: string; status: LeadStatus; follow_up_on: string | null; overdue: boolean; notes: { text: string; by: string | null; at: string }[]; campaign: { id: number; title: string } | null; admission: string | null; when: string; join_request?: boolean };
 
 const BOARDS = [{ key: 'AP', label: 'SKSVB (AP)' }, { key: 'EK', label: 'SKIMVB (EK)' }];
 const CLASSES = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '+1', '+2'];
@@ -30,7 +30,7 @@ const LEAD_STATUS: { key: LeadStatus; label: string; tone: keyof typeof pastel }
   { key: 'new', label: 'New', tone: 'butter' }, { key: 'contacted', label: 'Contacted', tone: 'sky' }, { key: 'interested', label: 'Interested', tone: 'lav' },
   { key: 'visit', label: 'Visit / demo', tone: 'pink' }, { key: 'applied', label: 'Applied', tone: 'mint' }, { key: 'admitted', label: 'Admitted', tone: 'mint' }, { key: 'lost', label: 'Lost', tone: 'white' },
 ];
-const SOURCES = [['portal', 'Admission page'], ['whatsapp', 'WhatsApp'], ['call', 'Phone call'], ['walk_in', 'Walk-in'], ['referral', 'Referral'], ['social', 'Social media'], ['other', 'Other']] as const;
+const SOURCES = [['app', 'Noon app'], ['portal', 'Admission page'], ['whatsapp', 'WhatsApp'], ['call', 'Phone call'], ['walk_in', 'Walk-in'], ['referral', 'Referral'], ['social', 'Social media'], ['other', 'Other']] as const;
 const sourceLabel = (s: string) => SOURCES.find(([k]) => k === s)?.[1] ?? s;
 const TINTS = [pastel.lav, pastel.sky, pastel.mint, pastel.pink];
 const PUBLIC_BASE = 'https://noonlearn.com/admission/';
@@ -373,8 +373,8 @@ function LeadsTab({ leads, campaigns, reload }: { leads?: Lead[]; campaigns: Cam
           return (
             <ListRow key={l.id} onPress={() => setOpen(l)} left={<Avatar name={l.student} size={44} tint={TINTS[i % 4]} />}
               title={`${l.student}${l.cls ? ` · Class ${l.cls}` : ''}`}
-              sub={[l.parent, `+${l.phone}`, sourceLabel(l.source), l.follow_up_on ? `${l.overdue ? 'OVERDUE · ' : ''}follow up ${l.follow_up_on}` : null].filter(Boolean).join(' · ')}
-              right={<Tag text={s.label} tone={s.tone} />} />
+              sub={[l.parent, l.phone ? `+${l.phone}` : null, sourceLabel(l.source), l.follow_up_on ? `${l.overdue ? 'OVERDUE · ' : ''}follow up ${l.follow_up_on}` : null].filter(Boolean).join(' · ')}
+              right={l.join_request ? <Tag text="Join request" tone="mint" /> : <Tag text={s.label} tone={s.tone} />} />
           );
         })}
         {!list.length ? <T v="small" style={{ textAlign: 'center', padding: 20 }}>No leads here.</T> : null}
@@ -424,7 +424,17 @@ function LeadSheet({ lead, onClose, onSaved }: { lead: Lead | null; onClose: () 
   return (
     <Sheet visible={!!lead} onClose={() => { setConv(null); onClose(); }} title={lead.student}>
       <Card style={{ gap: 6 }}>
-        {[['Parent', lead.parent ?? '—'], ['Phone', `+${lead.phone}`], ['Email', lead.email ?? '—'], ['Class', lead.cls ?? '—'], ['Source', sourceLabel(lead.source)], ['Campaign', lead.campaign?.title ?? '—'], ['Application', lead.admission ?? '—']].map(([k, v]) => (
+        {lead.join_request ? (
+          <View style={{ backgroundColor: colors.mint[0], borderRadius: 14, padding: 12, gap: 8, marginBottom: 6 }}>
+            <T style={{ fontFamily: fonts.semibold, color: colors.mint[1] }}>{lead.student} asked to join from the Noon app</T>
+            <T v="small" style={{ color: colors.mint[1] }}>Approve to add this account to your institution as a student.</T>
+            <Button title="Approve join" icon="checkmark-circle-outline" loading={busy} onPress={async () => {
+              setBusy(true);
+              try { onSaved(await api.post<Lead>(`/admin/leads/${lead.id}/approve-join`)); } catch (e) { say(errText(e, 'Could not approve.')); } finally { setBusy(false); }
+            }} />
+          </View>
+        ) : null}
+        {[['Parent', lead.parent ?? '—'], ['Phone', lead.phone ? `+${lead.phone}` : '—'], ['Email', lead.email ?? '—'], ['Class', lead.cls ?? '—'], ['Source', sourceLabel(lead.source)], ['Campaign', lead.campaign?.title ?? '—'], ['Application', lead.admission ?? '—']].map(([k, v]) => (
           <Row key={k} style={{ justifyContent: 'space-between' }}><T v="small">{k}</T><T style={{ fontFamily: fonts.medium, flexShrink: 1, textAlign: 'right' }}>{v}</T></Row>
         ))}
         <Row gap={8} style={{ marginTop: 6 }}>

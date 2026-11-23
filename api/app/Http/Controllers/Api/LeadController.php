@@ -94,6 +94,20 @@ class LeadController extends Controller
         return ['lead' => $lead->load('campaign')->toApp(), 'application' => $a->toApp()];
     }
 
+    /** Approve a join request from the app: the guest account becomes a student here. */
+    public function approveJoin(Request $request, int $id)
+    {
+        $lead = Lead::findOrFail($id);
+        $user = $lead->user_id ? \App\Models\User::find($lead->user_id) : null;
+        abort_unless($user && $user->role === 'guest' && ! $user->tenant_id, 422, 'This request was already handled.');
+        $user->forceFill(['tenant_id' => $lead->tenant_id, 'role' => 'student'])->save();
+        $lead->forceFill(['status' => 'admitted']);
+        $lead->addNote('Join request approved: '.$user->name.' is now a student', $request->user()->name);
+        $lead->save();
+
+        return $lead->load('campaign')->toApp();
+    }
+
     private function rules(bool $partial = false): array
     {
         $req = $partial ? 'sometimes' : 'required';

@@ -11,9 +11,9 @@ class Lead extends Model
     use BelongsToTenant;
 
     public const STATUSES = ['new', 'contacted', 'interested', 'visit', 'applied', 'admitted', 'lost'];
-    public const SOURCES = ['portal', 'whatsapp', 'call', 'walk_in', 'referral', 'social', 'other'];
+    public const SOURCES = ['app', 'portal', 'whatsapp', 'call', 'walk_in', 'referral', 'social', 'other'];
 
-    protected $fillable = ['tenant_id', 'campaign_id', 'student_name', 'parent_name', 'phone', 'email', 'class_label', 'source', 'status', 'follow_up_on', 'notes', 'admission_id'];
+    protected $fillable = ['tenant_id', 'campaign_id', 'student_name', 'parent_name', 'phone', 'email', 'class_label', 'source', 'status', 'follow_up_on', 'notes', 'admission_id', 'user_id'];
 
     protected $casts = ['notes' => 'array', 'follow_up_on' => 'date'];
 
@@ -39,6 +39,8 @@ class Lead extends Model
             'campaign' => $this->campaign ? ['id' => $this->campaign->id, 'title' => $this->campaign->title] : null,
             'admission' => $this->admission_id ? Admission::withoutGlobalScopes()->find($this->admission_id)?->ref : null,
             'when' => $this->created_at?->diffForHumans() ?? '',
+            // A join request from the app: the guest account waiting for the office to approve it.
+            'join_request' => $this->user_id && User::whereKey($this->user_id)->where('role', 'guest')->whereNull('tenant_id')->exists(),
         ];
     }
 }

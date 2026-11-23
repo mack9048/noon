@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLayout } from '@/lib/useLayout';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { choiceReady, emptyChoice, InstitutionChoice, InstitutionPicker, joinInstitution, RequestSent } from '@/components/InstitutionPicker';
 import { Button, Card, Grid, Header, Screen, T } from '@/components/ui';
 import { Field } from './auth';
 import { InstallAppButton } from '@/components/InstallApp';
@@ -23,16 +24,18 @@ const links: [string, string, keyof typeof Ionicons.glyphMap, readonly [string, 
 /** Guest "More" tab: join an institution with its code, other sections, log out. */
 export function GuestMoreScreen() {
   const { user, logout, refresh } = useAuth();
-  const [code, setCode] = useState('');
+  const [inst, setInst] = useState<InstitutionChoice>(emptyChoice);
+  const [sent, setSent] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   const join = async () => {
     setBusy(true); setErr(null);
     try {
-      const u = await api.post<User>('/auth/join-tenant', { code: code.trim().toUpperCase() });
+      const r = await joinInstitution(inst);
+      if (r.requested) { setSent(r.requested); return; }
       await refresh();
-      router.replace(homeFor(u.role) as any);
+      router.replace(homeFor(r.user!.role) as any);
     } catch (e: any) {
       setErr(e instanceof ApiError ? e.friendly : e?.message ?? 'Could not join. Please try again.');
     } finally { setBusy(false); }
@@ -52,10 +55,10 @@ export function GuestMoreScreen() {
             <T v="small">Unlock class chat, attendance, fees, leave and report cards.</T>
           </View>
         </View>
-        <Field label="Institution code" value={code} onChangeText={(v) => setCode(v.toUpperCase())} autoCapitalize="characters" placeholder="e.g. NOON01" maxLength={20} />
+        {sent ? <RequestSent name={sent} /> : <InstitutionPicker value={inst} onChange={(c) => { setInst(c); setErr(null); }} />}
         {err ? <T style={{ color: colors.red }}>{err}</T> : null}
-        <Button title="Join institution" icon="arrow-forward" onPress={join} loading={busy} disabled={code.trim().length < 4} />
-        <T v="small">Ask your institution office for the code.</T>
+        {sent ? null : <Button title={inst.picked ? 'Send join request' : 'Join institution'} icon="arrow-forward" onPress={join} loading={busy} disabled={!choiceReady(inst)} />}
+        {sent ? null : <T v="small">Type the code from your institution office to join at once, or pick your institution from the list.</T>}
       </Card>
 
       <Grid cols={{ phone: 2, tablet: 3, desktop: 4 }}>

@@ -86,6 +86,35 @@ class AuthTest extends TestCase
             ->assertOk()->assertJsonPath('role', 'student')->assertJsonPath('tenant_id', $t->id);
     }
 
+    public function test_guest_picks_an_institution_from_the_list_and_the_office_approves(): void
+    {
+        $t = $this->madrasa('NOON01');
+        $guest = User::factory()->create(['role' => 'guest', 'name' => 'Hamdan']);
+        // The list shows names, never codes.
+        $list = $this->getJson('/api/institutions?q='.urlencode(substr($t->name, 0, 3)))->assertOk()->json();
+        $this->assertSame($t->id, $list[0]['id']);
+        $this->assertArrayNotHasKey('code', $list[0]);
+
+        $this->as($guest);
+        $this->postJson('/api/auth/join-tenant', ['tenant_id' => $t->id])->assertStatus(202)->assertJsonPath('requested', true);
+        $this->postJson('/api/auth/join-tenant', ['tenant_id' => $t->id])->assertStatus(202); // asking twice: one request
+        $this->assertSame('guest', $guest->fresh()->role);
+        $this->assertNull($guest->fresh()->tenant_id);
+        // Typing the full name also sends a request.
+        $this->postJson('/api/auth/join-tenant', ['code' => strtolower($t->name)])->assertStatus(202);
+
+        $admin = $this->member($t, 'admin', ['email' => 'a@noon.test']);
+        $this->as($admin);
+        $leads = $this->getJson('/api/admin/leads')->assertOk()->json();
+        $req = collect($leads)->firstWhere('join_request', true);
+        $this->assertNotNull($req);
+        $this->assertCount(1, collect($leads)->where('source', 'app'));
+        $this->postJson("/api/admin/leads/{$req['id']}/approve-join")->assertOk()->assertJsonPath('status', 'admitted')->assertJsonPath('join_request', false);
+        $this->assertSame('student', $guest->fresh()->role);
+        $this->assertSame($t->id, $guest->fresh()->tenant_id);
+        $this->postJson("/api/admin/leads/{$req['id']}/approve-join")->assertUnprocessable();
+    }
+
     public function test_blocked_user_and_inactive_madrasa_lose_access_at_once(): void
     {
         $t = $this->madrasa();

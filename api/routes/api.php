@@ -77,6 +77,7 @@ Route::get('/games/{id}/file', [GameController::class, 'file'])->whereNumber('id
 Route::get('/course-items/{id}/html', [CourseBuilderController::class, 'html'])->whereNumber('id')->name('course-items.html')->middleware('signed:relative');
 // Public admission form (from the link the institution shares)
 Route::post('/apply/{code}', [AdmissionController::class, 'apply'])->middleware('throttle:join');
+Route::get('/institutions', [AuthController::class, 'institutions'])->middleware('throttle:60,1');
 Route::get('/portal/{code}', [AdmissionController::class, 'portal'])->middleware('throttle:60,1');
 Route::post('/portal/{code}/enquire', [AdmissionController::class, 'enquire'])->middleware('throttle:join');
 Route::get('/boards/{board}/classes', [CatalogController::class, 'classes']);
@@ -212,6 +213,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::patch('/leads/{id}', [LeadController::class, 'update'])->whereNumber('id');
         Route::delete('/leads/{id}', [LeadController::class, 'destroy'])->whereNumber('id');
         Route::post('/leads/{id}/convert', [LeadController::class, 'convert'])->whereNumber('id');
+        Route::post('/leads/{id}/approve-join', [LeadController::class, 'approveJoin'])->whereNumber('id');
         Route::get('/batches', [BatchController::class, 'index']);
         Route::get('/batches/people', [BatchController::class, 'people']);
         Route::post('/batches', [BatchController::class, 'store']);

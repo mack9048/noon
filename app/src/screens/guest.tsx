@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { choiceReady, emptyChoice, InstitutionChoice, InstitutionPicker, joinInstitution, RequestSent } from '@/components/InstitutionPicker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Logo } from '@/components/Logo';
 import { TileRows } from '@/components/kit2';
@@ -235,11 +236,12 @@ export function UnlockScreen() {
   const { refresh, logout } = useAuth();
   const [opt, setOpt] = useState<'code' | 'plan' | 'login'>('code');
   const [plan, setPlan] = useState<'month' | 'year'>('year');
-  const [code, setCode] = useState('');
+  const [inst, setInst] = useState<InstitutionChoice>(emptyChoice);
+  const [sent, setSent] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const options = [
-    ['code', 'business-outline', colors.sky[0], 'Join my institution', 'Enter the code from your institution office'],
+    ['code', 'business-outline', colors.sky[0], 'Join my institution', 'Pick your institution or enter its code'],
     ['plan', 'star-outline', colors.butter[0], 'Subscribe to Noon Learn', 'Learn on your own — all classes and courses'],
     ['login', 'key-outline', colors.lav[0], 'I already have an account', 'Log in to your institution account'],
   ] as const;
@@ -249,9 +251,10 @@ export function UnlockScreen() {
     if (opt === 'plan') { demoNote('Demo: payment opens Razorpay once subscriptions are connected (step 5).'); return; }
     setBusy(true);
     try {
-      const u = await api.post<User>('/auth/join-tenant', { code: code.trim().toUpperCase() });
+      const r = await joinInstitution(inst);
+      if (r.requested) { setSent(r.requested); return; }
       await refresh();
-      router.replace(homeFor(u.role) as any);
+      router.replace(homeFor(r.user!.role) as any);
     } catch (e: any) {
       setErr(e instanceof ApiError ? e.friendly : e?.message ?? 'Could not join. Please try again.');
     } finally { setBusy(false); }
@@ -277,7 +280,7 @@ export function UnlockScreen() {
       <Card style={{ marginTop: 12, gap: 10 }}>
         {opt === 'code' ? (
           <>
-            <Field label="Institution code" value={code} onChangeText={(v) => setCode(v.toUpperCase())} autoCapitalize="characters" placeholder="e.g. NOON01" maxLength={20} />
+            {sent ? <RequestSent name={sent} /> : <InstitutionPicker value={inst} onChange={(c) => { setInst(c); setErr(null); }} />}
             {err ? <T style={{ color: colors.red }}>{err}</T> : null}
           </>
         ) : opt === 'plan' ? (
@@ -293,8 +296,8 @@ export function UnlockScreen() {
         ) : (
           <T v="small">Already a student? Log in with the phone, email or admission number your institution gave you.</T>
         )}
-        <Button title={opt === 'code' ? 'Join institution' : opt === 'plan' ? 'Continue to payment' : 'Log in'} kind="yellow" loading={busy}
-          disabled={opt === 'code' && code.trim().length < 4} onPress={go} />
+        <Button title={opt === 'code' ? (inst.picked ? 'Send join request' : 'Join institution') : opt === 'plan' ? 'Continue to payment' : 'Log in'} kind="yellow" loading={busy}
+          disabled={opt === 'code' && (!!sent || !choiceReady(inst))} onPress={go} />
       </Card>
       <Pressable accessibilityRole="button" onPress={() => logout().then(() => router.replace('/login' as any))} style={{ alignSelf: 'center', marginTop: 16, padding: 10 }}>
         <T style={{ color: colors.red, fontFamily: fonts.medium }}>Log out of guest account</T>

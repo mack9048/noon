@@ -245,19 +245,58 @@ class AuthController extends Controller
     }
 
     /** Guest enters an institution code → becomes a student of that institution. */
+    /** Public: institutions to pick from when joining (names only; codes stay private). */
+    public function institutions(Request $request)
+    {
+        $q = trim((string) $request->query('q', ''));
+
+        return Tenant::where('active', true)
+            ->when($q !== '', fn ($w) => $w->where(fn ($x) => $x->where('name', 'like', '%'.addcslashes($q, '%_').'%')->orWhere('code', strtoupper($q))))
+            ->orderBy('name')->limit(30)->get()
+            ->map(fn (Tenant $t) => ['id' => $t->id, 'name' => $t->name, 'place' => $t->address ? \Illuminate\Support\Str::limit(trim(collect(explode(',', $t->address))->last()), 40) : null, 'logo_url' => $t->logo_url]);
+    }
+
+    /**
+     * A guest joins an institution. With the right code they join straight away.
+     * Picking an institution from the list (no code) sends a join request the office approves.
+     */
     public function joinTenant(Request $request)
     {
-        $data = $request->validate(['code' => ['required', 'string', 'max:20']]);
+        $data = $request->validate(['code' => ['required_without:tenant_id', 'nullable', 'string', 'max:120'], 'tenant_id' => ['nullable', 'integer']]);
         $user = $request->user();
         abort_unless($user->hasRole('guest'), 422, 'Only guest accounts can join an institution.');
 
-        $tenant = Tenant::where('code', strtoupper(trim($data['code'])))->where('active', true)->first();
-        if (! $tenant) {
-            throw ValidationException::withMessages(['code' => 'This institution code is not valid.']);
-        }
-        $user->update(['tenant_id' => $tenant->id, 'role' => 'student']);
+        if (! empty($data['code'])) {
+            $typed = trim($data['code']);
+            $tenant = Tenant::where('code', strtoupper($typed))->where('active', true)->first();
+            if ($tenant) {
+                $user->update(['tenant_id' => $tenant->id, 'role' => 'student']);
 
-        return $user->fresh()->load('tenant')->toApp();
+                return $user->fresh()->load('tenant')->toApp();
+            }
+            // The full name of an institution (not its code): send a request instead.
+            $byName = Tenant::where('active', true)->whereRaw('lower(name) = ?', [mb_strtolower($typed)])->first();
+            if (! $byName) {
+                throw ValidationException::withMessages(['code' => 'We could not find this institution. Check the code, or pick your institution from the list.']);
+            }
+            $data['tenant_id'] = $byName->id;
+        }
+
+        $tenant = Tenant::where('active', true)->find($data['tenant_id']);
+        abort_unless($tenant, 422, 'This institution is not available.');
+        $lead = \App\Models\Lead::withoutGlobalScopes()->where('tenant_id', $tenant->id)->where('user_id', $user->id)
+            ->whereNotIn('status', ['admitted', 'lost'])->first();
+        if (! $lead) {
+            $lead = new \App\Models\Lead([
+                'tenant_id' => $tenant->id, 'user_id' => $user->id, 'student_name' => \Illuminate\Support\Str::limit($user->name, 78, ''),
+                'parent_name' => null, 'phone' => (string) ($user->phone ?? ''), 'email' => $user->email,
+                'source' => 'app', 'status' => 'new',
+            ]);
+            $lead->addNote('Asked to join from the Noon app. Approve to add this account as a student.', $user->name);
+            $lead->save();
+        }
+
+        return response()->json(['requested' => true, 'institution' => $tenant->name], 202);
     }
 
     public function me(Request $request)
