@@ -11,7 +11,7 @@ import { Animated, Easing, Image, Platform, View } from 'react-native';
 import { T } from './ui';
 import { fonts } from '@/theme/tokens';
 
-const GREETINGS = ['Assalamu alaikum!', 'Welcome back!', 'Ready to learn?'];
+const GREETINGS = ['Assalamu alaikum!\nI am Nooni', 'Welcome back!', 'Ready to learn?'];
 
 function useLoop(duration: number, delay = 0) {
   const v = useRef(new Animated.Value(0)).current;
@@ -62,19 +62,19 @@ export function NooniWelcome({ size = 220, compact = false }: { size?: number; c
       style={{ width: size * (compact ? 3 : 1.6), height: h + (compact ? 10 : 40), alignItems: 'center', justifyContent: 'flex-end', alignSelf: 'center' }}>
       {/* soft glow behind Nooni */}
       <View style={{ position: 'absolute', bottom: 10, width: size * 1.15, height: size * 1.15, borderRadius: size, backgroundColor: 'rgba(255,255,255,0.14)' }} />
-      <Star left="6%" top="18%" size={size * 0.16} delay={0} />
+      <Star left="10%" top="40%" size={size * 0.16} delay={0} />
       <Star left="84%" top="30%" size={size * 0.12} delay={350} />
       <Star left="14%" top="62%" size={size * 0.1} delay={700} />
       {compact ? null : <Animated.Image source={{ uri: '/art/bird.svg' }} accessibilityElementsHidden importantForAccessibility="no"
-        style={{ position: 'absolute', right: '2%', top: '4%', width: size * 0.3, height: size * 0.32,
+        style={{ position: 'absolute', left: '0%', top: '0%', width: size * 0.3, height: size * 0.32,
           transform: [{ translateY: bird.interpolate({ inputRange: [0, 1], outputRange: [0, -14] }) }, { translateX: bird.interpolate({ inputRange: [0, 1], outputRange: [0, -10] }) }] }} />}
 
       {/* speech bubble */}
-      <Animated.View style={{ position: 'absolute', top: compact ? '22%' : 8, left: compact ? 0 : '4%', backgroundColor: '#FFF', borderRadius: 20, paddingHorizontal: compact ? 10 : 14, paddingVertical: 8,
+      <Animated.View style={{ position: 'absolute', top: compact ? '4%' : -6, right: compact ? 0 : '-6%', backgroundColor: '#FFF', borderRadius: 20, paddingHorizontal: compact ? 10 : 14, paddingVertical: 8,
         shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 10, shadowOffset: { width: 0, height: 4 },
         opacity: pop, transform: [{ scale: pop.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] }) }] }}>
-        <T style={{ fontFamily: fonts.fun, color: NOONI.deep, fontSize: compact ? 12 : 16 }}>{GREETINGS[g]}</T>
-        <View style={{ position: 'absolute', bottom: -6, right: 26, width: 14, height: 14, backgroundColor: '#FFF', transform: [{ rotate: '45deg' }] }} />
+        <T style={{ fontFamily: fonts.fun, color: NOONI.deep, fontSize: compact ? 12 : 16, textAlign: 'center' }}>{GREETINGS[g]}</T>
+        <View style={{ position: 'absolute', bottom: -6, left: 22, width: 14, height: 14, backgroundColor: '#FFF', transform: [{ rotate: '45deg' }] }} />
       </Animated.View>
 
       {/* Nooni (no background): gentle bounce and sway, and his hand waves hello at the wrist. */}
