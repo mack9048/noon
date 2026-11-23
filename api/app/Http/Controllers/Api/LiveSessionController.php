@@ -10,8 +10,8 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 /**
- * Live classes and meetings. Staff add a Google Meet (or other https) link with a time;
- * students and parents see the ones for their batches and join from the app.
+ * Live classes and meetings. Staff set a time; everyone joins inside the app on Noon Live (LiveKit).
+ * An outside meeting link (Google Meet …) is optional and only used when Noon Live is not set up.
  */
 class LiveSessionController extends Controller
 {
@@ -56,6 +56,50 @@ class LiveSessionController extends Controller
         return response()->noContent();
     }
 
+    private function staff(User $user): bool
+    {
+        return in_array($user->role, ['teacher', 'admin'], true);
+    }
+
+    /** Join (or start, for staff): a Noon Live room pass; an outside link only when Noon Live is not set up. */
+    public function join(Request $request, int $id)
+    {
+        $user = $request->user();
+        $s = $this->visible($user)->findOrFail($id);
+        $staff = $this->staff($user);
+        $state = $s->toApp()['state'];
+        abort_if($state === 'ended', 422, 'This class has ended.');
+        abort_if($state !== 'live' && ! $staff, 422, 'You can join 15 minutes before the start.');
+        if (! \App\Support\LiveKit::configured()) {
+            abort_unless($s->meet_url, 422, 'Noon Live is not switched on yet. Please ask Noon Learn.');
+
+            return ['provider' => 'meet', 'url' => $s->meet_url];
+        }
+        $room = 'noon-session-'.$s->id;
+
+        return [
+            'provider' => 'livekit', 'url' => \App\Support\LiveKit::url(), 'room' => $room, 'host' => $staff, 'kind' => 'session',
+            'token' => \App\Support\LiveKit::token($room, 'u'.$user->id, $user->name, $staff, ['role' => $user->role]),
+            'course' => ['id' => $s->id, 'title' => $s->title],
+        ];
+    }
+
+    /** Staff only: mute, remove, or end the class for everyone. */
+    public function moderate(Request $request, int $id)
+    {
+        abort_unless($this->staff($request->user()), 403);
+        $s = LiveSession::findOrFail($id);
+        $data = $request->validate(['action' => ['required', 'in:mute,remove,end'], 'identity' => ['required_unless:action,end', 'string', 'max:40']]);
+        $room = 'noon-session-'.$s->id;
+        match ($data['action']) {
+            'mute' => \App\Support\LiveKit::muteMic($room, $data['identity']),
+            'remove' => \App\Support\LiveKit::call('RemoveParticipant', ['room' => $room, 'identity' => $data['identity']], $room),
+            'end' => \App\Support\LiveKit::call('DeleteRoom', ['room' => $room], $room),
+        };
+
+        return ['ok' => true];
+    }
+
     private function visible(User $user)
     {
         $q = LiveSession::with(['batch', 'creator']);
@@ -77,7 +121,7 @@ class LiveSessionController extends Controller
             'batch_id' => ['nullable', 'integer'],
             'starts_at' => [$req, 'date'],
             'duration_min' => ['sometimes', 'integer', 'between:5,480'],
-            'meet_url' => [$req, 'url:https', 'max:500'],
+            'meet_url' => ['nullable', 'url:https', 'max:500'],
             'notes' => ['nullable', 'string', 'max:500'],
         ]);
         if (! empty($data['batch_id']) && ! Batch::find($data['batch_id'])) {

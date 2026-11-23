@@ -1,4 +1,4 @@
-// Live classes and meetings on Google Meet (or any https meeting link).
+// Live classes and meetings on Noon Live (inside the app).
 // Teachers and admins schedule them; students and parents join from the app.
 import React, { useState } from 'react';
 import { Linking, Modal, Platform, Pressable, ScrollView, View } from 'react-native';
@@ -11,11 +11,12 @@ import { api, ApiError } from '@/lib/api';
 import { useApi } from '@/lib/useApi';
 import { useAuth } from '@/lib/auth';
 import { useBase } from '@/lib/useBase';
+import { setLivePass, type LivePass } from './liveRoom';
 import { colors, fonts } from '@/theme/tokens';
 
 export type LiveSession = {
   id: number; title: string; kind: 'class' | 'meeting'; starts_at: string; ends_at: string; duration_min: number;
-  meet_url: string; notes: string | null; batch: { id: number; name: string } | null; host: string | null; state: 'upcoming' | 'live' | 'ended';
+  meet_url: string | null; notes: string | null; batch: { id: number; name: string } | null; host: string | null; state: 'upcoming' | 'live' | 'ended';
 };
 
 const when = (iso: string) => {
@@ -25,11 +26,19 @@ const when = (iso: string) => {
     : d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
   return `${day} · ${d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`;
 };
-const isMeet = (u: string) => /meet\.google\.com/i.test(u);
+const isMeet = (u?: string | null) => !!u && /meet\.google\.com/i.test(u);
 function openMeet(url: string) {
   if (Platform.OS === 'web') window.open(url, '_blank', 'noopener'); else Linking.openURL(url);
 }
 function say(msg: string) { if (Platform.OS === 'web') window.alert(msg); }
+
+/** Join or start a class: Noon Live opens inside the app (an outside link only if Noon Live is off). */
+export async function joinSession(id: number) {
+  try {
+    const r = await api.post<LivePass | { provider: 'meet'; url: string }>(`/live-sessions/${id}/join`);
+    if (r.provider === 'livekit') { setLivePass(r); router.push(`/live/s/${id}` as any); } else openMeet(r.url);
+  } catch (e) { say(e instanceof ApiError ? e.friendly : 'Could not open the class.'); }
+}
 
 function SessionCard({ s, staff, onEdit }: { s: LiveSession; staff: boolean; onEdit?: () => void }) {
   const base = useBase();
@@ -43,13 +52,13 @@ function SessionCard({ s, staff, onEdit }: { s: LiveSession; staff: boolean; onE
         <View style={{ flex: 1 }}>
           <T v="small" style={{ color: colors.pink[1], fontFamily: fonts.semibold }}>{live ? 'LIVE NOW · ' : ''}{when(s.starts_at)} · {s.duration_min} min</T>
           <T style={{ fontFamily: fonts.semibold, fontSize: 16 }}>{s.title}</T>
-          <T v="small">{[s.batch?.name ?? 'Everyone', s.host ? `by ${s.host}` : null, isMeet(s.meet_url) ? 'Google Meet' : null].filter(Boolean).join(' · ')}</T>
+          <T v="small">{[s.batch?.name ?? 'Everyone', s.host ? `by ${s.host}` : null, 'Noon Live'].filter(Boolean).join(' · ')}</T>
         </View>
         {s.state === 'ended' ? <Tag text="Ended" tone="white" /> : null}
       </Row>
       <Row gap={8}>
         {s.state !== 'ended' ? (
-          <View style={{ flex: 1 }}><Button title={live ? 'Join now' : 'Join link'} icon="videocam" kind={live ? 'primary' : 'ghost'} onPress={() => openMeet(s.meet_url)} /></View>
+          <View style={{ flex: 1 }}><Button title={staff ? (live ? 'Start class' : 'Open room') : live ? 'Join now' : 'Opens 15 min before'} icon="videocam" kind={live ? 'primary' : 'ghost'} disabled={!staff && !live} onPress={() => joinSession(s.id)} /></View>
         ) : null}
         {staff && onEdit ? <Button title="Edit" kind="ghost" icon="create-outline" onPress={onEdit} /> : null}
       </Row>
@@ -68,7 +77,7 @@ export function LiveListScreen() {
   if (tab === 'past') list.reverse();
   return (
     <Screen>
-      <Header title="Live classes" subtitle={staff ? 'Schedule a class or meeting on Google Meet' : 'Join your classes and meetings'}
+      <Header title="Live classes" subtitle={staff ? 'Schedule a class or meeting on Noon Live' : 'Join your classes and meetings'}
         right={staff ? <Button title="New" icon="add" style={{ height: 44, paddingHorizontal: 16 }} onPress={() => setEdit('new')} /> : undefined} />
       <ChoiceChips value={tab} onChange={setTab} options={[{ key: 'upcoming', label: 'Upcoming' }, { key: 'past', label: 'Past' }]} />
       {loading && !data ? <Loading /> : error ? <Empty text={error} /> : (
@@ -114,19 +123,12 @@ export function LiveSessionScreen() {
         <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: '#FFF', alignItems: 'center', justifyContent: 'center' }}><Ionicons name="videocam" size={34} color={colors.pink[1]} /></View>
         <T v="h2" style={{ textAlign: 'center' }}>{live ? 'Class is open — join now' : s.state === 'ended' ? 'This class has ended' : 'Starts ' + when(s.starts_at)}</T>
         <T v="small" style={{ textAlign: 'center' }}>{when(s.starts_at)} · {s.duration_min} minutes{s.host ? ` · with ${s.host}` : ''}</T>
-        {s.state !== 'ended' ? <Button title={isMeet(s.meet_url) ? 'Join on Google Meet' : 'Join meeting'} icon="videocam" onPress={() => openMeet(s.meet_url)} style={{ alignSelf: 'stretch' }} /> : null}
-        {s.state === 'upcoming' ? <T v="small" style={{ textAlign: 'center' }}>You can join 15 minutes before the start. The link opens Google Meet in a new tab or the Meet app.</T> : null}
+        {s.state !== 'ended' ? <Button title={staff ? 'Start class' : live ? 'Join class' : 'Opens 15 minutes before'} icon="videocam" disabled={!staff && !live} onPress={() => joinSession(s.id)} style={{ alignSelf: 'stretch' }} /> : null}
+        {s.state === 'upcoming' && !staff ? <T v="small" style={{ textAlign: 'center' }}>You can join 15 minutes before the start, inside the app.</T> : null}
       </Card>
       {s.notes ? <Card style={{ marginTop: 12 }}><T v="label">NOTES</T><T>{s.notes}</T></Card> : null}
       {staff ? (
-        <Card style={{ marginTop: 12, gap: 8 }}>
-          <T v="label">MEETING LINK</T>
-          <T selectable style={{ color: colors.violet }}>{s.meet_url}</T>
-          <Row gap={8}>
-            <View style={{ flex: 1 }}><Button title="Copy link" kind="ghost" icon="copy-outline" onPress={async () => { try { await (globalThis as any).navigator?.clipboard?.writeText(s.meet_url); say('Copied.'); } catch { say(s.meet_url); } }} /></View>
-            <View style={{ flex: 1 }}><Button title="Edit" kind="ghost" icon="create-outline" onPress={() => setEdit(true)} /></View>
-          </Row>
-        </Card>
+        <View style={{ marginTop: 12 }}><Button title="Edit" kind="ghost" icon="create-outline" onPress={() => setEdit(true)} /></View>
       ) : null}
       {staff ? <LiveForm value={edit ? s : null} onClose={() => setEdit(false)} onSaved={(deleted) => { setEdit(false); if (deleted) router.replace(`${base}/live` as any); else reload(); }} /> : null}
     </Screen>
@@ -159,9 +161,8 @@ function LiveForm({ value, onClose, onSaved }: { value: LiveSession | 'new' | nu
     const start = new Date(`${f.date}T${f.time}:00`);
     if (f.title.trim().length < 2) return setErr('Enter a title.');
     if (isNaN(start.getTime())) return setErr('Choose the date and time.');
-    if (!/^https:\/\//i.test(f.url.trim())) return setErr('Paste the meeting link (it starts with https://meet.google.com/…).');
     setBusy(true);
-    const body = { title: f.title.trim(), kind: f.kind, batch_id: f.batch ? Number(f.batch) : null, starts_at: start.toISOString(), duration_min: Number(f.duration) || 45, meet_url: f.url.trim(), notes: f.notes.trim() || null };
+    const body = { title: f.title.trim(), kind: f.kind, batch_id: f.batch ? Number(f.batch) : null, starts_at: start.toISOString(), duration_min: Number(f.duration) || 45, meet_url: editing?.meet_url ?? null, notes: f.notes.trim() || null };
     try {
       if (editing) await api.put(`/staff/live-sessions/${editing.id}`, body); else await api.post('/staff/live-sessions', body);
       onSaved();
@@ -194,10 +195,7 @@ function LiveForm({ value, onClose, onSaved }: { value: LiveSession | 'new' | nu
               </Row>
             </Card>
             <Card style={{ gap: 10 }}>
-              <T v="h3">Google Meet link</T>
-              <T v="small">1. Tap the button to open Google Meet and create a meeting. 2. Copy its link. 3. Paste it here.</T>
-              <Button title="Create a Google Meet link" icon="open-outline" kind="ghost" onPress={() => openMeet('https://meet.google.com/new')} />
-              <Input label="Meeting link" value={f.url} onChangeText={set('url')} placeholder="https://meet.google.com/abc-defg-hij" autoCapitalize="none" />
+              <Row gap={10}><Ionicons name="videocam" size={20} color={colors.teal} /><T style={{ flex: 1, fontSize: 13 }}>Runs on Noon Live inside the app. No meeting link needed: at class time press Start class; students join from 15 minutes before.</T></Row>
               <Input label="Notes for students (optional)" value={f.notes} onChangeText={set('notes')} multiline />
             </Card>
             {err ? <T style={{ color: colors.red }}>{err}</T> : null}

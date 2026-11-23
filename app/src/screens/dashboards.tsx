@@ -9,6 +9,7 @@ import { useApi } from '@/lib/useApi';
 import { useAuth } from '@/lib/auth';
 import { money } from '@/lib/money';
 import { colors, fonts } from '@/theme/tokens';
+import { joinSession } from './live';
 
 const go = (href: string) => () => router.push(href as any);
 const initials = (s?: string | null) => (s ?? 'N').split(/\s+/).map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
@@ -271,8 +272,8 @@ export function TeacherDashboard() {
             <View key={c.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#FFF', borderRadius: 16, padding: 12 }}>
               <View style={{ width: 52, alignItems: 'center' }}><T style={{ fontFamily: fonts.semibold, color: c.state === 'live' ? '#DB2777' : colors.ink }}>{time(c.starts_at)}</T><T v="small">{c.duration_min}m</T></View>
               <View style={{ flex: 1 }}><T style={{ fontFamily: fonts.semibold }} numberOfLines={1}>{c.title}</T><T v="small">{c.batch?.name ?? 'All students'}</T></View>
-              {c.state === 'live' && c.meet_url ? (
-                <Pressable onPress={() => Linking.openURL(c.meet_url!)} style={{ backgroundColor: '#DB2777', borderRadius: 16, height: 34, paddingHorizontal: 14, justifyContent: 'center' }}><T style={{ color: '#FFF', fontFamily: fonts.semibold }}>▶ Start</T></Pressable>
+              {c.state !== 'ended' ? (
+                <Pressable onPress={() => joinSession(c.id)} style={{ backgroundColor: '#DB2777', borderRadius: 16, height: 34, paddingHorizontal: 14, justifyContent: 'center' }}><T style={{ color: '#FFF', fontFamily: fonts.semibold }}>▶ Start</T></Pressable>
               ) : <Chip text={c.state === 'ended' ? 'Done' : 'Later'} tone={c.state === 'ended' ? 'green' : 'violet'} />}
             </View>
           )) : <T v="small">No live classes today. Plan one from Live classes.</T>}

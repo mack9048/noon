@@ -42,4 +42,18 @@ class MeetingTest extends TestCase
         $this->actingAs($admin)->postJson("/api/meetings/{$m['id']}/moderate", ['action' => 'end'])->assertOk();
         $this->actingAs($s)->postJson("/api/meetings/{$m['id']}/join")->assertUnprocessable();
     }
+
+    public function test_institution_live_class_without_a_meet_link(): void
+    {
+        config(['services.livekit' => ['url' => 'wss://noon.livekit.test', 'key' => 'APItest', 'secret' => 'test-secret']]);
+        $t = Tenant::create(['name' => 'Inst', 'code' => 'AAA111']);
+        $teacher = User::create(['name' => 'T', 'email' => 't@x.test', 'password' => 'secret123', 'role' => 'teacher', 'tenant_id' => $t->id]);
+        $s = User::create(['name' => 'S', 'email' => 's@x.test', 'password' => 'secret123', 'role' => 'student', 'tenant_id' => $t->id]);
+        $later = $this->actingAs($teacher)->postJson('/api/staff/live-sessions', ['title' => 'Fiqh 4', 'starts_at' => now()->addHours(3)->toIso8601String()])->assertCreated()->json();
+        $now = $this->actingAs($teacher)->postJson('/api/staff/live-sessions', ['title' => 'Quran now', 'starts_at' => now()->addMinutes(5)->toIso8601String()])->assertCreated()->json();
+        $this->actingAs($s)->postJson("/api/live-sessions/{$later['id']}/join")->assertUnprocessable();
+        $this->actingAs($teacher)->postJson("/api/live-sessions/{$later['id']}/join")->assertOk()->assertJsonPath('host', true);
+        $this->actingAs($s)->postJson("/api/live-sessions/{$now['id']}/join")->assertOk()->assertJsonPath('provider', 'livekit')->assertJsonPath('room', "noon-session-{$now['id']}")->assertJsonPath('host', false);
+        $this->actingAs($s)->postJson("/api/live-sessions/{$now['id']}/moderate", ['action' => 'end'])->assertForbidden();
+    }
 }

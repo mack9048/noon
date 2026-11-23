@@ -147,6 +147,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
         Route::get('/live-sessions', [LiveSessionController::class, 'index']);
         Route::get('/live-sessions/{id}', [LiveSessionController::class, 'show'])->whereNumber('id');
+        Route::post('/live-sessions/{id}/join', [LiveSessionController::class, 'join'])->whereNumber('id');
+        Route::post('/live-sessions/{id}/moderate', [LiveSessionController::class, 'moderate'])->whereNumber('id');
 
         Route::get('/conversations', [ChatController::class, 'index']);
         Route::get('/conversations/{conversation}/messages', [ChatController::class, 'messages']);

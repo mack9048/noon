@@ -71,7 +71,7 @@ function RoundBtn({ icon, label, on = true, danger, onPress }: { icon: keyof typ
   );
 }
 
-export function LiveRoomScreen({ kind = 'course' }: { kind?: 'course' | 'meeting' }) {
+export function LiveRoomScreen({ kind = 'course' }: { kind?: 'course' | 'meeting' | 'session' }) {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [pass, setPass] = useState<LivePass | null>(handoff && String(handoff.course.id) === String(id) ? handoff : null);
   const [err, setErr] = useState<string | null>(null);
@@ -90,7 +90,7 @@ export function LiveRoomScreen({ kind = 'course' }: { kind?: 'course' | 'meeting
   useEffect(() => {
     handoff = null;
     if (pass) return;
-    api.post<LivePass | { provider: 'meet'; url: string }>(kind === 'meeting' ? `/meetings/${id}/join` : `/courses/${id}/live/join`)
+    api.post<LivePass | { provider: 'meet'; url: string }>(kind === 'meeting' ? `/meetings/${id}/join` : kind === 'session' ? `/live-sessions/${id}/join` : `/courses/${id}/live/join`)
       .then((r) => { if (r.provider === 'meet') { Linking.openURL(r.url); leave(); } else setPass(r); })
       .catch((e) => setErr(e instanceof ApiError ? e.friendly : 'Could not open the class.'));
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -170,7 +170,7 @@ export function LiveRoomScreen({ kind = 'course' }: { kind?: 'course' | 'meeting
   const moderate = async (action: 'mute' | 'remove' | 'end', identity?: string, name?: string) => {
     if (action === 'remove' && !(await confirmBox(`Remove ${name} from this class?`))) return;
     if (action === 'end' && !(await confirmBox(`End the ${kind === 'meeting' ? 'meeting' : 'class'} for everyone?`))) return;
-    try { await api.post(kind === 'meeting' ? `/meetings/${id}/moderate` : `/courses/${pass.course.id}/live/moderate`, { action, identity }); } catch (e) { setErr(e instanceof ApiError ? e.friendly : 'Could not do that.'); }
+    try { await api.post(kind === 'meeting' ? `/meetings/${id}/moderate` : kind === 'session' ? `/live-sessions/${id}/moderate` : `/courses/${pass.course.id}/live/moderate`, { action, identity }); } catch (e) { setErr(e instanceof ApiError ? e.friendly : 'Could not do that.'); }
   };
 
   return (
