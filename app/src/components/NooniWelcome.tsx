@@ -1,6 +1,11 @@
 // Animated welcome scene for the login pages: Nooni bobs and waves hello,
 // a speech bubble pops in, stars twinkle and a little bird floats by.
-import { NOONI, NOONI_FULL } from './Nooni';
+import { NOONI } from './Nooni';
+
+const BODY = require('../../assets/nooni/nooni-body.png');
+const HAND = require('../../assets/nooni/nooni-hand.png');
+// The hand turns at the wrist: (320, 228) on the 420 × 689 picture.
+const WRIST = `${(320 / 420) * 100}% ${(228 / 689) * 100}%`;
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Image, Platform, View } from 'react-native';
 import { T } from './ui';
@@ -35,6 +40,7 @@ function Star({ left, top, size, delay }: { left: string; top: string; size: num
 export function NooniWelcome({ size = 220, compact = false }: { size?: number; compact?: boolean }) {
   const bob = useLoop(1400);
   const wave = useLoop(500, 200);
+  const hand = useLoop(320);
   const bird = useLoop(2600, 400);
   const pop = useRef(new Animated.Value(0)).current;
   const [g, setG] = useState(0);
@@ -50,10 +56,10 @@ export function NooniWelcome({ size = 220, compact = false }: { size?: number; c
     return () => clearInterval(id);
   }, [pop]);
 
-  const h = size * 1.7;
+  const h = size * (689 / 420);
   return (
     <View accessibilityRole="image" accessibilityLabel="Nooni, the Noon Learn mascot, waving hello"
-      style={{ width: size * 1.6, height: h + (compact ? 10 : 40), alignItems: 'center', justifyContent: 'flex-end', alignSelf: 'center' }}>
+      style={{ width: size * (compact ? 3 : 1.6), height: h + (compact ? 10 : 40), alignItems: 'center', justifyContent: 'flex-end', alignSelf: 'center' }}>
       {/* soft glow behind Nooni */}
       <View style={{ position: 'absolute', bottom: 10, width: size * 1.15, height: size * 1.15, borderRadius: size, backgroundColor: 'rgba(255,255,255,0.14)' }} />
       <Star left="6%" top="18%" size={size * 0.16} delay={0} />
@@ -64,21 +70,23 @@ export function NooniWelcome({ size = 220, compact = false }: { size?: number; c
           transform: [{ translateY: bird.interpolate({ inputRange: [0, 1], outputRange: [0, -14] }) }, { translateX: bird.interpolate({ inputRange: [0, 1], outputRange: [0, -10] }) }] }} />}
 
       {/* speech bubble */}
-      <Animated.View style={{ position: 'absolute', top: compact ? 0 : 8, left: '4%', backgroundColor: '#FFF', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8,
+      <Animated.View style={{ position: 'absolute', top: compact ? '22%' : 8, left: compact ? 0 : '4%', backgroundColor: '#FFF', borderRadius: 20, paddingHorizontal: compact ? 10 : 14, paddingVertical: 8,
         shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 10, shadowOffset: { width: 0, height: 4 },
         opacity: pop, transform: [{ scale: pop.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] }) }] }}>
-        <T style={{ fontFamily: fonts.fun, color: NOONI.deep, fontSize: compact ? 14 : 16 }}>{GREETINGS[g]}</T>
+        <T style={{ fontFamily: fonts.fun, color: NOONI.deep, fontSize: compact ? 12 : 16 }}>{GREETINGS[g]}</T>
         <View style={{ position: 'absolute', bottom: -6, right: 26, width: 14, height: 14, backgroundColor: '#FFF', transform: [{ rotate: '45deg' }] }} />
       </Animated.View>
 
-      {/* Nooni: gentle bounce plus a little waving sway */}
+      {/* Nooni (no background): gentle bounce and sway, and his hand waves hello at the wrist. */}
       <Animated.View style={{ transform: [
         { translateY: bob.interpolate({ inputRange: [0, 1], outputRange: [0, -12] }) },
-        { rotate: wave.interpolate({ inputRange: [0, 1], outputRange: ['-3deg', '4deg'] }) },
+        { rotate: wave.interpolate({ inputRange: [0, 1], outputRange: ['-2deg', '2deg'] }) },
       ] }}>
-        {/* Nooni from the Visual World Guide, on his warm-ivory card. */}
-        <View style={{ width: size, height: h, borderRadius: size * 0.22, overflow: 'hidden', backgroundColor: NOONI.ivory, borderWidth: 3, borderColor: '#FFF' }}>
-          <Image source={NOONI_FULL} accessibilityLabel="Nooni waving" style={{ width: size, height: h }} resizeMode="cover" />
+        <View style={{ width: size, height: h }}>
+          <Image source={BODY} accessibilityLabel="Nooni waving" style={{ position: 'absolute', width: size, height: h }} resizeMode="contain" />
+          <Animated.Image source={HAND} accessibilityElementsHidden importantForAccessibility="no" resizeMode="contain"
+            style={{ position: 'absolute', width: size, height: h, transformOrigin: WRIST,
+              transform: [{ rotate: hand.interpolate({ inputRange: [0, 1], outputRange: ['-14deg', '14deg'] }) }] } as any} />
         </View>
       </Animated.View>
       {/* shadow that shrinks as Nooni bounces up */}
