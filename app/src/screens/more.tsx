@@ -188,6 +188,7 @@ export function MoreMenu({ links, onNavigate, profileHref, logout: withLogout, p
     }
     return out;
   };
+  const flat = device === 'phone';
   const sections = GROUPS.map((g) => ({ ...g, list: shown.filter(([label]) => (GROUP_OF[label] ?? 'learn') === g.key) })).filter((g) => g.list.length);
   return (
     <View style={{ gap: page ? 16 : 12 }}>
@@ -229,7 +230,20 @@ export function MoreMenu({ links, onNavigate, profileHref, logout: withLogout, p
         </View>
       ) : null}
 
-      {sections.map((sec) => (
+      {/* Phones: one flat grid of small icons, 4 in a row (no categories). */}
+      {flat ? (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', rowGap: 14, backgroundColor: '#FFF', borderRadius: 22, paddingVertical: 14, paddingHorizontal: 4, borderWidth: 1, borderColor: '#E1EAEE' }}>
+          {shown.map((t) => (
+            <Pressable key={t[1]} accessibilityRole="button" accessibilityLabel={t[0]} onPress={() => go(t[1])}
+              style={({ pressed }) => ({ width: '25%', alignItems: 'center', gap: 6, paddingHorizontal: 2, opacity: pressed ? 0.7 : 1 })}>
+              <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: t[3][0], alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name={t[2]} size={20} color={t[3][1]} />
+              </View>
+              <T numberOfLines={2} style={{ fontFamily: fonts.medium, fontSize: 11, lineHeight: 13, color: colors.ink, textAlign: 'center' }}>{t[0]}</T>
+            </Pressable>
+          ))}
+        </View>
+      ) : sections.map((sec) => (
         <View key={sec.key} style={{ gap: page ? 10 : 8 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: page ? 4 : 2 }}>
             <Ionicons name={sec.icon} size={page ? 17 : 15} color={colors.teal} />
