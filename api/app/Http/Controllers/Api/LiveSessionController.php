@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Batch;
 use App\Models\LiveSession;
 use App\Models\User;
+use App\Support\LiveKit;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -70,7 +71,7 @@ class LiveSessionController extends Controller
         $state = $s->toApp()['state'];
         abort_if($state === 'ended', 422, 'This class has ended.');
         abort_if($state !== 'live' && ! $staff, 422, 'You can join 15 minutes before the start.');
-        if (! \App\Support\LiveKit::configured()) {
+        if (! LiveKit::configured()) {
             abort_unless($s->meet_url, 422, 'Noon Live is not switched on yet. Please ask Noon Learn.');
 
             return ['provider' => 'meet', 'url' => $s->meet_url];
@@ -78,8 +79,8 @@ class LiveSessionController extends Controller
         $room = 'noon-session-'.$s->id;
 
         return [
-            'provider' => 'livekit', 'url' => \App\Support\LiveKit::url(), 'room' => $room, 'host' => $staff, 'kind' => 'session',
-            'token' => \App\Support\LiveKit::token($room, 'u'.$user->id, $user->name, $staff, ['role' => $user->role]),
+            'provider' => 'livekit', 'url' => LiveKit::url(), 'room' => $room, 'host' => $staff, 'kind' => 'session',
+            'token' => LiveKit::token($room, 'u'.$user->id, $user->name, $staff, ['role' => $user->role]),
             'course' => ['id' => $s->id, 'title' => $s->title],
         ];
     }
@@ -92,9 +93,9 @@ class LiveSessionController extends Controller
         $data = $request->validate(['action' => ['required', 'in:mute,remove,end'], 'identity' => ['required_unless:action,end', 'string', 'max:40']]);
         $room = 'noon-session-'.$s->id;
         match ($data['action']) {
-            'mute' => \App\Support\LiveKit::muteMic($room, $data['identity']),
-            'remove' => \App\Support\LiveKit::call('RemoveParticipant', ['room' => $room, 'identity' => $data['identity']], $room),
-            'end' => \App\Support\LiveKit::call('DeleteRoom', ['room' => $room], $room),
+            'mute' => LiveKit::muteMic($room, $data['identity']),
+            'remove' => LiveKit::call('RemoveParticipant', ['room' => $room, 'identity' => $data['identity']], $room),
+            'end' => LiveKit::call('DeleteRoom', ['room' => $room], $room),
         };
 
         return ['ok' => true];

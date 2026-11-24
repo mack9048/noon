@@ -34,7 +34,7 @@ class AttendanceTest extends TestCase
 
         $r = $this->as($admin)->getJson('/api/admin/attendance?period=today')->assertOk();
         $r->assertJsonPath('summary.late', 1)->assertJsonPath('summary.absent', 1)->assertJsonPath('summary.percent', 50)
-          ->assertJsonPath('absent.0.name', 'Rayan')->assertJsonPath('batches.0.marked_today', true);
+            ->assertJsonPath('absent.0.name', 'Rayan')->assertJsonPath('batches.0.marked_today', true);
 
         $this->as($a)->getJson('/api/attendance')->assertOk()->assertJsonPath('0.month.late', 1);
         $this->as($parent)->getJson('/api/attendance')->assertOk()->assertJsonPath('0.student.name', 'Ayisha');

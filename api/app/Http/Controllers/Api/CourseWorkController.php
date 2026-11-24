@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\CourseItem;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
@@ -18,7 +19,7 @@ class CourseWorkController extends Controller
     {
         return [
             'id' => $w->id, 'name' => $w->file_name, 'mime' => $w->mime, 'size' => (int) $w->size,
-            'at' => \Illuminate\Support\Carbon::parse($w->created_at)->toIso8601String(),
+            'at' => Carbon::parse($w->created_at)->toIso8601String(),
             'url' => rtrim(config('app.url'), '/').URL::temporarySignedRoute('course-work.file', now()->addHours(2), ['id' => $w->id], absolute: false),
         ];
     }

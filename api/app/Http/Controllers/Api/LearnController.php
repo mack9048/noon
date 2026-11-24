@@ -7,6 +7,7 @@ use App\Models\Assessment;
 use App\Models\AssessmentResult;
 use App\Models\Course;
 use App\Models\CourseItem;
+use App\Models\CourseLesson;
 use App\Models\Lesson;
 use App\Models\Subject;
 use App\Models\User;
@@ -132,7 +133,7 @@ class LearnController extends Controller
             abort_unless($course->teacher_id === $user->id || Course::visibleTo($user)->whereKey($course->id)->exists(), 403, 'This course is not on in your institution.');
         }
         if (! empty($data['course_lesson_id'])) {
-            abort_unless(! empty($data['course_id']) && \App\Models\CourseLesson::where('id', $data['course_lesson_id'])->where('course_id', $data['course_id'])->exists(), 422, 'Pick a lesson of this course.');
+            abort_unless(! empty($data['course_id']) && CourseLesson::where('id', $data['course_lesson_id'])->where('course_id', $data['course_id'])->exists(), 422, 'Pick a lesson of this course.');
         }
 
         return Assessment::create($data + ['tenant_id' => $user->tenant_id, 'created_by' => $user->id, 'max_marks' => $data['max_marks'] ?? 100]);

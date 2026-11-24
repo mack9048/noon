@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Models\Batch;
 use App\Models\Course;
+use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -50,16 +52,16 @@ class Round2Test extends TestCase
         $this->as($this->member($other, 'admin'))->getJson('/api/admin/batches')->assertOk()->assertJsonCount(0);
 
         // A batch for a course: no board or class needed; a course not on for the institution is refused.
-        $course = \App\Models\Course::create(['title' => 'Little Muslim', 'category' => 'General', 'status' => 'published', 'tenant_id' => $t->id, 'visibility' => 'madrasa', 'is_free' => true]);
+        $course = Course::create(['title' => 'Little Muslim', 'category' => 'General', 'status' => 'published', 'tenant_id' => $t->id, 'visibility' => 'madrasa', 'is_free' => true]);
         $t->courses()->attach($course->id, ['enabled' => true]);
-        $hidden = \App\Models\Course::create(['title' => 'Elsewhere', 'category' => 'General', 'status' => 'published', 'tenant_id' => $other->id, 'visibility' => 'madrasa', 'is_free' => true]);
+        $hidden = Course::create(['title' => 'Elsewhere', 'category' => 'General', 'status' => 'published', 'tenant_id' => $other->id, 'visibility' => 'madrasa', 'is_free' => true]);
         $forCourse = ['name' => 'Little Muslim · Batch 1', 'days' => ['Sa'], 'start_time' => '10:00 AM', 'seats' => 20];
         $this->as($admin)->postJson('/api/admin/batches', $forCourse + ['course_id' => $hidden->id])->assertUnprocessable();
         $this->as($admin)->postJson('/api/admin/batches', $forCourse)->assertUnprocessable(); // no course: board and class are needed
         $this->as($admin)->postJson('/api/admin/batches', $forCourse + ['course_id' => $course->id])->assertCreated()->assertJsonPath('course', 'Little Muslim')->assertJsonPath('board', '');
 
         // Delete a batch: only your own; the students stay.
-        $id = \App\Models\Batch::where('tenant_id', $t->id)->value('id');
+        $id = Batch::where('tenant_id', $t->id)->value('id');
         $this->as($this->member($other, 'admin'))->deleteJson("/api/admin/batches/{$id}")->assertNotFound();
         $this->as($admin)->deleteJson("/api/admin/batches/{$id}")->assertNoContent();
         $this->assertDatabaseMissing('batches', ['id' => $id]);
@@ -71,9 +73,9 @@ class Round2Test extends TestCase
         $t = $this->madrasa('NOON01');
         $other = $this->madrasa('OTHER1');
         $admin = $this->member($t, 'admin');
-        $super = \App\Models\User::factory()->create(['role' => 'super']);
+        $super = User::factory()->create(['role' => 'super']);
         $student = $this->member($t, 'student');
-        $guest = \App\Models\User::factory()->create(['role' => 'guest']);
+        $guest = User::factory()->create(['role' => 'guest']);
 
         $id = $this->as($admin)->postJson('/api/admin/courses', ['title' => 'Malayalam Duas', 'category' => 'Duas', 'visibility' => 'madrasa', 'lessons' => ['One', 'Two']])
             ->assertCreated()->assertJsonPath('status', 'waiting')->json('id');
@@ -92,7 +94,7 @@ class Round2Test extends TestCase
     {
         Storage::fake('public');
         $t = $this->madrasa('NOON01');
-        $super = \App\Models\User::factory()->create(['role' => 'super']);
+        $super = User::factory()->create(['role' => 'super']);
         $course = Course::create(['title' => 'Arabic', 'category' => 'Arabic', 'status' => 'published']);
         $this->as($super)->post("/api/super/courses/{$course->id}/logo", ['logo' => UploadedFile::fake()->image('logo.png', 512, 512)], ['Accept' => 'application/json'])
             ->assertOk()->assertJsonStructure(['logo_url']);

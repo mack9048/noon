@@ -4,8 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use App\Services\NooniBrain;
-use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class NooniTest extends TestCase
 {
@@ -13,12 +13,16 @@ class NooniTest extends TestCase
 
     private function fakeBrain(?array $answer, bool $configured = true): object
     {
-        $fake = new class($answer, $configured) extends NooniBrain {
+        $fake = new class($answer, $configured) extends NooniBrain
+        {
             public array $seen = [];
 
             public function __construct(private ?array $a, private bool $on) {}
 
-            public function configured(): bool { return $this->on; }
+            public function configured(): bool
+            {
+                return $this->on;
+            }
 
             public function answer(string $about, array $messages, array $screenKeys): ?array
             {

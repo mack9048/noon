@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Support\LiveSchedule;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 
 class Course extends Model
 {
@@ -129,7 +132,7 @@ class Course extends Model
     {
         $pivot = $user ? $this->students->firstWhere('id', $user->id)?->pivot : null;
         $nextLive = $this->items->where('kind', 'live')->filter(fn ($i) => $i->starts_at && $i->starts_at->isFuture())->sortBy('starts_at')->first();
-        $live = $this->isLive() ? (\App\Support\LiveSchedule::upcoming($this, 1)[0] ?? null) : null;
+        $live = $this->isLive() ? (LiveSchedule::upcoming($this, 1)[0] ?? null) : null;
 
         return [
             'id' => $this->id,
@@ -138,7 +141,7 @@ class Course extends Model
             'level' => $this->level,
             'cover' => $this->cover,
             'logo_url' => $this->logo_url,
-            'thumbnail_url' => $this->thumbnail_path ? \Illuminate\Support\Facades\Storage::disk('public')->url($this->thumbnail_path) : null,
+            'thumbnail_url' => $this->thumbnail_path ? Storage::disk('public')->url($this->thumbnail_path) : null,
             // Madrasa Support courses are for one board / syllabus / class.
             'board_id' => $this->board_id, 'syllabus' => $this->syllabus, 'class_id' => $this->class_id,
             'madrasa_label' => $this->board_id ? trim(implode(' · ', array_filter([$this->board?->name, $this->syllabus ? (Board::SYLLABI[$this->syllabus] ?? null) : null, $this->schoolClass ? 'Class '.$this->schoolClass->label : null]))) : null,
@@ -158,12 +161,12 @@ class Course extends Model
             'enrolled' => (bool) $pivot,
             'progress' => $pivot?->progress,
             'next_live_at' => $this->isLive()
-                ? ($live ? \Illuminate\Support\Carbon::parse($live['starts_at'])->format('D g:i A') : null)
+                ? ($live ? Carbon::parse($live['starts_at'])->format('D g:i A') : null)
                 : $nextLive?->starts_at?->format('D g:i A'),
             // Live-only courses: regular live classes instead of lessons.
             'format' => $this->format ?? 'recorded',
             'live_provider' => $this->live_provider ?? 'meet',
-            'live_summary' => $this->isLive() ? \App\Support\LiveSchedule::summary($this) : null,
+            'live_summary' => $this->isLive() ? LiveSchedule::summary($this) : null,
             'live_now' => $live && $live['state'] === 'live',
         ];
     }

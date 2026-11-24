@@ -126,7 +126,9 @@ class CourseBuilderTest extends TestCase
         $l2 = $this->as($boss)->postJson("/api/super/courses/{$c['id']}/lessons", ['title' => 'Two', 'subject_id' => $sub['id']])->json();
         $l1 = $this->as($boss)->postJson("/api/super/courses/{$c['id']}/lessons", ['title' => 'One'])->json();
         $item = fn ($l, $title) => $this->as($boss)->postJson("/api/super/course-lessons/{$l['id']}/items", ['kind' => 'note', 'title' => $title, 'body' => 'x'])->json();
-        $a = $item($l1, 'A'); $b = $item($l1, 'B'); $c2 = $item($l2, 'C');
+        $a = $item($l1, 'A');
+        $b = $item($l1, 'B');
+        $c2 = $item($l2, 'C');
         $this->as($s)->postJson("/api/courses/{$c['id']}/enroll")->assertOk();
 
         $this->as($s)->getJson('/api/courses/continue')->assertOk()

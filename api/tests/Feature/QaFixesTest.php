@@ -4,7 +4,10 @@ namespace Tests\Feature;
 
 use App\Models\Board;
 use App\Models\Course;
+use App\Models\User;
+use App\Services\Sms\WhatsAppOtpSender;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class QaFixesTest extends TestCase
@@ -39,17 +42,17 @@ class QaFixesTest extends TestCase
 
     public function test_super_admin_login_can_be_set_by_command(): void
     {
-        \App\Models\User::create(['name' => 'Super Admin', 'email' => 'old@x.test', 'password' => 'oldpass123', 'role' => 'super']);
+        User::create(['name' => 'Super Admin', 'email' => 'old@x.test', 'password' => 'oldpass123', 'role' => 'super']);
         $this->artisan('noon:super-admin', ['email' => 'NoonElearn@Gmail.com', 'password' => 'Noon@977x'])->assertSuccessful();
-        $this->assertSame(1, \App\Models\User::where('role', 'super')->count());
+        $this->assertSame(1, User::where('role', 'super')->count());
         $this->postJson('/api/auth/login', ['login' => 'noonelearn@gmail.com', 'password' => 'Noon@977x'])->assertOk()->assertJsonPath('user.role', 'super');
     }
 
     public function test_whatsapp_sender_sends_the_code_with_the_template(): void
     {
-        \Illuminate\Support\Facades\Http::fake(['graph.facebook.com/*' => \Illuminate\Support\Facades\Http::response(['messages' => [['id' => 'x']]])]);
-        (new \App\Services\Sms\WhatsAppOtpSender('t', '123', 'noon_login_code', 'en', true))->send('971501112222', '482913');
-        \Illuminate\Support\Facades\Http::assertSent(fn ($r) => str_contains($r->url(), '/123/messages') && $r['to'] === '971501112222'
+        Http::fake(['graph.facebook.com/*' => Http::response(['messages' => [['id' => 'x']]])]);
+        (new WhatsAppOtpSender('t', '123', 'noon_login_code', 'en', true))->send('971501112222', '482913');
+        Http::assertSent(fn ($r) => str_contains($r->url(), '/123/messages') && $r['to'] === '971501112222'
             && $r['template']['name'] === 'noon_login_code' && $r['template']['components'][0]['parameters'][0]['text'] === '482913'
             && $r->hasHeader('Authorization', 'Bearer t'));
     }
@@ -61,7 +64,7 @@ class QaFixesTest extends TestCase
         $this->member($t, 'teacher', ['name' => 'Ustad']);
         $parent = $this->member($t, 'parent', ['name' => 'Abdul', 'phone' => '919562651864']);
         $this->member($t, 'student', ['name' => 'Rayan', 'parent_id' => $parent->id]);
-        $boss = \App\Models\User::create(['name' => 'Boss', 'email' => 'boss@x.test', 'password' => 'secret123', 'role' => 'super']);
+        $boss = User::create(['name' => 'Boss', 'email' => 'boss@x.test', 'password' => 'secret123', 'role' => 'super']);
 
         $names = fn ($res) => collect($res->assertOk()->json())->pluck('name')->sort()->values()->all();
         $this->assertSame(['Office', 'Ustad'], $names($this->as($boss)->getJson('/api/super/users?group=staff')));
@@ -84,4 +87,3 @@ class QaFixesTest extends TestCase
         $this->as($this->member($t, 'teacher'))->putJson('/api/admin/institution', ['name' => 'X'])->assertForbidden();
     }
 }
-

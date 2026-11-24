@@ -9,6 +9,7 @@ use App\Models\CourseLesson;
 use App\Models\CourseLiveClass;
 use App\Support\Review;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /** Course Management for super admin, institution admins and teachers: the course list, details, and live classes. */
@@ -66,7 +67,7 @@ class ManageCourseController extends Controller
             for ($i = 1; $i <= $n; $i++) {
                 $course->liveClasses()->create([
                     'position' => $pos + $i, 'title' => $n > 1 || ! isset($data['title']) ? $base.' '.($pos + $i) : $base,
-                    'starts_at' => $n === 1 && ! empty($data['starts_at']) ? \Illuminate\Support\Carbon::parse($data['starts_at'])->setTimezone(config('app.timezone')) : null, 'duration_min' => $data['duration_min'] ?? 45,
+                    'starts_at' => $n === 1 && ! empty($data['starts_at']) ? Carbon::parse($data['starts_at'])->setTimezone(config('app.timezone')) : null, 'duration_min' => $data['duration_min'] ?? 45,
                 ]);
             }
         });
@@ -80,7 +81,7 @@ class ManageCourseController extends Controller
         $data = $request->validate(['title' => ['sometimes', 'string', 'max:160'], 'notes' => ['nullable', 'string', 'max:500'],
             'starts_at' => ['nullable', 'date'], 'duration_min' => ['sometimes', 'integer', 'min:10', 'max:300']]);
         if (! empty($data['starts_at'])) {
-            $data['starts_at'] = \Illuminate\Support\Carbon::parse($data['starts_at'])->setTimezone(config('app.timezone'));
+            $data['starts_at'] = Carbon::parse($data['starts_at'])->setTimezone(config('app.timezone'));
         }
         $class->update($data);
 

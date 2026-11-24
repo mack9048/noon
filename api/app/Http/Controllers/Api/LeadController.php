@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Admission;
+use App\Models\AdmissionCampaign;
 use App\Models\Lead;
+use App\Models\User;
 use App\Support\Phone;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -98,7 +100,7 @@ class LeadController extends Controller
     public function approveJoin(Request $request, int $id)
     {
         $lead = Lead::findOrFail($id);
-        $user = $lead->user_id ? \App\Models\User::find($lead->user_id) : null;
+        $user = $lead->user_id ? User::find($lead->user_id) : null;
         abort_unless($user && $user->role === 'guest' && ! $user->tenant_id, 422, 'This request was already handled.');
         $user->forceFill(['tenant_id' => $lead->tenant_id, 'role' => 'student'])->save();
         $lead->forceFill(['status' => 'admitted']);
@@ -139,7 +141,7 @@ class LeadController extends Controller
             }
             $out['phone'] = $phone;
         }
-        if (isset($out['campaign_id']) && $out['campaign_id'] && ! \App\Models\AdmissionCampaign::find($out['campaign_id'])) {
+        if (isset($out['campaign_id']) && $out['campaign_id'] && ! AdmissionCampaign::find($out['campaign_id'])) {
             throw ValidationException::withMessages(['campaign_id' => ['Unknown campaign.']]);
         }
 

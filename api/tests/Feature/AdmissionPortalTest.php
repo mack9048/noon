@@ -116,8 +116,7 @@ class AdmissionPortalTest extends TestCase
         // another institution's admin cannot edit
         $this->as($this->member($other, 'admin'))->putJson("/api/admin/students/{$id}", ['name' => 'X'])->assertNotFound();
         // the student logs in with the new admission no.
-        \App\Models\User::find($id)->forceFill(['password' => 'student123'])->save();
+        User::find($id)->forceFill(['password' => 'student123'])->save();
         $this->postJson('/api/auth/login', ['login' => 'NOON01-0099', 'password' => 'student123'])->assertOk();
     }
 }
-

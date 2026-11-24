@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 class Tenant extends Model
 {
@@ -28,7 +29,7 @@ class Tenant extends Model
 
     public function logoUrl(): ?string
     {
-        return $this->logo_path ? \Illuminate\Support\Facades\Storage::disk('public')->url($this->logo_path) : null;
+        return $this->logo_path ? Storage::disk('public')->url($this->logo_path) : null;
     }
 
     protected $casts = ['active' => 'boolean'];

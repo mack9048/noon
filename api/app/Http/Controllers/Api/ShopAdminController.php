@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\ShopSetting;
 use Illuminate\Http\Request;
@@ -84,7 +85,7 @@ class ShopAdminController extends Controller
     {
         $p = Product::onlyTrashed()->findOrFail($id);
         // Keep the file while someone who paid for it can still open it.
-        $bought = \App\Models\OrderItem::where('product_id', $p->id)->exists();
+        $bought = OrderItem::where('product_id', $p->id)->exists();
         abort_if($bought, 422, 'People have bought this, so it stays in the bin so their copies keep working.');
         $p->cover_path && Storage::disk('public')->delete($p->cover_path);
         $p->file_path && Storage::disk('local')->delete($p->file_path);

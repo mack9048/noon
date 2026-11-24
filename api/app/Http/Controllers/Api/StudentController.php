@@ -3,9 +3,20 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Attendance;
+use App\Models\Batch;
+use App\Models\Board;
+use App\Models\Course;
+use App\Models\Fee;
+use App\Models\LiveSession;
+use App\Models\SchoolClass;
 use App\Models\User;
 use App\Services\Enrolment;
+use App\Support\Phone;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 /** Institution admin: the student register and single-student admission. */
 class StudentController extends Controller
@@ -37,7 +48,7 @@ class StudentController extends Controller
         }
         $today = now()->toDateString();
         $cache = [];
-        foreach (\App\Models\Fee::where('status', '!=', 'waived')->get(['student_id', 'amount', 'paid_amount', 'status', 'due_date']) as $f) {
+        foreach (Fee::where('status', '!=', 'waived')->get(['student_id', 'amount', 'paid_amount', 'status', 'due_date']) as $f) {
             $r = $cache[$f->student_id] ??= self::NO_FEES;
             $r['fee_total'] += (float) $f->amount;
             if ($f->status === 'paid') {
@@ -58,7 +69,7 @@ class StudentController extends Controller
     /** First batch name of each student (shown as their class in the directory). */
     private function batchNames(): array
     {
-        return \Illuminate\Support\Facades\DB::table('batch_user')->join('batches', 'batches.id', '=', 'batch_user.batch_id')
+        return DB::table('batch_user')->join('batches', 'batches.id', '=', 'batch_user.batch_id')
             ->where('batches.tenant_id', request()->user()->tenant_id)->orderBy('batches.name')->get(['batch_user.user_id', 'batches.name'])
             ->groupBy('user_id')->map(fn ($g) => $g->pluck('name')->implode(', '))->all();
     }
@@ -75,7 +86,7 @@ class StudentController extends Controller
             'joined' => $u->created_at?->format('j M Y'),
             'age' => $u->age,
             // Payments tab: every fee of this student, oldest first, and the totals.
-            'fees' => \App\Models\Fee::with('student')->where('student_id', $u->id)->orderBy('due_date')->get()->map->toApp()->values(),
+            'fees' => Fee::with('student')->where('student_id', $u->id)->orderBy('due_date')->get()->map->toApp()->values(),
             'fee_totals' => $this->money()[$u->id] ?? self::NO_FEES,
         ];
     }
@@ -85,7 +96,7 @@ class StudentController extends Controller
     {
         $tid = $request->user()->tenant_id;
         $u = User::where('tenant_id', $tid)->where('role', 'teacher')->findOrFail($id);
-        $batches = \App\Models\Batch::where('tenant_id', $tid)->withCount('students')->get()
+        $batches = Batch::where('tenant_id', $tid)->withCount('students')->get()
             ->filter(fn ($b) => $b->class_teacher_id === $u->id || in_array($u->id, array_map('intval', array_values($b->subject_teachers ?? [])), true));
 
         return [
@@ -94,16 +105,16 @@ class StudentController extends Controller
             'classes' => $batches->map(fn ($b) => ['id' => $b->id, 'name' => $b->name, 'students' => (int) $b->students_count, 'class_teacher' => $b->class_teacher_id === $u->id,
                 'subjects' => collect($b->subject_teachers ?? [])->filter(fn ($t) => (int) $t === $u->id)->keys()->values()])->values(),
             'students' => (int) $batches->sum('students_count'),
-            'live_classes' => \App\Models\LiveSession::where('created_by', $u->id)->count(),
-            'attendance_marked' => \App\Models\Attendance::where('marked_by', $u->id)->select('batch_id', 'date')->distinct()->get()->count(),
-            'courses' => \App\Models\Course::where('teacher_id', $u->id)->get(['id', 'title', 'status'])->map(fn ($c) => ['id' => $c->id, 'title' => $c->title, 'status' => $c->status])->values(),
+            'live_classes' => LiveSession::where('created_by', $u->id)->count(),
+            'attendance_marked' => Attendance::where('marked_by', $u->id)->select('batch_id', 'date')->distinct()->get()->count(),
+            'courses' => Course::where('teacher_id', $u->id)->get(['id', 'title', 'status'])->map(fn ($c) => ['id' => $c->id, 'title' => $c->title, 'status' => $c->status])->values(),
         ];
     }
 
     /** Batches a teacher teaches (class teacher, or teaches a subject). Admins see every batch. */
     private function myBatches(User $u)
     {
-        return \App\Models\Batch::where('tenant_id', $u->tenant_id)->withCount('students')->orderBy('name')->get()
+        return Batch::where('tenant_id', $u->tenant_id)->withCount('students')->orderBy('name')->get()
             ->filter(fn ($b) => $u->role === 'admin' || $b->class_teacher_id === $u->id || in_array($u->id, array_map('intval', array_values($b->subject_teachers ?? [])), true))->values();
     }
 
@@ -159,7 +170,7 @@ class StudentController extends Controller
         ]);
         $r = $enrolment->admit($request->user()->tenant, $data);
         // A batch for a course also enrols the student in that course.
-        $batchCourse = ! empty($data['batch_id']) ? \App\Models\Batch::where('tenant_id', $request->user()->tenant_id)->whereKey($data['batch_id'])->value('course_id') : null;
+        $batchCourse = ! empty($data['batch_id']) ? Batch::where('tenant_id', $request->user()->tenant_id)->whereKey($data['batch_id'])->value('course_id') : null;
         foreach (array_unique(array_filter([...($data['course_ids'] ?? []), $batchCourse])) as $cid) {
             $this->enrol($request, $r['student'], (int) $cid);
         }
@@ -186,20 +197,22 @@ class StudentController extends Controller
             'batch_ids.*' => ['integer'],
         ]);
 
-        \Illuminate\Support\Facades\DB::transaction(function () use ($u, $data, $tenantId, $enrolment) {
+        DB::transaction(function () use ($u, $data, $tenantId, $enrolment) {
             $fill = [];
-            if (isset($data['name'])) $fill['name'] = trim($data['name']);
+            if (isset($data['name'])) {
+                $fill['name'] = trim($data['name']);
+            }
             if (isset($data['admission_no'])) {
                 $no = trim($data['admission_no']);
                 if (User::where('tenant_id', $tenantId)->where('admission_no', $no)->whereKeyNot($u->id)->exists()) {
-                    throw \Illuminate\Validation\ValidationException::withMessages(['admission_no' => ["Admission no. {$no} is already used in this institution."]]);
+                    throw ValidationException::withMessages(['admission_no' => ["Admission no. {$no} is already used in this institution."]]);
                 }
                 $fill['admission_no'] = $no;
             }
             if (array_key_exists('email', $data)) {
                 $email = $data['email'] ? strtolower($data['email']) : null;
                 if ($email && User::where('email', $email)->whereKeyNot($u->id)->exists()) {
-                    throw \Illuminate\Validation\ValidationException::withMessages(['email' => ['This email already has an account.']]);
+                    throw ValidationException::withMessages(['email' => ['This email already has an account.']]);
                 }
                 $fill['email'] = $email;
             }
@@ -207,15 +220,19 @@ class StudentController extends Controller
                 [$fill['board_id'], $fill['class_id']] = $enrolment->place($data['board'], $data['cls'] ?? null, $data['syllabus'] ?? $u->syllabus ?? 'general');
                 $fill['syllabus'] = $data['syllabus'] ?? $u->syllabus ?? 'general';
             }
-            if (array_key_exists('blocked', $data)) $fill['blocked'] = (bool) $data['blocked'];
+            if (array_key_exists('blocked', $data)) {
+                $fill['blocked'] = (bool) $data['blocked'];
+            }
             $u->forceFill($fill)->save();
-            if (array_key_exists('blocked', $data) && $data['blocked']) $u->tokens()->delete();
+            if (array_key_exists('blocked', $data) && $data['blocked']) {
+                $u->tokens()->delete();
+            }
 
             // Parent: parents use the student's login; we keep their name and number for contact and WhatsApp codes.
             if (array_key_exists('parent_name', $data) || array_key_exists('parent_phone', $data)) {
-                $phone = ! empty($data['parent_phone']) ? \App\Support\Phone::normalize($data['parent_phone']) : null;
+                $phone = ! empty($data['parent_phone']) ? Phone::normalize($data['parent_phone']) : null;
                 if (! empty($data['parent_phone']) && ! $phone) {
-                    throw \Illuminate\Validation\ValidationException::withMessages(['parent_phone' => ['Please enter a valid phone number.']]);
+                    throw ValidationException::withMessages(['parent_phone' => ['Please enter a valid phone number.']]);
                 }
                 $parent = $u->parent;
                 $owner = $phone ? User::where('phone', $phone)->first() : null;
@@ -223,20 +240,22 @@ class StudentController extends Controller
                     if ($owner->tenant_id === $tenantId && $owner->role === 'parent') {
                         $parent = $owner; // a sibling's parent: link to the same parent
                     } else {
-                        throw \Illuminate\Validation\ValidationException::withMessages(['parent_phone' => ['This phone number is already used by another account.']]);
+                        throw ValidationException::withMessages(['parent_phone' => ['This phone number is already used by another account.']]);
                     }
                 }
                 $name = trim((string) ($data['parent_name'] ?? '')) ?: ($parent?->name ?? 'Parent of '.$u->name);
                 if ($parent) {
                     $parent->forceFill(['name' => $name] + (array_key_exists('parent_phone', $data) ? ['phone' => $phone] : []))->save();
                 } elseif ($phone || ! empty($data['parent_name'])) {
-                    $parent = User::create(['tenant_id' => $tenantId, 'name' => $name, 'role' => 'parent', 'phone' => $phone, 'password' => 'Noon-'.\Illuminate\Support\Str::password(12, symbols: false)]);
+                    $parent = User::create(['tenant_id' => $tenantId, 'name' => $name, 'role' => 'parent', 'phone' => $phone, 'password' => 'Noon-'.Str::password(12, symbols: false)]);
                 }
-                if ($parent) $u->forceFill(['parent_id' => $parent->id])->save();
+                if ($parent) {
+                    $u->forceFill(['parent_id' => $parent->id])->save();
+                }
             }
 
             if (array_key_exists('batch_ids', $data)) {
-                $ids = \App\Models\Batch::where('tenant_id', $tenantId)->whereIn('id', $data['batch_ids'])->pluck('id');
+                $ids = Batch::where('tenant_id', $tenantId)->whereIn('id', $data['batch_ids'])->pluck('id');
                 $u->batches()->sync($ids);
             }
         });
@@ -257,7 +276,7 @@ class StudentController extends Controller
 
         return [
             'madrasa' => $u->class_id ? ['board_id' => $u->board_id, 'board' => $u->schoolClass?->board?->name, 'board_code' => $u->schoolClass?->board?->code,
-                'syllabus' => $u->syllabus ?? 'general', 'syllabus_label' => \App\Models\Board::SYLLABI[$u->syllabus ?? 'general'], 'class_id' => $u->class_id, 'class_label' => $u->schoolClass?->label] : null,
+                'syllabus' => $u->syllabus ?? 'general', 'syllabus_label' => Board::SYLLABI[$u->syllabus ?? 'general'], 'class_id' => $u->class_id, 'class_label' => $u->schoolClass?->label] : null,
             'courses' => $mine->map(fn ($c) => $course($c) + ['progress' => (int) $c->pivot->progress, 'paid' => (bool) $c->pivot->paid_at, 'enrolled_at' => $c->pivot->created_at?->toIso8601String()])->values(),
             'available' => $available->map($course)->values(),
         ];
@@ -273,7 +292,7 @@ class StudentController extends Controller
             return $this->enrollments($request, $id);
         }
         $data = $request->validate(['board_id' => ['required', 'integer', 'exists:boards,id'], 'syllabus' => ['required', 'in:general,english'], 'class_id' => ['required', 'integer', 'exists:school_classes,id']]);
-        $class = \App\Models\SchoolClass::findOrFail($data['class_id']);
+        $class = SchoolClass::findOrFail($data['class_id']);
         abort_unless($class->board_id === (int) $data['board_id'] && $class->syllabus === $data['syllabus'], 422, 'That class is not in the chosen board and syllabus.');
         $u->forceFill(['board_id' => $data['board_id'], 'class_id' => $class->id, 'syllabus' => $data['syllabus']])->save();
 
@@ -300,7 +319,7 @@ class StudentController extends Controller
     {
         $course = $request->user()->tenant->courses()->wherePivot('enabled', true)->where('status', 'published')->whereKey($courseId)->first();
         if (! $course) {
-            throw \Illuminate\Validation\ValidationException::withMessages(['course_id' => 'Switch this course on for your institution first (Courses).']);
+            throw ValidationException::withMessages(['course_id' => 'Switch this course on for your institution first (Courses).']);
         }
         $u->courses()->syncWithoutDetaching([$course->id => ['paid_at' => now(), 'enrolled_by' => $request->user()->id, 'trial_ends_at' => null]]);
         // A Madrasa Support course for one class also places the student in that class (if not placed yet).
@@ -318,7 +337,7 @@ class StudentController extends Controller
     public function teachers(Request $request)
     {
         $tid = $request->user()->tenant_id;
-        $batches = \App\Models\Batch::where('tenant_id', $tid)->get(['id', 'name', 'class_teacher_id', 'subject_teachers']);
+        $batches = Batch::where('tenant_id', $tid)->get(['id', 'name', 'class_teacher_id', 'subject_teachers']);
 
         return User::where('tenant_id', $tid)->where('role', 'teacher')->orderBy('name')->get()
             ->map(function (User $u) use ($batches) {
@@ -341,14 +360,14 @@ class StudentController extends Controller
             'phone' => ['nullable', 'string', 'max:30', 'required_without:email'],
             'password' => ['nullable', 'string', 'min:8', 'max:255'],
         ]);
-        $phone = ! empty($data['phone']) ? \App\Support\Phone::normalize($data['phone']) : null;
+        $phone = ! empty($data['phone']) ? Phone::normalize($data['phone']) : null;
         if (! empty($data['phone']) && ! $phone) {
-            throw \Illuminate\Validation\ValidationException::withMessages(['phone' => ['Please enter a valid phone number.']]);
+            throw ValidationException::withMessages(['phone' => ['Please enter a valid phone number.']]);
         }
         if ($phone && User::where('phone', $phone)->exists()) {
-            throw \Illuminate\Validation\ValidationException::withMessages(['phone' => ['This phone number already has an account.']]);
+            throw ValidationException::withMessages(['phone' => ['This phone number already has an account.']]);
         }
-        $password = $data['password'] ?? 'Noon-'.\Illuminate\Support\Str::password(8, symbols: false);
+        $password = $data['password'] ?? 'Noon-'.Str::password(8, symbols: false);
         $u = User::create([
             'tenant_id' => $request->user()->tenant_id, 'name' => trim($data['name']), 'role' => 'teacher',
             'email' => isset($data['email']) ? strtolower($data['email']) : null, 'phone' => $phone, 'password' => $password,

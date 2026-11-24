@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Course;
+use App\Models\CourseLesson;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -102,8 +103,8 @@ class CourseManagementTest extends TestCase
         $course = Course::create(['title' => 'Little Muslim', 'category' => 'General', 'status' => 'published', 'tenant_id' => $t->id, 'visibility' => 'madrasa', 'is_free' => true, 'teacher_id' => $teacher->id]);
         $t->courses()->attach($course->id, ['enabled' => true]);
         $student->courses()->attach($course->id);
-        $l1 = \App\Models\CourseLesson::create(['course_id' => $course->id, 'title' => 'Flower', 'position' => 1]);
-        $l2 = \App\Models\CourseLesson::create(['course_id' => $course->id, 'title' => 'Tree', 'position' => 2]);
+        $l1 = CourseLesson::create(['course_id' => $course->id, 'title' => 'Flower', 'position' => 1]);
+        $l2 = CourseLesson::create(['course_id' => $course->id, 'title' => 'Tree', 'position' => 2]);
 
         $other = Course::create(['title' => 'Other', 'category' => 'General', 'status' => 'published', 'tenant_id' => $t->id, 'visibility' => 'madrasa', 'is_free' => true, 'teacher_id' => $teacher->id]);
         $this->actingAs($teacher)->postJson('/api/staff/assessments', ['type' => 'assessment', 'title' => 'Flower quiz', 'course_id' => $other->id, 'course_lesson_id' => $l1->id])->assertStatus(422);

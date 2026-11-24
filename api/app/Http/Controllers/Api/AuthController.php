@@ -3,19 +3,22 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Board;
 use App\Models\Course;
+use App\Models\Lead;
+use App\Models\SchoolClass;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\Auth\OtpService;
 use App\Support\Phone;
 use Illuminate\Http\JsonResponse;
-use Laravel\Sanctum\PersonalAccessToken;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthController extends Controller
 {
@@ -230,7 +233,7 @@ class AuthController extends Controller
                 'board_id' => $data['board_id'] ?? $user->board_id,
                 'class_id' => $data['class_id'] ?? $user->class_id,
                 // The class belongs to one syllabus (General / English Medium).
-                'syllabus' => isset($data['class_id']) ? \App\Models\SchoolClass::find($data['class_id'])?->syllabus : $user->syllabus,
+                'syllabus' => isset($data['class_id']) ? SchoolClass::find($data['class_id'])?->syllabus : $user->syllabus,
             ])->save();
 
             $courses = Course::whereIn('id', $data['course_ids'] ?? [])->where('status', 'published')->get();
@@ -253,7 +256,7 @@ class AuthController extends Controller
         return Tenant::where('active', true)
             ->when($q !== '', fn ($w) => $w->where(fn ($x) => $x->where('name', 'like', '%'.addcslashes($q, '%_').'%')->orWhere('code', strtoupper($q))))
             ->orderBy('name')->limit(30)->get()
-            ->map(fn (Tenant $t) => ['id' => $t->id, 'name' => $t->name, 'place' => $t->address ? \Illuminate\Support\Str::limit(trim(collect(explode(',', $t->address))->last()), 40) : null, 'logo_url' => $t->logo_url]);
+            ->map(fn (Tenant $t) => ['id' => $t->id, 'name' => $t->name, 'place' => $t->address ? Str::limit(trim(collect(explode(',', $t->address))->last()), 40) : null, 'logo_url' => $t->logo_url]);
     }
 
     /**
@@ -284,11 +287,11 @@ class AuthController extends Controller
 
         $tenant = Tenant::where('active', true)->find($data['tenant_id']);
         abort_unless($tenant, 422, 'This institution is not available.');
-        $lead = \App\Models\Lead::withoutGlobalScopes()->where('tenant_id', $tenant->id)->where('user_id', $user->id)
+        $lead = Lead::withoutGlobalScopes()->where('tenant_id', $tenant->id)->where('user_id', $user->id)
             ->whereNotIn('status', ['admitted', 'lost'])->first();
         if (! $lead) {
-            $lead = new \App\Models\Lead([
-                'tenant_id' => $tenant->id, 'user_id' => $user->id, 'student_name' => \Illuminate\Support\Str::limit($user->name, 78, ''),
+            $lead = new Lead([
+                'tenant_id' => $tenant->id, 'user_id' => $user->id, 'student_name' => Str::limit($user->name, 78, ''),
                 'parent_name' => null, 'phone' => (string) ($user->phone ?? ''), 'email' => $user->email,
                 'source' => 'app', 'status' => 'new',
             ]);
@@ -319,11 +322,11 @@ class AuthController extends Controller
         }
         $data = $request->validate([
             'board_id' => ['nullable', 'exists:boards,id'],
-            'syllabus' => ['nullable', 'in:'.implode(',', array_keys(\App\Models\Board::SYLLABI))],
+            'syllabus' => ['nullable', 'in:'.implode(',', array_keys(Board::SYLLABI))],
             'class_id' => ['nullable', 'exists:school_classes,id'],
         ]);
         $user = $request->user();
-        $class = isset($data['class_id']) ? \App\Models\SchoolClass::find($data['class_id']) : null;
+        $class = isset($data['class_id']) ? SchoolClass::find($data['class_id']) : null;
         if ($class) {
             // Choosing a class also sets its board and syllabus.
             $data['board_id'] = $class->board_id;
@@ -332,7 +335,7 @@ class AuthController extends Controller
             // Keep the current class only while it still matches the board and syllabus.
             $board = array_key_exists('board_id', $data) ? $data['board_id'] : $user->board_id;
             $syllabus = array_key_exists('syllabus', $data) ? $data['syllabus'] : $user->syllabus;
-            $cur = $user->class_id ? \App\Models\SchoolClass::find($user->class_id) : null;
+            $cur = $user->class_id ? SchoolClass::find($user->class_id) : null;
             if ($cur && ($cur->board_id !== (int) $board || $cur->syllabus !== ($syllabus ?? 'general'))) {
                 $data['class_id'] = null;
             }

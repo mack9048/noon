@@ -35,7 +35,7 @@ class Batch extends Model
             'cls' => $this->class_label,
             'name' => $this->name,
             'board' => $this->board,
-            'course' => $this->course_id ? \App\Models\Course::withoutGlobalScopes()->whereKey($this->course_id)->value('title') : null,
+            'course' => $this->course_id ? Course::withoutGlobalScopes()->whereKey($this->course_id)->value('title') : null,
             'course_id' => $this->course_id,
             'when' => $days->isEmpty() ? $this->start_time : "{$days->first()}–{$days->last()} {$this->start_time}",
             'students' => $this->students_count ?? $this->students()->count(),

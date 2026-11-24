@@ -31,21 +31,21 @@ class CatalogSeeder extends Seeder
         foreach ($boards as $board) {
             // Every board in both syllabi: General Madrasa Syllabus and English Medium Madrasa Syllabus
             foreach (array_keys(Board::SYLLABI) as $syllabus) {
-            foreach (['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '+1', '+2'] as $i => $label) {
-                $class = $board->classes()->create(['syllabus' => $syllabus, 'label' => $label, 'position' => $i]);
-                foreach ($subjects as $p => [$name, $ar]) {
-                    $subject = $class->subjects()->create(['name' => $name, 'name_ar' => $ar, 'position' => $p]);
-                    // Only seed lesson rows for Class 5 to keep the demo DB small
-                    if ($label === '5') {
-                        foreach ($lessons as $n => $title) {
-                            $subject->lessons()->create([
-                                'position' => $n + 1, 'title' => $title,
-                                'video_duration' => (6 + $n).':10', 'audio_duration' => (4 + $n % 3).':05',
-                            ]);
+                foreach (['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '+1', '+2'] as $i => $label) {
+                    $class = $board->classes()->create(['syllabus' => $syllabus, 'label' => $label, 'position' => $i]);
+                    foreach ($subjects as $p => [$name, $ar]) {
+                        $subject = $class->subjects()->create(['name' => $name, 'name_ar' => $ar, 'position' => $p]);
+                        // Only seed lesson rows for Class 5 to keep the demo DB small
+                        if ($label === '5') {
+                            foreach ($lessons as $n => $title) {
+                                $subject->lessons()->create([
+                                    'position' => $n + 1, 'title' => $title,
+                                    'video_duration' => (6 + $n).':10', 'audio_duration' => (4 + $n % 3).':05',
+                                ]);
+                            }
                         }
                     }
                 }
-            }
             }
         }
 

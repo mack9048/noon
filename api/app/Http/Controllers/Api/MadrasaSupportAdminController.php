@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Board;
 use App\Models\SchoolClass;
 use App\Models\Subject;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -61,7 +62,7 @@ class MadrasaSupportAdminController extends Controller
 
     public function destroyClass(SchoolClass $class)
     {
-        abort_if(\App\Models\User::where('class_id', $class->id)->exists(), 422, 'Some students are in this class. Move them first.');
+        abort_if(User::where('class_id', $class->id)->exists(), 422, 'Some students are in this class. Move them first.');
         $class->delete();
 
         return response()->noContent();

@@ -65,7 +65,9 @@ class AttendanceController extends Controller
     {
         $period = $request->validate(['period' => ['nullable', Rule::in(['today', 'week', 'month'])]])['period'] ?? 'today';
         $to = today();
-        $from = match ($period) { 'week' => today()->subDays(6), 'month' => today()->startOfMonth(), default => today() };
+        $from = match ($period) {
+            'week' => today()->subDays(6), 'month' => today()->startOfMonth(), default => today()
+        };
         $rows = Attendance::whereDate('date', '>=', $from->toDateString())->whereDate('date', '<=', $to->toDateString())->get(['student_id', 'batch_id', 'date', 'status']);
         $count = fn ($s) => $rows->where('status', $s)->count();
         $attended = $count('present') + $count('late');

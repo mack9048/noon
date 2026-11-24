@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Batch;
 use App\Models\Board;
 use App\Models\Tenant;
 use App\Models\User;
@@ -74,7 +75,7 @@ class Enrolment
             }
 
             if (! empty($d['batch_id'])) {
-                $batch = \App\Models\Batch::where('tenant_id', $tenant->id)->find($d['batch_id']);
+                $batch = Batch::where('tenant_id', $tenant->id)->find($d['batch_id']);
                 $batch?->students()->syncWithoutDetaching([$student->id]);
             }
 

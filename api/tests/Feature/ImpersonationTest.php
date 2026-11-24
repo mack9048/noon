@@ -16,6 +16,7 @@ class ImpersonationTest extends TestCase
     private function people(): array
     {
         $t = Tenant::create(['name' => 'A', 'code' => 'AAA111']);
+
         return [
             User::create(['name' => 'Boss', 'email' => 'boss@x.test', 'password' => 'secret123', 'role' => 'super']),
             User::create(['tenant_id' => $t->id, 'name' => 'Office', 'email' => 'office@x.test', 'password' => 'secret123', 'role' => 'admin']),

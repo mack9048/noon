@@ -4,12 +4,12 @@ namespace Database\Seeders;
 
 use App\Models\Admission;
 use App\Models\AdmissionCampaign;
-use App\Models\Lead;
 use App\Models\Assessment;
 use App\Models\Batch;
 use App\Models\Board;
 use App\Models\Conversation;
 use App\Models\Course;
+use App\Models\Lead;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Database\Seeder;

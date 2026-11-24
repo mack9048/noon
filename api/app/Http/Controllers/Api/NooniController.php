@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\NooniFaq;
 use App\Services\NooniBrain;
 use App\Services\NooniFree;
 use App\Support\AppSetting;
@@ -95,7 +96,7 @@ class NooniController extends Controller
     public function adminIndex(NooniBrain $brain)
     {
         return ['mode' => AppSetting::get('nooni_mode', 'auto'), 'ai_ready' => $brain->configured(),
-            'faqs' => \App\Models\NooniFaq::orderBy('position')->orderBy('id')->get()];
+            'faqs' => NooniFaq::orderBy('position')->orderBy('id')->get()];
     }
 
     public function setMode(Request $request, NooniBrain $brain)
@@ -110,7 +111,7 @@ class NooniController extends Controller
         $r = $partial ? 'sometimes' : 'required';
 
         return [
-            'audience' => ['sometimes', 'in:'.implode(',', \App\Models\NooniFaq::AUDIENCES)], 'question' => [$r, 'string', 'max:200'],
+            'audience' => ['sometimes', 'in:'.implode(',', NooniFaq::AUDIENCES)], 'question' => [$r, 'string', 'max:200'],
             'keywords' => ['nullable', 'string', 'max:300'], 'answer' => [$r, 'string', 'max:2000'], 'answer_ml' => ['nullable', 'string', 'max:2000'],
             'open' => ['nullable', 'string', 'regex:/^[a-z][a-z0-9-]{0,23}$/'], 'active' => ['sometimes', 'boolean'],
         ];
@@ -118,19 +119,19 @@ class NooniController extends Controller
 
     public function storeFaq(Request $request, NooniBrain $brain)
     {
-        \App\Models\NooniFaq::create($request->validate($this->faqRules(false)) + ['position' => (int) \App\Models\NooniFaq::max('position') + 1]);
+        NooniFaq::create($request->validate($this->faqRules(false)) + ['position' => (int) NooniFaq::max('position') + 1]);
 
         return $this->adminIndex($brain);
     }
 
-    public function updateFaq(Request $request, \App\Models\NooniFaq $faq, NooniBrain $brain)
+    public function updateFaq(Request $request, NooniFaq $faq, NooniBrain $brain)
     {
         $faq->update($request->validate($this->faqRules(true)));
 
         return $this->adminIndex($brain);
     }
 
-    public function destroyFaq(\App\Models\NooniFaq $faq, NooniBrain $brain)
+    public function destroyFaq(NooniFaq $faq, NooniBrain $brain)
     {
         $faq->delete();
 

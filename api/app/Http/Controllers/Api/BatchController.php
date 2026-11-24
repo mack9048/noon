@@ -4,8 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Batch;
+use App\Models\Course;
+use App\Models\LiveSession;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -62,7 +65,7 @@ class BatchController extends Controller
         }
 
         if (! empty($data['course_id'])) {
-            $course = \App\Models\Course::visibleTo($request->user())->with(['board', 'schoolClass'])->find($data['course_id']);
+            $course = Course::visibleTo($request->user())->with(['board', 'schoolClass'])->find($data['course_id']);
             if (! $course) {
                 throw ValidationException::withMessages(['course_id' => 'Pick a course that is switched on for your institution.']);
             }
@@ -84,9 +87,9 @@ class BatchController extends Controller
     public function destroy(Request $request, int $id)
     {
         $batch = Batch::where('tenant_id', $request->user()->tenant_id)->findOrFail($id);
-        \Illuminate\Support\Facades\DB::transaction(function () use ($batch) {
+        DB::transaction(function () use ($batch) {
             // A live class with no batch is for everyone in the institution, so remove this batch's ones.
-            \App\Models\LiveSession::where('batch_id', $batch->id)->delete();
+            LiveSession::where('batch_id', $batch->id)->delete();
             $batch->students()->detach();
             $batch->delete();
         });

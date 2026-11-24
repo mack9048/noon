@@ -6,12 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Models\Admission;
 use App\Models\AdmissionCampaign;
 use App\Models\Lead;
-use App\Services\Enrolment;
 use App\Models\Tenant;
+use App\Services\Enrolment;
 use App\Support\Phone;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Admissions: the public form parents fill from the shared link (no login),
@@ -43,7 +44,7 @@ class AdmissionController extends Controller
         ]);
         $phone = Phone::normalize($data['phone']);
         if (! $phone || strlen(preg_replace('/\D/', '', $data['phone'])) < 9) {
-            throw \Illuminate\Validation\ValidationException::withMessages(['phone' => 'Please enter a valid WhatsApp number.']);
+            throw ValidationException::withMessages(['phone' => 'Please enter a valid WhatsApp number.']);
         }
 
         $admission = Admission::create([
@@ -96,7 +97,7 @@ class AdmissionController extends Controller
         ]);
         $phone = Phone::normalize($data['phone']);
         if (! $phone || strlen(preg_replace('/\D/', '', $data['phone'])) < 9) {
-            throw \Illuminate\Validation\ValidationException::withMessages(['phone' => 'Please enter a valid WhatsApp number.']);
+            throw ValidationException::withMessages(['phone' => 'Please enter a valid WhatsApp number.']);
         }
         $lead = new Lead([
             'tenant_id' => $tenant->id, 'campaign_id' => $campaign?->id, 'student_name' => $data['student_name'], 'parent_name' => $data['parent_name'],

@@ -7,9 +7,11 @@ use App\Models\Course;
 use App\Models\CourseCategory;
 use App\Models\CourseItem;
 use App\Models\CourseLesson;
-use App\Models\CourseSubject;
 use App\Models\CourseLiveSlot;
+use App\Models\CourseSubject;
+use App\Models\User;
 use App\Support\LiveSchedule;
+use App\Support\Review;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -515,7 +517,7 @@ class CourseBuilderController extends Controller
         $courses = Course::query()->when($courseId, fn ($q) => $q->whereKey($courseId))
             ->when(! $user->hasRole('super'), fn ($q) => $user->hasRole('admin') ? $q->where('tenant_id', $user->tenant_id) : $q->where('teacher_id', $user->id))
             ->pluck('title', 'id');
-        $who = fn ($id) => $id ? \App\Models\User::find($id)?->name : null;
+        $who = fn ($id) => $id ? User::find($id)?->name : null;
         $lessons = CourseLesson::whereIn('course_id', $courses->keys())->where(fn ($q) => $q->whereNotNull('review_state')->orWhereNotNull('pending'))->get()
             ->map(fn (CourseLesson $l) => ['type' => 'lesson', 'id' => $l->id, 'course_id' => $l->course_id, 'course' => $courses[$l->course_id],
                 'change' => $l->review_state === 'new' ? 'new lesson' : ($l->review_state === 'delete' ? 'remove lesson' : 'edit lesson'),
@@ -538,7 +540,7 @@ class CourseBuilderController extends Controller
                 ->concat(CourseItem::where('course_id', $data['course_id'])->whereNotNull('review_state')->get())
             : collect([$data['type'] === 'lesson' ? CourseLesson::findOrFail($data['id']) : CourseItem::findOrFail($data['id'])]);
         foreach ($rows as $row) {
-            abort_unless(\App\Support\Review::canApprove($request->user(), Course::findOrFail($row->course_id)), 403);
+            abort_unless(Review::canApprove($request->user(), Course::findOrFail($row->course_id)), 403);
             DB::transaction(fn () => $row instanceof CourseLesson ? $this->decideLesson($row, $data['approve']) : $this->decideItem($row, $data['approve']));
         }
 

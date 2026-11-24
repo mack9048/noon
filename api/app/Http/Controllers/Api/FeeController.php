@@ -7,6 +7,7 @@ use App\Models\Batch;
 use App\Models\Fee;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -84,7 +85,7 @@ class FeeController extends Controller
         ]);
         $fee->fill([
             'status' => 'paid', 'paid_amount' => $data['amount'] ?? $fee->amount, 'method' => $data['method'], 'note' => $data['note'] ?? $fee->note,
-            'paid_at' => isset($data['paid_on']) ? \Illuminate\Support\Carbon::parse($data['paid_on'])->setTimeFrom(now()) : now(),
+            'paid_at' => isset($data['paid_on']) ? Carbon::parse($data['paid_on'])->setTimeFrom(now()) : now(),
             'receipt_no' => $fee->receipt_no ?? (($request->user()->tenant?->code ?? 'NL').'-R'.str_pad((string) $fee->id, 5, '0', STR_PAD_LEFT)),
         ])->save();
 

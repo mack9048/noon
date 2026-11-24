@@ -11,6 +11,7 @@ class Game extends Model
     use SoftDeletes;
 
     public const MODES = ['solo', 'group'];
+
     public const AUDIENCES = ['all', 'students', 'guests'];
 
     protected $fillable = ['title', 'description', 'html_path', 'html_size', 'thumbnail_url', 'mode', 'audience', 'tenant_ids', 'age_group', 'status', 'position', 'plays', 'created_by'];

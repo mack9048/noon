@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 /** An optional group of lessons inside a course (eg. "Grammar", "Reading"). */
 class CourseSubject extends Model
@@ -13,7 +14,7 @@ class CourseSubject extends Model
 
     public function toApp(): array
     {
-        return ['id' => $this->id, 'title' => $this->title, 'thumbnail_url' => $this->thumbnail_path ? \Illuminate\Support\Facades\Storage::disk('public')->url($this->thumbnail_path) : null];
+        return ['id' => $this->id, 'title' => $this->title, 'thumbnail_url' => $this->thumbnail_path ? Storage::disk('public')->url($this->thumbnail_path) : null];
     }
 
     public function course(): BelongsTo

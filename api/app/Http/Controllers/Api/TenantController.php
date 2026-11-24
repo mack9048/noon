@@ -13,8 +13,8 @@ class TenantController extends Controller
 {
     public function index()
     {
-        $admins = \App\Models\User::where('role', 'admin')->whereNotNull('tenant_id')->orderBy('id')->get(['id', 'tenant_id', 'email', 'name'])->unique('tenant_id')->keyBy('tenant_id');
-        $batches = \Illuminate\Support\Facades\DB::table('batches')->select('tenant_id', \Illuminate\Support\Facades\DB::raw('count(*) as n'))->groupBy('tenant_id')->pluck('n', 'tenant_id');
+        $admins = User::where('role', 'admin')->whereNotNull('tenant_id')->orderBy('id')->get(['id', 'tenant_id', 'email', 'name'])->unique('tenant_id')->keyBy('tenant_id');
+        $batches = DB::table('batches')->select('tenant_id', DB::raw('count(*) as n'))->groupBy('tenant_id')->pluck('n', 'tenant_id');
 
         return Tenant::withCount([
             'users as students_count' => fn ($q) => $q->where('role', 'student'),

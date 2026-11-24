@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /** Adds a column only if missing, so the migration can be run again after a partial run (MySQL DDL is not transactional). */
-    private function add(string $table, string $column, \Closure $def): void
+    private function add(string $table, string $column, Closure $def): void
     {
         if (! Schema::hasColumn($table, $column)) {
             Schema::table($table, $def);
@@ -87,12 +87,24 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('tenants', fn (Blueprint $t) => $t->dropColumn(['logo_path', 'tagline', 'website', 'email', 'registration_no', 'affiliation_no', 'principal', 'established', 'currency', 'country', 'dial_code', 'timezone']));
-        Schema::table('course_user', function (Blueprint $t) { $t->dropConstrainedForeignId('enrolled_by'); $t->dropColumn('paid_at'); });
+        Schema::table('course_user', function (Blueprint $t) {
+            $t->dropConstrainedForeignId('enrolled_by');
+            $t->dropColumn('paid_at');
+        });
         Schema::table('users', fn (Blueprint $t) => $t->dropColumn('syllabus'));
-        Schema::table('courses', function (Blueprint $t) { $t->dropConstrainedForeignId('board_id'); $t->dropConstrainedForeignId('class_id'); $t->dropColumn(['thumbnail_path', 'syllabus', 'trial_lessons']); });
+        Schema::table('courses', function (Blueprint $t) {
+            $t->dropConstrainedForeignId('board_id');
+            $t->dropConstrainedForeignId('class_id');
+            $t->dropColumn(['thumbnail_path', 'syllabus', 'trial_lessons']);
+        });
         Schema::table('course_subjects', fn (Blueprint $t) => $t->dropColumn('thumbnail_path'));
         Schema::table('subjects', fn (Blueprint $t) => $t->dropColumn('thumbnail_path'));
-        Schema::table('school_classes', function (Blueprint $t) { $t->dropUnique(['board_id', 'syllabus', 'label']); $t->unique(['board_id', 'label']); $t->dropIndex(['board_id']); $t->dropColumn('syllabus'); });
+        Schema::table('school_classes', function (Blueprint $t) {
+            $t->dropUnique(['board_id', 'syllabus', 'label']);
+            $t->unique(['board_id', 'label']);
+            $t->dropIndex(['board_id']);
+            $t->dropColumn('syllabus');
+        });
         Schema::table('boards', fn (Blueprint $t) => $t->dropColumn(['full_name', 'logo_path', 'position', 'active']));
     }
 };

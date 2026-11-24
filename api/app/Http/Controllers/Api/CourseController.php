@@ -3,15 +3,20 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Assessment;
+use App\Models\AssessmentResult;
 use App\Models\Course;
 use App\Models\CourseItem;
+use App\Models\SchoolClass;
 use App\Models\Tenant;
+use App\Support\LiveKit;
+use App\Support\LiveSchedule;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use App\Support\LiveSchedule;
-use App\Support\LiveKit;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Noon Courses for all roles:
@@ -77,10 +82,10 @@ class CourseController extends Controller
             ->concat($course->lessons->flatMap(fn ($l) => $l->items));
 
         // Tests linked to a lesson (for this learner): done once the teacher has entered the mark.
-        $tests = \App\Models\Assessment::where('course_id', $course->id)->whereNotNull('course_lesson_id')
+        $tests = Assessment::where('course_id', $course->id)->whereNotNull('course_lesson_id')
             ->when($user->tenant_id, fn ($q) => $q->where(fn ($w) => $w->whereNull('tenant_id')->orWhere('tenant_id', $user->tenant_id)), fn ($q) => $q->whereNull('tenant_id'))
             ->get(['id', 'course_lesson_id', 'title']);
-        $marked = $tests->isEmpty() ? [] : \App\Models\AssessmentResult::whereIn('assessment_id', $tests->pluck('id'))->where('student_id', $user->id)->pluck('assessment_id')->all();
+        $marked = $tests->isEmpty() ? [] : AssessmentResult::whereIn('assessment_id', $tests->pluck('id'))->where('student_id', $user->id)->pluck('assessment_id')->all();
         $testsOf = fn ($lessonId) => $tests->where('course_lesson_id', $lessonId)->map(fn ($a) => ['id' => $a->id, 'title' => $a->title, 'done' => in_array($a->id, $marked, true)])->values();
         $lessonRows = fn () => $course->lessons->map(fn ($l) => [
             'id' => $l->id, 'subject_id' => $l->course_subject_id, 'title' => $l->title, 'description' => $l->description,
@@ -94,8 +99,9 @@ class CourseController extends Controller
 
             return $course->toApp($user) + ['items' => $live ? [] : $flat->map($item)->values(), 'lessons' => $live ? [] : $lessonRows(), 'subjects' => [], 'live' => $this->liveInfo($course, $user),
                 'access' => ['paid' => $access['paid'], 'trial_over' => $access['trial_over'], 'trial_days' => (int) ($course->trial_days ?? 7),
-                    'trial_ends_at' => $pivot?->trial_ends_at ? \Illuminate\Support\Carbon::parse($pivot->trial_ends_at)->toIso8601String() : null]];
+                    'trial_ends_at' => $pivot?->trial_ends_at ? Carbon::parse($pivot->trial_ends_at)->toIso8601String() : null]];
         }
+
         return $course->toApp($user) + [
             'items' => $flat->map($item)->values(),
             'subjects' => $course->subjects->map(fn ($s) => $s->toApp()),
@@ -424,11 +430,11 @@ class CourseController extends Controller
             $data['board_id'] = $data['syllabus'] = $data['class_id'] = null;
         } elseif (($data['category'] ?? null) === 'Madrasa Support') {
             if (empty($data['board_id']) || empty($data['syllabus']) || empty($data['class_id'])) {
-                throw \Illuminate\Validation\ValidationException::withMessages(['board_id' => 'Choose the board, syllabus and class for a Madrasa Support course.']);
+                throw ValidationException::withMessages(['board_id' => 'Choose the board, syllabus and class for a Madrasa Support course.']);
             }
-            $class = \App\Models\SchoolClass::find($data['class_id']);
+            $class = SchoolClass::find($data['class_id']);
             if (! $class || $class->board_id !== (int) $data['board_id'] || $class->syllabus !== $data['syllabus']) {
-                throw \Illuminate\Validation\ValidationException::withMessages(['class_id' => 'That class is not in the chosen board and syllabus.']);
+                throw ValidationException::withMessages(['class_id' => 'That class is not in the chosen board and syllabus.']);
             }
         }
 

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 class Board extends Model
 {
@@ -17,7 +18,7 @@ class Board extends Model
     {
         return [
             'id' => $this->id, 'code' => $this->code, 'name' => $this->name, 'full_name' => $this->full_name, 'meta' => $this->meta,
-            'logo_url' => $this->logo_path ? \Illuminate\Support\Facades\Storage::disk('public')->url($this->logo_path) : null,
+            'logo_url' => $this->logo_path ? Storage::disk('public')->url($this->logo_path) : null,
             'active' => (bool) $this->active, 'position' => (int) $this->position,
         ];
     }

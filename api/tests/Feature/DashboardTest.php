@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Batch;
 use App\Models\Fee;
 use App\Models\Tenant;
 use App\Models\User;
@@ -51,7 +52,7 @@ class DashboardTest extends TestCase
         app(TenantContext::class)->set($a);
         Fee::create(['student_id' => $s1->id, 'title' => 'Term 1', 'month' => now()->format('Y-m'), 'amount' => 1500, 'due_date' => now()->subDays(3)->toDateString(), 'status' => 'due']);
         Fee::create(['student_id' => $s1->id, 'title' => 'Term 2', 'month' => now()->format('Y-m'), 'amount' => 500, 'due_date' => now()->addDays(3)->toDateString(), 'status' => 'paid', 'paid_amount' => 500, 'paid_at' => now(), 'method' => 'cash']);
-        $b = \App\Models\Batch::create(['name' => 'Class 5 A', 'board' => 'AP', 'class_label' => '5', 'days' => [1, 3], 'start_time' => '16:30', 'class_teacher_id' => $t->id]);
+        $b = Batch::create(['name' => 'Class 5 A', 'board' => 'AP', 'class_label' => '5', 'days' => [1, 3], 'start_time' => '16:30', 'class_teacher_id' => $t->id]);
         $b->students()->attach($s1->id);
         app(TenantContext::class)->set(null);
 
@@ -63,13 +64,14 @@ class DashboardTest extends TestCase
 
     public function test_teacher_sees_only_their_own_classes(): void
     {
-        $t = \App\Models\Tenant::create(['name' => 'Inst', 'code' => 'CLS111']);
-        $mk = fn ($role, $name) => \App\Models\User::factory()->create(['tenant_id' => $t->id, 'role' => $role, 'name' => $name]);
-        $zahra = $mk('teacher', 'Zahra Teacher'); $other = $mk('teacher', 'Other');
+        $t = Tenant::create(['name' => 'Inst', 'code' => 'CLS111']);
+        $mk = fn ($role, $name) => User::factory()->create(['tenant_id' => $t->id, 'role' => $role, 'name' => $name]);
+        $zahra = $mk('teacher', 'Zahra Teacher');
+        $other = $mk('teacher', 'Other');
         $kid = $mk('student', 'Kid One');
-        $mine = \App\Models\Batch::create(['tenant_id' => $t->id, 'name' => 'Class 5 Morning', 'board' => 'AP', 'class_label' => '5', 'days' => ['Mon'], 'start_time' => '16:00', 'class_teacher_id' => $zahra->id, 'subject_teachers' => ['Fiqh' => $other->id]]);
+        $mine = Batch::create(['tenant_id' => $t->id, 'name' => 'Class 5 Morning', 'board' => 'AP', 'class_label' => '5', 'days' => ['Mon'], 'start_time' => '16:00', 'class_teacher_id' => $zahra->id, 'subject_teachers' => ['Fiqh' => $other->id]]);
         $mine->students()->attach($kid->id);
-        $theirs = \App\Models\Batch::create(['tenant_id' => $t->id, 'name' => 'Class 3', 'board' => 'AP', 'class_label' => '3', 'days' => ['Tue'], 'start_time' => '17:00', 'class_teacher_id' => $other->id]);
+        $theirs = Batch::create(['tenant_id' => $t->id, 'name' => 'Class 3', 'board' => 'AP', 'class_label' => '3', 'days' => ['Tue'], 'start_time' => '17:00', 'class_teacher_id' => $other->id]);
         $this->actingAs($zahra)->getJson('/api/staff/classes')->assertOk()->assertJsonCount(1)->assertJsonPath('0.name', 'Class 5 Morning')->assertJsonPath('0.class_teacher', true);
         $this->actingAs($zahra)->getJson("/api/staff/classes/{$mine->id}")->assertOk()->assertJsonPath('students.0.name', 'Kid One')->assertJsonPath('subjects.0.teacher', 'Other');
         $this->actingAs($zahra)->getJson("/api/staff/classes/{$theirs->id}")->assertNotFound();

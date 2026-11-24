@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use App\Models\Tenant;
 use Illuminate\Mail\Events\MessageSending;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
@@ -38,7 +38,9 @@ class PasswordResetTest extends TestCase
     {
         $u = User::create(['name' => 'Teacher', 'email' => 't@x.test', 'password' => 'oldpass123', 'role' => 'teacher']);
         $sent = [];
-        Event::listen(MessageSending::class, function ($e) use (&$sent) { $sent[] = $e->message; });
+        Event::listen(MessageSending::class, function ($e) use (&$sent) {
+            $sent[] = $e->message;
+        });
 
         $this->postJson('/api/auth/password/forgot', ['login' => 'T@X.test'])->assertOk()->assertJsonPath('message', 'If this email is registered, a code has been sent to it.');
         $this->assertCount(1, $sent);

@@ -11,6 +11,7 @@ class Lead extends Model
     use BelongsToTenant;
 
     public const STATUSES = ['new', 'contacted', 'interested', 'visit', 'applied', 'admitted', 'lost'];
+
     public const SOURCES = ['app', 'portal', 'whatsapp', 'call', 'walk_in', 'referral', 'social', 'other'];
 
     protected $fillable = ['tenant_id', 'campaign_id', 'student_name', 'parent_name', 'phone', 'email', 'class_label', 'source', 'status', 'follow_up_on', 'notes', 'admission_id', 'user_id'];
