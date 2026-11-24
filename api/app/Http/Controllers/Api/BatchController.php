@@ -79,4 +79,18 @@ class BatchController extends Controller
 
         return response()->json($batch->load('classTeacher')->loadCount('students')->toApp(), 201);
     }
+
+    /** DELETE /admin/batches/{id} — the students stay in the institution; attendance is kept; the batch's own live classes go. */
+    public function destroy(Request $request, int $id)
+    {
+        $batch = Batch::where('tenant_id', $request->user()->tenant_id)->findOrFail($id);
+        \Illuminate\Support\Facades\DB::transaction(function () use ($batch) {
+            // A live class with no batch is for everyone in the institution, so remove this batch's ones.
+            \App\Models\LiveSession::where('batch_id', $batch->id)->delete();
+            $batch->students()->detach();
+            $batch->delete();
+        });
+
+        return response()->noContent();
+    }
 }

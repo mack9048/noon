@@ -57,6 +57,13 @@ class Round2Test extends TestCase
         $this->as($admin)->postJson('/api/admin/batches', $forCourse + ['course_id' => $hidden->id])->assertUnprocessable();
         $this->as($admin)->postJson('/api/admin/batches', $forCourse)->assertUnprocessable(); // no course: board and class are needed
         $this->as($admin)->postJson('/api/admin/batches', $forCourse + ['course_id' => $course->id])->assertCreated()->assertJsonPath('course', 'Little Muslim')->assertJsonPath('board', '');
+
+        // Delete a batch: only your own; the students stay.
+        $id = \App\Models\Batch::where('tenant_id', $t->id)->value('id');
+        $this->as($this->member($other, 'admin'))->deleteJson("/api/admin/batches/{$id}")->assertNotFound();
+        $this->as($admin)->deleteJson("/api/admin/batches/{$id}")->assertNoContent();
+        $this->assertDatabaseMissing('batches', ['id' => $id]);
+        $this->assertDatabaseHas('users', ['id' => $s1->id]);
     }
 
     public function test_madrasa_course_needs_approval_and_stays_in_its_madrasa(): void

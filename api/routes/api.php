@@ -224,6 +224,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/batches', [BatchController::class, 'index']);
         Route::get('/batches/people', [BatchController::class, 'people']);
         Route::post('/batches', [BatchController::class, 'store']);
+        Route::delete('/batches/{id}', [BatchController::class, 'destroy'])->whereNumber('id');
         Route::get('/people', [PasswordAdminController::class, 'people']);
         Route::put('/users/{user}/password', [PasswordAdminController::class, 'adminSet']);
     });

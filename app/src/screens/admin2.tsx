@@ -1,6 +1,7 @@
 // Institute admin screens from the second design round, plus the course editor shared
 // with super admin and the public admission form.
 import React, { useEffect, useState, useSyncExternalStore } from 'react';
+import { confirmBox } from '@/lib/dialog';
 import { Image, Linking, Platform, Pressable, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -240,7 +241,11 @@ export function BatchesScreen() {
                 <Text style={{ color: '#FFF', fontSize: 9, fontFamily: fonts.semibold }}>CLASS</Text><Text style={{ color: '#FFF', fontSize: 20, fontFamily: fonts.fun, lineHeight: 22 }}>{b.cls || '–'}</Text>
               </LinearGradient>
               <View style={{ flex: 1 }}><T v="h3">{b.name}</T><T v="small">{[b.course, b.board, b.when].filter(Boolean).join(' · ')}</T></View>
-              <IconButton name="pencil-outline" label={`Edit ${b.name}`} size={40} tint="#F1F4F5" onPress={() => router.push('/admin/batches/new' as any)} />
+              <IconButton name="trash-outline" label={`Delete ${b.name}`} size={40} tint="#FDECEC" color={colors.red} onPress={async () => {
+                if (!(await confirmBox(`Delete the batch “${b.name}”? ${b.students ? `Its ${b.students} student${b.students === 1 ? '' : 's'} stay in the institution, without this batch. ` : ''}Its live classes are removed. Attendance already taken is kept.`))) return;
+                try { await api.del(`/admin/batches/${b.id}`); await refreshBatches(); demoNote(`Batch “${b.name}” deleted.`); }
+                catch (e: any) { demoNote(e instanceof ApiError ? e.friendly : 'Could not delete the batch.'); }
+              }} />
             </Row>
             <Row gap={8}>
               {[[b.students, 'Students'], [b.teachers, 'Teachers'], [b.subjects, 'Subjects']].map(([v, l]) => (
