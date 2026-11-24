@@ -243,8 +243,8 @@ function SharedVideo({ item, host, vid, onVid }: { item: StageItem; host: boolea
 }
 
 /* ---------- PDF pages, drawn with pdf.js so every phone and computer shows the same page ---------- */
-// pdf.js (3.11.174) is served from our own site: app/public/pdfjs.
-const PDFJS = typeof window !== 'undefined' ? `${window.location.origin}/pdfjs` : '/pdfjs';
+// pdf.js 3.11.174 from cdnjs (a fixed version), loaded only when a PDF is shown.
+const PDFJS = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174';
 let pdfjsLoading: Promise<any> | null = null;
 function loadPdfJs(): Promise<any> {
   const w = window as any;
@@ -701,13 +701,12 @@ export function LiveRoomScreen({ kind = 'course' }: { kind?: 'course' | 'meeting
       const tp = require('@livekit/track-processors');
       if (!tp.supportsBackgroundProcessors()) { flash('Backgrounds do not work in this browser. Try Chrome or Edge.'); return; }
       const opts = b === 'none' ? { mode: 'disabled' } : b === 'blur' ? { mode: 'background-blur', blurRadius: 12 } : { mode: 'virtual-background', imagePath: makeBackground(b) };
-      // The AI model that finds the person is served from our own site (copied in at build time).
-      const assetPaths = { tasksVisionFileSet: `${window.location.origin}/mediapipe`, modelAssetPath: `${window.location.origin}/mediapipe/selfie_segmenter.tflite` };
+      // The AI model that finds the person loads from the library's own CDN (jsDelivr) and Google's model store.
       const slow = new Promise((_, no) => setTimeout(() => no(new Error('timeout')), 20000));
       flash('Changing the background…');
       if (!processor.current || cam.getProcessor() !== processor.current) {
         if (b === 'none') { setBg('none'); return; }
-        processor.current = tp.BackgroundProcessor({ ...opts, assetPaths });
+        processor.current = tp.BackgroundProcessor(opts);
         await Promise.race([cam.setProcessor(processor.current), slow]);
       } else await Promise.race([processor.current.switchTo(opts), slow]);
       setNote(null);

@@ -7,5 +7,3 @@ web-build/
 ios/
 android/
 
-# MediaPipe runtime: copied from node_modules at build (see vercel.json)
-public/mediapipe/vision_wasm_*
