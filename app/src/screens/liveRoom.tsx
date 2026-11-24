@@ -243,7 +243,7 @@ function SharedVideo({ item, host, vid, onVid }: { item: StageItem; host: boolea
 }
 
 /* ---------- PDF pages, drawn with pdf.js so every phone and computer shows the same page ---------- */
-// pdf.js is served from our own site (copied from node_modules at build time, see vercel.json).
+// pdf.js (3.11.174) is served from our own site: app/public/pdfjs.
 const PDFJS = typeof window !== 'undefined' ? `${window.location.origin}/pdfjs` : '/pdfjs';
 let pdfjsLoading: Promise<any> | null = null;
 function loadPdfJs(): Promise<any> {
