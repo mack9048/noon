@@ -178,7 +178,9 @@ export function ClassroomScreen() {
   const cont = useApi<ContinueInfo>(courseId ? `/courses/continue?course=${courseId}` : '/courses/continue');
   // No course yet: the server sends an empty answer, so only trust it when it names a course.
   const contData = cont.data?.course ? cont.data : null;
-  const course = mine.data?.find((c) => c.id === (courseId ?? contData?.course.id)) ?? mine.data?.[0];
+  // A finished course does not take the big card: show an unfinished one when there is one.
+  const unfinished = contData?.finished && courseId === null ? mine.data?.find((c) => c.id !== contData.course.id && (c.progress ?? 0) < 100) : undefined;
+  const course = unfinished ?? mine.data?.find((c) => c.id === (courseId ?? contData?.course.id)) ?? mine.data?.[0];
   const next = contData && contData.course.id === course?.id ? contData : null;
   const noCourse = !mine.loading && !mine.error && !mine.data?.length;
   const courseDetail = useApi<LearnDetail>(course && !next ? `/learn/course/${course.id}` : null);
@@ -198,7 +200,7 @@ export function ClassroomScreen() {
   const play = () => {
     if (!course) return router.push(`${base}/live` as any);
     if (liveCourse) return liveNext?.state === 'live' ? joinLiveCourse(course.id) : router.push(`${base}/courses/${course.id}` as any);
-    if (next?.finished) return router.push(`${base}/courses/${course.id}/certificate` as any);
+    if (next?.finished) return router.push(`${base}/courses/${course.id}` as any);
     if (next?.lesson) return router.push(`${base}/courses/${course.id}/play?lesson=${next.lesson.id}${next.item ? `&item=${next.item.id}` : ''}` as any);
     router.push(`${base}/courses/${course.id}` as any);
   };
@@ -227,10 +229,10 @@ export function ClassroomScreen() {
             </View>
           ) : null}
           {liveWhen ? <T style={{ color: '#FFE6F6', fontFamily: fonts.semibold, fontSize: 11, marginTop: 2 }} numberOfLines={1}>● {liveWhen}{course?.teacher_name ? ` · ${course.teacher_name}` : ''}</T> : null}
-          <Pressable accessibilityRole="button" accessibilityLabel={liveCourse ? (liveNext?.state === 'live' ? 'Join live class' : 'See timetable') : next ? (next.finished ? 'Get certificate' : 'Continue lesson') : 'Join class'} onPress={play}
+          <Pressable accessibilityRole="button" accessibilityLabel={liveCourse ? (liveNext?.state === 'live' ? 'Join live class' : 'See timetable') : next ? (next.finished ? 'Review the course' : 'Continue lesson') : 'Join class'} onPress={play}
             style={{ marginTop: 12, alignSelf: 'flex-start', backgroundColor: '#FFF', borderRadius: 24, height: 48, paddingLeft: 6, paddingRight: 18, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#5B36C9', alignItems: 'center', justifyContent: 'center' }}><Ionicons name={liveCourse ? 'videocam' : next ? (next.finished ? 'ribbon' : 'play') : 'videocam'} size={16} color="#FFF" /></View>
-            <T style={{ fontFamily: fonts.fun, fontSize: 17, color: '#46308A' }}>{liveCourse ? (liveNext?.state === 'live' ? 'Join live' : 'Timetable') : next ? (next.finished ? 'Get certificate' : next.done ? 'Continue' : 'Start') : 'Join Class'}</T>
+            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#5B36C9', alignItems: 'center', justifyContent: 'center' }}><Ionicons name={liveCourse ? 'videocam' : next ? (next.finished ? 'refresh' : 'play') : 'videocam'} size={16} color="#FFF" /></View>
+            <T style={{ fontFamily: fonts.fun, fontSize: 17, color: '#46308A' }}>{liveCourse ? (liveNext?.state === 'live' ? 'Join live' : 'Timetable') : next ? (next.finished ? 'Review' : next.done ? 'Continue' : 'Start') : 'Join Class'}</T>
           </Pressable>
         </View>
         <Pressable accessibilityRole="button" accessibilityLabel={course ? `${course.title}. Change course` : 'Get a course'}

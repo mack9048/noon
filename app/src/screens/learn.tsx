@@ -364,6 +364,13 @@ export function CourseDetailScreen() {
           ) : null}
           <Button title={(c.progress ?? 0) > 0 ? 'Continue learning' : 'Start learning'} icon="play" onPress={() => router.push(`${base}/courses/${c.id}/play` as any)} />
           <LessonList c={c} onDone={course.reload} />
+          {(c.progress ?? 0) >= 100 ? (
+            <Card onPress={() => router.push(`${base}/courses/${c.id}/certificate` as any)} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <Ionicons name="ribbon-outline" size={22} color={colors.violet} />
+              <View style={{ flex: 1 }}><T style={{ fontFamily: fonts.semibold }}>Certificate</T><T v="small">Course complete · view and download</T></View>
+              <Ionicons name="download-outline" size={20} color={colors.violet} />
+            </Card>
+          ) : null}
         </View>
       ) : (
       <>
