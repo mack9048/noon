@@ -93,4 +93,25 @@ class CourseManagementTest extends TestCase
         $this->actingAs($boss)->deleteJson("/api/super/manage/course-live-classes/{$ids[0]}")->assertOk()->assertJsonCount(9);
         Carbon::setTestNow();
     }
+
+    public function test_next_lesson_waits_for_the_lesson_test_mark(): void
+    {
+        $t = Tenant::create(['name' => 'Inst', 'code' => 'TST111']);
+        $teacher = User::create(['name' => 'Tea', 'email' => 'tt@x.test', 'password' => 'secret123', 'role' => 'teacher', 'tenant_id' => $t->id]);
+        $student = User::create(['name' => 'Stu', 'email' => 'ss@x.test', 'password' => 'secret123', 'role' => 'student', 'tenant_id' => $t->id]);
+        $course = Course::create(['title' => 'Little Muslim', 'category' => 'General', 'status' => 'published', 'tenant_id' => $t->id, 'visibility' => 'madrasa', 'is_free' => true, 'teacher_id' => $teacher->id]);
+        $t->courses()->attach($course->id, ['enabled' => true]);
+        $student->courses()->attach($course->id);
+        $l1 = \App\Models\CourseLesson::create(['course_id' => $course->id, 'title' => 'Flower', 'position' => 1]);
+        $l2 = \App\Models\CourseLesson::create(['course_id' => $course->id, 'title' => 'Tree', 'position' => 2]);
+
+        $other = Course::create(['title' => 'Other', 'category' => 'General', 'status' => 'published', 'tenant_id' => $t->id, 'visibility' => 'madrasa', 'is_free' => true, 'teacher_id' => $teacher->id]);
+        $this->actingAs($teacher)->postJson('/api/staff/assessments', ['type' => 'assessment', 'title' => 'Flower quiz', 'course_id' => $other->id, 'course_lesson_id' => $l1->id])->assertStatus(422);
+        $a = $this->actingAs($teacher)->postJson('/api/staff/assessments', ['type' => 'assessment', 'title' => 'Flower quiz', 'course_id' => $course->id, 'course_lesson_id' => $l1->id, 'max_marks' => 5])->assertCreated()->json();
+
+        $this->actingAs($student)->getJson("/api/courses/{$course->id}")->assertOk()
+            ->assertJsonPath('lessons.0.tests.0.title', 'Flower quiz')->assertJsonPath('lessons.0.tests.0.done', false)->assertJsonPath('lessons.1.tests', []);
+        $this->actingAs($teacher)->postJson("/api/staff/assessments/{$a['id']}/results", ['results' => [['student_id' => $student->id, 'marks' => 4]]])->assertOk();
+        $this->actingAs($student)->getJson("/api/courses/{$course->id}")->assertOk()->assertJsonPath('lessons.0.tests.0.done', true);
+    }
 }

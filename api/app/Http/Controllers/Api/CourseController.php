@@ -76,9 +76,16 @@ class CourseController extends Controller
         $flat = $course->items->whereNull('course_lesson_id')->values()
             ->concat($course->lessons->flatMap(fn ($l) => $l->items));
 
+        // Tests linked to a lesson (for this learner): done once the teacher has entered the mark.
+        $tests = \App\Models\Assessment::where('course_id', $course->id)->whereNotNull('course_lesson_id')
+            ->when($user->tenant_id, fn ($q) => $q->where(fn ($w) => $w->whereNull('tenant_id')->orWhere('tenant_id', $user->tenant_id)), fn ($q) => $q->whereNull('tenant_id'))
+            ->get(['id', 'course_lesson_id', 'title']);
+        $marked = $tests->isEmpty() ? [] : \App\Models\AssessmentResult::whereIn('assessment_id', $tests->pluck('id'))->where('student_id', $user->id)->pluck('assessment_id')->all();
+        $testsOf = fn ($lessonId) => $tests->where('course_lesson_id', $lessonId)->map(fn ($a) => ['id' => $a->id, 'title' => $a->title, 'done' => in_array($a->id, $marked, true)])->values();
         $lessonRows = fn () => $course->lessons->map(fn ($l) => [
             'id' => $l->id, 'subject_id' => $l->course_subject_id, 'title' => $l->title, 'description' => $l->description,
             'duration' => $l->duration, 'free_preview' => $l->free_preview, 'locked' => ! $open($l->id), 'items' => $l->items->map($item)->values(),
+            'tests' => $testsOf($l->id),
         ]);
         if ($course->isLive()) {
             // Live courses can also have lessons (textbook, worksheet, videos, activities) used in class and after it.
@@ -92,16 +99,7 @@ class CourseController extends Controller
         return $course->toApp($user) + [
             'items' => $flat->map($item)->values(),
             'subjects' => $course->subjects->map(fn ($s) => $s->toApp()),
-            'lessons' => $course->lessons->map(fn ($l) => [
-                'id' => $l->id,
-                'subject_id' => $l->course_subject_id,
-                'title' => $l->title,
-                'description' => $l->description,
-                'duration' => $l->duration,
-                'free_preview' => $l->free_preview,
-                'locked' => ! $open($l->id),
-                'items' => $l->items->map($item)->values(),
-            ]),
+            'lessons' => $lessonRows(),
             'access' => ['paid' => $access['paid'], 'trial_over' => $access['trial_over'], 'trial_lessons' => (int) ($course->trial_lessons ?? 2)],
         ];
     }

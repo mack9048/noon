@@ -96,6 +96,12 @@ export function LessonOverviewScreen() {
         <Image source={NOONI} accessibilityLabel="Nooni" style={{ position: 'absolute', right: 6, bottom: -40, width: 120, height: 180 }} resizeMode="contain" />
       </LinearGradient>
       <View style={{ gap: 10, marginTop: 14, marginBottom: 100 }}>
+        {(lesson.tests ?? []).map((t) => (
+          <View key={`t${t.id}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: t.done ? '#F0FDF4' : '#FFFBEB', borderRadius: 22, padding: 14, borderWidth: 1, borderColor: t.done ? '#BBF7D0' : '#FDE68A' }}>
+            <View style={{ width: 48, height: 48, borderRadius: 16, backgroundColor: t.done ? '#DCFCE7' : '#FEF3C7', alignItems: 'center', justifyContent: 'center' }}><Ionicons name={t.done ? 'checkmark-done' : 'create-outline'} size={24} color={t.done ? '#16A34A' : '#B45309'} /></View>
+            <View style={{ flex: 1 }}><T style={{ fontFamily: fonts.semibold, fontSize: 17 }}>Test · {t.title}</T><T v="small">{t.done ? 'Marked. The next lesson is open.' : 'Do this test. The next lesson opens after your teacher enters your mark.'}</T></View>
+          </View>
+        ))}
         {!items.length ? <Empty text="Your teacher will add the lesson materials here." /> : ROWS.map((r) => {
           const list = items.filter(r.test);
           if (!list.length) return null;

@@ -74,6 +74,8 @@ export interface CourseItem {
 }
 export interface CourseLessonRow {
   id: number; subject_id: number | null; title: string; description?: string | null; duration?: string | null; free_preview: boolean; items: CourseItem[];
+  /** Tests the teacher linked to this lesson; done once the mark is entered. */
+  tests?: { id: number; title: string; done: boolean }[];
   /** Past the free trial: the title shows but the lesson does not open. */
   locked?: boolean;
 }

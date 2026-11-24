@@ -125,10 +125,14 @@ class LearnController extends Controller
             'subject_id' => ['nullable', 'required_without:course_id', 'integer', 'exists:subjects,id'],
             'due_at' => ['nullable', 'date'],
             'max_marks' => ['nullable', 'integer', 'between:1,1000'],
+            'course_lesson_id' => ['nullable', 'integer'],
         ]);
         if (! empty($data['course_id'])) {
             $course = Course::findOrFail($data['course_id']);
             abort_unless($course->teacher_id === $user->id || Course::visibleTo($user)->whereKey($course->id)->exists(), 403, 'This course is not on in your institution.');
+        }
+        if (! empty($data['course_lesson_id'])) {
+            abort_unless(! empty($data['course_id']) && \App\Models\CourseLesson::where('id', $data['course_lesson_id'])->where('course_id', $data['course_id'])->exists(), 422, 'Pick a lesson of this course.');
         }
 
         return Assessment::create($data + ['tenant_id' => $user->tenant_id, 'created_by' => $user->id, 'max_marks' => $data['max_marks'] ?? 100]);

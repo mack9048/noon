@@ -226,6 +226,28 @@ function BigAction({ g, kicker, title, sub, icon, dark, onPress }: { g: [string,
   );
 }
 
+/* ---------- Link a test to a course lesson: the next lesson opens once the student's mark is in ---------- */
+type LessonLinkV = { courseId: number | null; lessonId: number | null };
+function LessonLink({ value, onChange }: { value: LessonLinkV; onChange: (v: LessonLinkV) => void }) {
+  const { data: courses } = useApi<{ id: number; title: string; mode: string | null }[]>('/manage/courses');
+  const { data: course } = useApi<{ lessons?: { id: number; title: string }[] }>(value.courseId ? `/manage/courses/${value.courseId}` : null);
+  const list = (courses ?? []).filter((c) => c.mode);
+  if (!list.length) return null;
+  return (
+    <View style={{ gap: 8 }}>
+      <T v="small" style={{ fontFamily: fonts.medium }}>For a course lesson (optional)</T>
+      <Select value={value.courseId ? String(value.courseId) : ''} onChange={(v) => onChange({ courseId: v ? Number(v) : null, lessonId: null })}
+        options={[{ key: '', label: 'Not for a course' }, ...list.map((c) => ({ key: String(c.id), label: c.title }))]} />
+      {value.courseId ? (
+        <Select value={value.lessonId ? String(value.lessonId) : ''} onChange={(v) => onChange({ ...value, lessonId: v ? Number(v) : null })}
+          options={[{ key: '', label: 'Pick the lesson' }, ...(course?.lessons ?? []).map((l, i) => ({ key: String(l.id), label: `${i + 1}. ${l.title}` }))]} />
+      ) : null}
+      {value.lessonId ? <T v="small">Students open the next lesson after you enter their mark for this test.</T> : null}
+    </View>
+  );
+}
+const linkFields = (l: LessonLinkV, subjectId?: number) => (l.courseId && l.lessonId ? { course_id: l.courseId, course_lesson_id: l.lessonId } : { subject_id: subjectId });
+
 /* ---------- Quick test ---------- */
 type Q = { q: string; opts: string[]; correct: number };
 const START_QS: Q[] = [
@@ -240,6 +262,7 @@ export function QuickTestScreen() {
   const [time, setTime] = useState('5');
   const [qs, setQs] = useState<Q[]>(START_QS);
   const [busy, setBusy] = useState(false);
+  const [link, setLink] = useState<LessonLinkV>({ courseId: null, lessonId: null });
   const subjects = useClassSubjects(cls === '+1' ? '+1' : cls);
   const arabic = subjects.find((s) => s.name === 'Arabic') ?? subjects[0];
 
@@ -248,7 +271,8 @@ export function QuickTestScreen() {
     if (!name.trim() || qs.some((q) => !q.q.trim() || q.opts.some((o) => !o.trim()))) return demoNote('Fill in the test name, every question and every answer.');
     setBusy(true);
     try {
-      await api.post('/staff/assessments', { type: 'assessment', title: name.trim(), subject_id: arabic?.id, max_marks: qs.length, due_at: new Date().toISOString().slice(0, 10), description: `Quick test · ${qs.length} questions · ${time === 'none' ? 'no time limit' : `${time} min`}` });
+      if (link.courseId && !link.lessonId) { setBusy(false); return demoNote('Pick the lesson for this test, or choose “Not for a course”.'); }
+      await api.post('/staff/assessments', { type: 'assessment', title: name.trim(), ...linkFields(link, arabic?.id), max_marks: qs.length, due_at: new Date().toISOString().slice(0, 10), description: `Quick test · ${qs.length} questions · ${time === 'none' ? 'no time limit' : `${time} min`}` });
       demoNote(`"${name.trim()}" sent to Class ${cls}. Students see it under Assessment.`);
       router.replace('/teacher/tests' as any);
     } catch (e: any) { demoNote(e instanceof ApiError ? e.friendly : e?.message ?? 'Could not send the test.'); } finally { setBusy(false); }
@@ -263,6 +287,7 @@ export function QuickTestScreen() {
         <ChoiceChips value={cls} onChange={setCls} options={['5', '3', '7', '+1'].map((c) => ({ key: c, label: c === '+1' ? '+1' : `Class ${c}` }))} />
         <Input label="Test name" value={name} onChangeText={setName} />
         <Row gap={8}><T v="small" style={{ width: 40 }}>Time</T><ChoiceChips value={time} onChange={setTime} options={[{ key: '3', label: '3 min' }, { key: '5', label: '5 min' }, { key: '10', label: '10 min' }, { key: 'none', label: 'No limit' }]} /></Row>
+        <LessonLink value={link} onChange={setLink} />
       </Panel>
       {qs.map((q, i) => (
         <Panel key={i}>
@@ -315,6 +340,7 @@ export function ExamNewScreen() {
   const [secs, setSecs] = useState<Section[]>([{ type: 'Multiple choice', count: 10, each: 1 }, { type: 'Short answer', count: 5, each: 2 }, { type: 'Long answer', count: 3, each: 5 }, { type: 'Oral · reading', count: 1, each: 5 }]);
   const [rules, setRules] = useState({ shuffle: true, timer: true, late: false, cam: false, result: false });
   const [busy, setBusy] = useState(false);
+  const [link, setLink] = useState<LessonLinkV>({ courseId: null, lessonId: null });
   const subjects = useClassSubjects('5');
   const marks = useMemo(() => secs.reduce((a, s) => a + s.count * s.each, 0), [secs]);
   const setSec = (i: number, p: Partial<Section>) => setSecs(secs.map((s, k) => (k === i ? { ...s, ...p } : s)));
@@ -325,7 +351,8 @@ export function ExamNewScreen() {
     setBusy(true);
     try {
       const subj = subjects.find((s) => s.name === subject) ?? subjects[0];
-      await api.post('/staff/assessments', { type: 'exam', title: name.trim(), subject_id: subj?.id, max_marks: marks, due_at: date, description: `${type} · ${secs.length} sections · ${duration} · pass ${pass}. ${notes}`.slice(0, 1000) });
+      if (link.courseId && !link.lessonId) { setBusy(false); return demoNote('Pick the lesson for this exam, or choose “Not for a course”.'); }
+      await api.post('/staff/assessments', { type: 'exam', title: name.trim(), ...linkFields(link, subj?.id), max_marks: marks, due_at: date, description: `${type} · ${secs.length} sections · ${duration} · pass ${pass}. ${notes}`.slice(0, 1000) });
       demoNote(`"${name.trim()}" is scheduled for ${batches.join(', ')}. Students see it under Exam.`);
       router.replace('/teacher/tests' as any);
     } catch (e: any) { demoNote(e instanceof ApiError ? e.friendly : e?.message ?? 'Could not save the exam.'); } finally { setBusy(false); }
@@ -354,6 +381,7 @@ export function ExamNewScreen() {
           <Row gap={10}><Select label="Type" value={type} options={['Term', 'Half-yearly', 'Annual', 'Unit test']} onChange={setType} /><Select label="Subject" value={subject} options={['Arabic', 'Fiqh', 'Quran', 'Thajweed', 'Akhlaq']} onChange={setSubject} /></Row>
           <T v="small" style={{ fontFamily: fonts.medium }}>Classes / batches</T>
           <ToggleChips options={['Class 5 · Morning', 'Class 5 · Evening', 'Class 3']} value={batches} onChange={setBatches} />
+          <LessonLink value={link} onChange={setLink} />
           <Row gap={10}><DateInput label="Date" value={date} onChange={setDate} min={new Date().toISOString().slice(0, 10)} /><DateInput label="Start" mode="time" value={start} onChange={setStart} /></Row>
           <Row gap={10}><Select label="Duration" value={duration} options={['30 min', '45 min', '1 h', '1 h 30 min', '2 h']} onChange={setDuration} /><Input label="Pass mark" value={pass} onChangeText={setPass} keyboardType="number-pad" /></Row>
           <Input label="Instructions for students" value={notes} onChangeText={setNotes} multiline />

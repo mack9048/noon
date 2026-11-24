@@ -62,12 +62,29 @@ export function CoursePlayerScreen() {
   const ordered = useMemo(() => modules.flatMap((m) => m.lessons), [modules]);
   const isDone = (it: CourseItem) => !!it.done || doneNow.has(it.id);
   // Joined: every lesson in the free trial (or all, once paid). Not joined: free previews only.
-  const canOpen = (l: CourseLessonRow) => (c?.enrolled ? !l.locked : l.free_preview);
+  const allowed = (l: CourseLessonRow) => (c?.enrolled ? !l.locked : l.free_preview);
+  // A lesson opens only after every test in the lessons before it is done.
+  const testBefore = (l: CourseLessonRow) => {
+    for (const x of ordered) {
+      if (x.id === l.id) return null;
+      if (x.items.some((i) => i.kind === 'test' && !isDone(i)) || x.tests?.some((t) => !t.done)) return x;
+    }
+    return null;
+  };
+  const canOpen = (l: CourseLessonRow) => allowed(l) && !(c?.enrolled && testBefore(l));
 
   const lesson = ordered.find((l) => String(l.id) === lessonParam)
     ?? ordered.find((l) => canOpen(l) && l.items.some((i) => !isDone(i))) ?? ordered.find(canOpen) ?? ordered[0];
   const item = lesson?.items.find((i) => String(i.id) === itemParam) ?? lesson?.items.find((i) => !isDone(i)) ?? lesson?.items[0];
   const locked = lesson ? !canOpen(lesson) : false;
+  const waitTest = lesson && allowed(lesson) && c?.enrolled ? testBefore(lesson) : null;
+
+  // Keep the open item open: when a video ends it is marked done, but the next one does not start by itself.
+  useEffect(() => {
+    if (lesson && item && (String(lesson.id) !== lessonParam || String(item.id) !== itemParam)) {
+      router.setParams({ lesson: String(lesson.id), item: String(item.id) } as any);
+    }
+  }, [lesson?.id, item?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Open the module that holds the current lesson.
   useEffect(() => {
@@ -101,6 +118,8 @@ export function CoursePlayerScreen() {
   const doneCount = all.filter(isDone).length;
   const pct = all.length ? Math.round((doneCount / all.length) * 100) : 0;
   const go = (l: CourseLessonRow, it?: CourseItem) => {
+    const t = allowed(l) && c?.enrolled ? testBefore(l) : null;
+    if (t) return demoNote(`Finish the test in “${t.title}” first. Then this lesson opens.`);
     if (!canOpen(l)) return demoNote('Join the course to open this lesson.');
     router.setParams({ lesson: String(l.id), item: it ? String(it.id) : '' } as any);
     setTab('content');
@@ -183,7 +202,20 @@ export function CoursePlayerScreen() {
       <Pressable accessibilityRole="link" onPress={() => router.replace(coursePage as any)} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', paddingVertical: 4 }}>
         <Ionicons name="arrow-back" size={16} color={colors.violet} /><T style={{ color: colors.violet, fontFamily: fonts.semibold }}>Back to course</T>
       </Pressable>
-      {locked ? <LockedBox trial={!!c.enrolled} onJoin={() => router.replace(coursePage as any)} />
+      {waitTest ? (
+        <View style={{ borderRadius: 20, backgroundColor: '#211A4D', padding: 24, gap: 12, alignItems: 'flex-start' }}>
+          <Ionicons name="lock-closed" size={36} color="#FFD84D" />
+          <T style={{ color: '#FFF', fontFamily: fonts.semibold, fontSize: 19 }}>Finish the test first</T>
+          {waitTest.items.some((i) => i.kind === 'test' && !isDone(i)) ? (
+            <>
+              <T style={{ color: '#CFC6F7' }}>Complete the test in “{waitTest.title}”. Then this lesson opens.</T>
+              <Button title="Go to the test" icon="arrow-forward" kind="yellow" onPress={() => go(waitTest, waitTest.items.find((i) => i.kind === 'test' && !isDone(i)))} />
+            </>
+          ) : (
+            <T style={{ color: '#CFC6F7' }}>Do the test “{waitTest.tests?.find((t) => !t.done)?.title}” from “{waitTest.title}”. This lesson opens once your teacher enters your mark.</T>
+          )}
+        </View>
+      ) : locked ? <LockedBox trial={!!c.enrolled} onJoin={() => router.replace(coursePage as any)} />
         : item ? <Player key={item.id} item={item} watermark={user?.phone || user?.email || user?.name || ''} onEnded={() => complete(item)} />
         : <View style={{ borderRadius: 20, backgroundColor: '#FFF', padding: 24 }}><T v="small">Nothing in this lesson yet.</T></View>}
       <View style={{ gap: 4 }}>

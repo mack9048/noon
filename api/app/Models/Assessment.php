@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Assessment extends Model
 {
-    protected $fillable = ['tenant_id', 'course_id', 'subject_id', 'type', 'title', 'description', 'due_at', 'max_marks', 'created_by'];
+    protected $fillable = ['tenant_id', 'course_id', 'course_lesson_id', 'subject_id', 'type', 'title', 'description', 'due_at', 'max_marks', 'created_by'];
 
     protected $casts = ['due_at' => 'datetime', 'max_marks' => 'integer'];
 
