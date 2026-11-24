@@ -62,4 +62,35 @@ class NoonLiveTest extends TestCase
         $this->actingAs($s)->postJson("/api/courses/{$c['id']}/live/join")->assertUnprocessable();
         Carbon::setTestNow();
     }
+
+    public function test_live_course_has_lessons_and_its_pdf_streams_to_enrolled_students(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('public');
+        $t = Tenant::create(['name' => 'Inst', 'code' => 'PDF111']);
+        $s = User::create(['name' => 'Sara', 'email' => 's2@x.test', 'password' => 'secret123', 'role' => 'student', 'tenant_id' => $t->id]);
+        $other = User::create(['name' => 'O', 'email' => 'o2@x.test', 'password' => 'secret123', 'role' => 'student', 'tenant_id' => $t->id]);
+        $boss = User::create(['name' => 'Boss', 'email' => 'boss2@x.test', 'password' => 'secret123', 'role' => 'super']);
+        $c = $this->actingAs($boss)->postJson('/api/super/courses', ['title' => 'Pre Buds', 'category' => 'Quran', 'format' => 'live', 'live_provider' => 'livekit', 'status' => 'published', 'audience' => 'all'])->assertOk()->json();
+        $lesson = \App\Models\CourseLesson::create(['course_id' => $c['id'], 'title' => 'Meet Nooni', 'position' => 1]);
+        \Illuminate\Support\Facades\Storage::disk('public')->put("courses/{$c['id']}/book.pdf", '%PDF-1.4 test');
+        $item = \App\Models\CourseItem::create(['course_id' => $c['id'], 'course_lesson_id' => $lesson->id, 'kind' => 'pdf', 'title' => 'Textbook',
+            'url' => \Illuminate\Support\Facades\Storage::disk('public')->url("courses/{$c['id']}/book.pdf"), 'position' => 1]);
+
+        $this->actingAs($s)->postJson("/api/courses/{$c['id']}/enroll")->assertOk();
+        $this->actingAs($s)->getJson("/api/courses/{$c['id']}")->assertOk()->assertJsonPath('lessons.0.title', 'Meet Nooni')->assertJsonPath('lessons.0.items.0.title', 'Textbook');
+        $this->actingAs($s)->get("/api/course-items/{$item->id}/pdf")->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $this->actingAs($boss)->get("/api/course-items/{$item->id}/pdf")->assertOk();
+        $this->actingAs($other)->get("/api/course-items/{$item->id}/pdf")->assertForbidden();
+
+        // Hand in a finished worksheet; the teacher (super admin here) sees it, other institutions' staff do not.
+        \Illuminate\Support\Facades\Storage::fake('local');
+        $file = \Illuminate\Http\UploadedFile::fake()->image('my-work.jpg');
+        $this->actingAs($other)->post("/api/course-items/{$item->id}/work", ['file' => $file], ['Accept' => 'application/json'])->assertForbidden();
+        $this->actingAs($s)->post("/api/course-items/{$item->id}/work", ['file' => $file], ['Accept' => 'application/json'])->assertOk()->assertJsonPath('0.name', 'my-work.jpg');
+        $this->actingAs($s)->getJson("/api/course-items/{$item->id}/work")->assertOk()->assertJsonCount(1);
+        $this->actingAs($boss)->getJson("/api/super/manage/courses/{$c['id']}/work")->assertOk()->assertJsonPath('0.student', 'Sara')->assertJsonPath('0.lesson', 'Meet Nooni');
+        $t2 = Tenant::create(['name' => 'Other', 'code' => 'OTH222']);
+        $admin2 = User::create(['name' => 'A2', 'email' => 'a2@x.test', 'password' => 'secret123', 'role' => 'admin', 'tenant_id' => $t2->id]);
+        $this->actingAs($admin2)->getJson("/api/manage/courses/{$c['id']}/work")->assertForbidden();
+    }
 }

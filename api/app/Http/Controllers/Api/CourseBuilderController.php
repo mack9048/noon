@@ -616,8 +616,34 @@ class CourseBuilderController extends Controller
     /** A short-lived signed link to an HTML lesson item, for anyone allowed to open it. */
     public function open(Request $request, CourseItem $item)
     {
-        $user = $request->user();
         abort_unless($item->kind === 'html' && $item->file_path, 404);
+        $this->assertCanOpen($request->user(), $item);
+        $path = URL::temporarySignedRoute('course-items.html', now()->addHours(3), ['id' => $item->id], absolute: false);
+
+        return ['url' => rtrim(config('app.url'), '/').$path, 'title' => $item->title];
+    }
+
+    /** A lesson's PDF file through the API (so the app can draw its pages, e.g. in a live class). */
+    public function pdf(Request $request, CourseItem $item)
+    {
+        abort_unless($item->kind === 'pdf' && $item->url, 404);
+        $this->assertCanOpen($request->user(), $item);
+        $prefix = rtrim(Storage::disk('public')->url(''), '/').'/';
+        abort_unless(str_starts_with($item->url, $prefix), 404, 'This PDF is a link, not an uploaded file.');
+        $path = substr($item->url, strlen($prefix));
+        abort_unless(Storage::disk('public')->exists($path), 404);
+
+        return Storage::disk('public')->response($path, null, ['Content-Type' => 'application/pdf', 'Cache-Control' => 'private, max-age=600', 'X-Content-Type-Options' => 'nosniff']);
+    }
+
+    public function assertCanOpenPublic($user, CourseItem $item): void
+    {
+        $this->assertCanOpen($user, $item);
+    }
+
+    /** Course staff, or a student allowed to open this lesson. */
+    private function assertCanOpen($user, CourseItem $item): void
+    {
         $course = $item->course;
         $staff = $user->hasRole('super') || $course->teacher_id === $user->id || ($user->hasRole('admin') && $course->status === 'published');
         if (! $staff) {
@@ -628,9 +654,6 @@ class CourseBuilderController extends Controller
             abort_if($enrolled && ! $item->lesson?->free_preview && $access['unlocked'] !== null && ! in_array($item->course_lesson_id, $access['unlocked'], true),
                 403, 'This lesson opens after the free trial. Please ask your institution or Noon Learn to continue.');
         }
-        $path = URL::temporarySignedRoute('course-items.html', now()->addHours(3), ['id' => $item->id], absolute: false);
-
-        return ['url' => rtrim(config('app.url'), '/').$path, 'title' => $item->title];
     }
 
     /** The HTML itself (signed link only), locked in a sandbox like the HTML games. */

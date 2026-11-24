@@ -2,6 +2,7 @@ import { storage } from './storage';
 import { mockRequest } from './mock';
 
 const BASE = (process.env.EXPO_PUBLIC_API_URL ?? '').replace(/\/$/, '');
+export const API_BASE = BASE;
 export const USE_MOCK = process.env.EXPO_PUBLIC_USE_MOCK === '1' || !BASE;
 export const TOKEN_KEY = 'noon.token';
 

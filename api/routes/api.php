@@ -75,6 +75,7 @@ Route::get('/site/content', [SiteController::class, 'content']);
 Route::get('/games/{id}/file', [GameController::class, 'file'])->whereNumber('id')->name('games.file')->middleware('signed:relative');
 // HTML lesson content; only through the short-lived signed link from /course-items/{item}/open.
 Route::get('/course-items/{id}/html', [CourseBuilderController::class, 'html'])->whereNumber('id')->name('course-items.html')->middleware('signed:relative');
+Route::get('/course-work/{id}/file', [\App\Http\Controllers\Api\CourseWorkController::class, 'file'])->whereNumber('id')->name('course-work.file')->middleware('signed:relative');
 // Public admission form (from the link the institution shares)
 Route::post('/apply/{code}', [AdmissionController::class, 'apply'])->middleware('throttle:join');
 Route::get('/institutions', [AuthController::class, 'institutions'])->middleware('throttle:60,1');
@@ -104,6 +105,10 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::put('/me/board', [DashboardController::class, 'saveBoard']);
     Route::post('/course-items/{item}/complete', [CourseController::class, 'complete']);
     Route::get('/course-items/{item}/open', [CourseBuilderController::class, 'open']);
+    Route::get('/course-items/{item}/pdf', [CourseBuilderController::class, 'pdf']);
+    Route::get('/course-items/{item}/work', [\App\Http\Controllers\Api\CourseWorkController::class, 'mine']);
+    Route::post('/course-items/{item}/work', [\App\Http\Controllers\Api\CourseWorkController::class, 'store'])->middleware('throttle:20,1');
+    Route::delete('/course-work/{id}', [\App\Http\Controllers\Api\CourseWorkController::class, 'destroy'])->whereNumber('id');
     Route::get('/course-categories', [CourseBuilderController::class, 'categories']);
     // Nooni voice assistant (every role). Limited per minute here and per day in the controller.
     Route::post('/nooni', [NooniController::class, 'ask'])->middleware('throttle:12,1');
@@ -251,6 +256,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::post('/courses/{course}/live-classes/order', [ManageCourseController::class, 'reorderLiveClasses']);
         Route::put('/course-live-classes/{class}', [ManageCourseController::class, 'updateLiveClass']);
         Route::delete('/course-live-classes/{class}', [ManageCourseController::class, 'destroyLiveClass']);
+        Route::get('/courses/{course}/work', [\App\Http\Controllers\Api\CourseWorkController::class, 'staffIndex']);
         Route::get('/reviews', [CourseBuilderController::class, 'reviews']);
         Route::post('/reviews', [CourseBuilderController::class, 'decide']);
     };

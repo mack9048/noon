@@ -1,6 +1,6 @@
 // Course Management (super admin, institution admins, teachers) and institution Meetings.
 import React, { useEffect, useState } from 'react';
-import { Image, Pressable, View } from 'react-native';
+import { Image, Linking, Pressable, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -82,14 +82,15 @@ export function ManageCourseScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const M = useManage();
   const { data, setData, reload, error } = useApi<BCourse>(`${M.api}/courses/${id}`);
-  const [tab, setTab] = useState<'content' | 'classes' | 'timetable' | 'review' | 'details'>('content');
+  const [tab, setTab] = useState<'content' | 'classes' | 'timetable' | 'review' | 'details' | 'work'>('content');
   useEffect(() => { if (data?.format === 'live' && tab === 'content') setTab('classes'); }, [data?.format]); // eslint-disable-line react-hooks/exhaustive-deps
   if (error) return <Screen><Header title="Course" /><Empty text={error} /></Screen>;
   if (!data) return <Screen><Loading /></Screen>;
   const full = data.manage_mode !== 'review';
   const live = data.format === 'live';
   const tabs = [
-    ...(live ? [{ key: 'classes' as const, label: 'Live classes' }, { key: 'timetable' as const, label: 'Weekly times' }] : [{ key: 'content' as const, label: 'Lessons & content' }]),
+    ...(live ? [{ key: 'classes' as const, label: 'Live classes' }, { key: 'timetable' as const, label: 'Weekly times' }, { key: 'content' as const, label: 'Lessons & materials' }] : [{ key: 'content' as const, label: 'Lessons & content' }]),
+    { key: 'work' as const, label: 'Student work' },
     { key: 'review' as const, label: full ? `Approvals${data.pending_count ? ` · ${data.pending_count}` : ''}` : `My changes${data.pending_count ? ` · ${data.pending_count}` : ''}` },
     ...(full ? [{ key: 'details' as const, label: 'Details' }] : []),
   ];
@@ -111,10 +112,34 @@ export function ManageCourseScreen() {
         {tab === 'content' ? <CourseStructure course={data} onChange={setData} />
           : tab === 'classes' ? <LiveClassList course={data} />
           : tab === 'timetable' ? <LiveTimetable courseId={data.id} />
+          : tab === 'work' ? <StudentWork courseId={data.id} />
           : tab === 'review' ? <ReviewPanel courseId={data.id} canApprove={full} onDone={reload} />
           : <CourseDetails course={data} onSaved={setData} />}
       </View>
     </Screen>
+  );
+}
+
+/** Work students handed in for this course (finished worksheets). */
+type WorkRow = { id: number; name: string; at: string; url: string; item: string; lesson: string | null; student: string; admission_no: string | null };
+function StudentWork({ courseId }: { courseId: number }) {
+  const M = useManage();
+  const { data, loading } = useApi<WorkRow[]>(`${M.api}/courses/${courseId}/work`);
+  if (loading && !data) return <Loading />;
+  if (!data?.length) return <Empty text="No work handed in yet. Students attach their finished worksheet on the lesson page after class." />;
+  return (
+    <View style={{ gap: 8 }}>
+      {data.map((w) => (
+        <Card key={w.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <View style={{ width: 42, height: 42, borderRadius: 14, backgroundColor: colors.lav[0], alignItems: 'center', justifyContent: 'center' }}><Ionicons name={/\.pdf$/i.test(w.name) ? 'document-text-outline' : 'image-outline'} size={20} color={colors.violet} /></View>
+          <View style={{ flex: 1 }}>
+            <T style={{ fontFamily: fonts.semibold }} numberOfLines={1}>{w.student}{w.admission_no ? ` · ${w.admission_no}` : ''}</T>
+            <T v="small" numberOfLines={1}>{[w.lesson, w.item, new Date(w.at).toLocaleString([], { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })].filter(Boolean).join(' · ')}</T>
+          </View>
+          <Button title="Open" kind="ghost" icon="open-outline" style={{ height: 40 }} onPress={() => Linking.openURL(w.url)} />
+        </Card>
+      ))}
+    </View>
   );
 }
 

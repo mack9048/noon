@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Image, Linking, Pressable, View } from 'react-native';
+import { LiveLessonList } from './lessonOverview';
 import { LinearGradient } from 'expo-linear-gradient';
 import { demoNote } from '@/components/kit';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -177,6 +178,7 @@ function LiveCourseScreen({ c, live, reload }: { c: CourseDetail; live: LiveInfo
         <Card style={{ flex: 1, alignItems: 'center', paddingVertical: 14 }}><T style={{ fontFamily: fonts.semibold, fontSize: 24, color: colors.violet }}>{live.attended}</T><T v="small">Classes attended</T></Card>
         <Card style={{ flex: 1, alignItems: 'center', paddingVertical: 14 }}><T style={{ fontFamily: fonts.semibold, fontSize: 24, color: colors.teal }}>{live.slots.reduce((n, s) => n + s.days.length, 0)}</T><T v="small">Classes a week</T></Card>
       </Row>
+      <LiveLessonList c={c} />
       <LiveTimetableView live={live} />
     </Screen>
   );

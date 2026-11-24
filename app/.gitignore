@@ -9,3 +9,4 @@ android/
 
 # MediaPipe runtime: copied from node_modules at build (see vercel.json)
 public/mediapipe/vision_wasm_*
+public/pdfjs/

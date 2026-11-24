@@ -65,14 +65,6 @@ class CourseController extends Controller
             || Course::visibleTo($user)->whereKey($course->id)->exists();
         abort_unless($canSee, 404);
         $course->load([...self::WITH, 'lessons.items', 'subjects']);
-        if ($course->isLive()) {
-            $access = $course->access($user);
-            $pivot = $course->students->firstWhere('id', $user->id)?->pivot;
-
-            return $course->toApp($user) + ['items' => [], 'lessons' => [], 'subjects' => [], 'live' => $this->liveInfo($course, $user),
-                'access' => ['paid' => $access['paid'], 'trial_over' => $access['trial_over'], 'trial_days' => (int) ($course->trial_days ?? 7),
-                    'trial_ends_at' => $pivot?->trial_ends_at ? \Illuminate\Support\Carbon::parse($pivot->trial_ends_at)->toIso8601String() : null]];
-        }
         $done = $user->id ? DB::table('course_item_user')->where('user_id', $user->id)->pluck('course_item_id')->all() : [];
         $access = $course->access($user);
         $open = fn ($lessonId) => $access['unlocked'] === null || in_array($lessonId, $access['unlocked'], true);
@@ -84,6 +76,19 @@ class CourseController extends Controller
         $flat = $course->items->whereNull('course_lesson_id')->values()
             ->concat($course->lessons->flatMap(fn ($l) => $l->items));
 
+        $lessonRows = fn () => $course->lessons->map(fn ($l) => [
+            'id' => $l->id, 'subject_id' => $l->course_subject_id, 'title' => $l->title, 'description' => $l->description,
+            'duration' => $l->duration, 'free_preview' => $l->free_preview, 'locked' => ! $open($l->id), 'items' => $l->items->map($item)->values(),
+        ]);
+        if ($course->isLive()) {
+            // Live courses can also have lessons (textbook, worksheet, videos, activities) used in class and after it.
+            $pivot = $course->students->firstWhere('id', $user->id)?->pivot;
+            $live = $access['trial_over'] && ! $access['paid'];
+
+            return $course->toApp($user) + ['items' => $live ? [] : $flat->map($item)->values(), 'lessons' => $live ? [] : $lessonRows(), 'subjects' => [], 'live' => $this->liveInfo($course, $user),
+                'access' => ['paid' => $access['paid'], 'trial_over' => $access['trial_over'], 'trial_days' => (int) ($course->trial_days ?? 7),
+                    'trial_ends_at' => $pivot?->trial_ends_at ? \Illuminate\Support\Carbon::parse($pivot->trial_ends_at)->toIso8601String() : null]];
+        }
         return $course->toApp($user) + [
             'items' => $flat->map($item)->values(),
             'subjects' => $course->subjects->map(fn ($s) => $s->toApp()),
