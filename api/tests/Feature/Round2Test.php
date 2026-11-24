@@ -48,6 +48,15 @@ class Round2Test extends TestCase
         $this->as($admin)->postJson('/api/admin/batches', $base + ['class_teacher_id' => $teacher->id, 'subject_teachers' => ['Arabic' => $teacher->id], 'student_ids' => [$s1->id]])
             ->assertCreated()->assertJsonPath('students', 1)->assertJsonPath('ct', $teacher->name)->assertJsonPath('when', 'Mo–We 6:00 PM');
         $this->as($this->member($other, 'admin'))->getJson('/api/admin/batches')->assertOk()->assertJsonCount(0);
+
+        // A batch for a course: no board or class needed; a course not on for the institution is refused.
+        $course = \App\Models\Course::create(['title' => 'Little Muslim', 'category' => 'General', 'status' => 'published', 'tenant_id' => $t->id, 'visibility' => 'madrasa', 'is_free' => true]);
+        $t->courses()->attach($course->id, ['enabled' => true]);
+        $hidden = \App\Models\Course::create(['title' => 'Elsewhere', 'category' => 'General', 'status' => 'published', 'tenant_id' => $other->id, 'visibility' => 'madrasa', 'is_free' => true]);
+        $forCourse = ['name' => 'Little Muslim · Batch 1', 'days' => ['Sa'], 'start_time' => '10:00 AM', 'seats' => 20];
+        $this->as($admin)->postJson('/api/admin/batches', $forCourse + ['course_id' => $hidden->id])->assertUnprocessable();
+        $this->as($admin)->postJson('/api/admin/batches', $forCourse)->assertUnprocessable(); // no course: board and class are needed
+        $this->as($admin)->postJson('/api/admin/batches', $forCourse + ['course_id' => $course->id])->assertCreated()->assertJsonPath('course', 'Little Muslim')->assertJsonPath('board', '');
     }
 
     public function test_madrasa_course_needs_approval_and_stays_in_its_madrasa(): void

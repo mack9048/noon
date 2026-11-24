@@ -33,8 +33,10 @@ class BatchController extends Controller
         $tenant = $request->user()->tenant_id;
         $data = $request->validate([
             'name' => ['required', 'string', 'max:80'],
-            'board' => ['required', 'string', 'max:10'],
-            'cls' => ['required', 'string', 'max:4'],
+            // A batch for a course: board and class come from a Madrasa Support course, and are not needed otherwise.
+            'course_id' => ['nullable', 'integer'],
+            'board' => ['nullable', 'required_without:course_id', 'string', 'max:10'],
+            'cls' => ['nullable', 'required_without:course_id', 'string', 'max:4'],
             'days' => ['required', 'array', 'min:1'],
             'days.*' => [Rule::in(['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'])],
             'start_time' => ['required', 'string', 'max:10'],
@@ -59,7 +61,16 @@ class BatchController extends Controller
             throw ValidationException::withMessages(['student_ids' => 'Some students are not in your institution.']);
         }
 
+        if (! empty($data['course_id'])) {
+            $course = \App\Models\Course::visibleTo($request->user())->with(['board', 'schoolClass'])->find($data['course_id']);
+            if (! $course) {
+                throw ValidationException::withMessages(['course_id' => 'Pick a course that is switched on for your institution.']);
+            }
+            $data['board'] = $course->board?->code ?? '';
+            $data['cls'] = $course->schoolClass?->label ?? '';
+        }
         $batch = Batch::create([
+            'course_id' => $data['course_id'] ?? null,
             'name' => $data['name'], 'board' => $data['board'], 'class_label' => $data['cls'], 'days' => $data['days'],
             'start_time' => $data['start_time'], 'seats' => $data['seats'], 'class_teacher_id' => $data['class_teacher_id'] ?? null,
             'subject_teachers' => $data['subject_teachers'] ?? [],

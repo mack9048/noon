@@ -158,7 +158,9 @@ class StudentController extends Controller
             'batch_id' => ['nullable', 'integer'],
         ]);
         $r = $enrolment->admit($request->user()->tenant, $data);
-        foreach ($data['course_ids'] ?? [] as $cid) {
+        // A batch for a course also enrols the student in that course.
+        $batchCourse = ! empty($data['batch_id']) ? \App\Models\Batch::where('tenant_id', $request->user()->tenant_id)->whereKey($data['batch_id'])->value('course_id') : null;
+        foreach (array_unique(array_filter([...($data['course_ids'] ?? []), $batchCourse])) as $cid) {
             $this->enrol($request, $r['student'], (int) $cid);
         }
 

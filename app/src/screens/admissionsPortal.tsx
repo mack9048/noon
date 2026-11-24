@@ -236,6 +236,8 @@ export function NewStudentScreen() {
   const [madrasa, setMadrasa] = useState(false);
   const [place, setPlace] = useState<Placement>({ board: null, syllabus: 'general', cls: null });
   const [courseIds, setCourseIds] = useState<number[]>([]);
+  const [batchId, setBatchId] = useState('');
+  const batchList = useApi<{ id: number; name: string; course?: string | null; students: number }[]>('/admin/batches');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [done, setDone] = useState<{ student: StudentRow; credentials: Credential[] } | null>(null);
@@ -250,6 +252,7 @@ export function NewStudentScreen() {
       const body: Record<string, unknown> = Object.fromEntries(Object.entries(f).filter(([, v]) => v.trim() !== '').map(([k, v]) => [k, v.trim()]));
       if (madrasa && place.board && place.cls) Object.assign(body, { board: place.board.code, syllabus: place.syllabus, cls: place.cls.label });
       if (courseIds.length) body.course_ids = courseIds;
+      if (batchId) body.batch_id = Number(batchId);
       setDone(await api.post('/admin/students', body));
     } catch (e) { setErr(errText(e, 'Could not add the student.')); } finally { setBusy(false); }
   };
@@ -272,6 +275,12 @@ export function NewStudentScreen() {
         <Input label="Full name" value={f.name} onChangeText={set('name')} placeholder="eg. Rayan Ahmed" />
         <Row gap={10}><DateInput label="Date of birth (optional)" value={f.dob} onChange={set('dob')} max={new Date().toISOString().slice(0, 10)} /><Input label="Admission no. (optional)" value={f.admission_no} onChangeText={set('admission_no')} placeholder="Auto" autoCapitalize="characters" /></Row>
         <Input label="Student email (optional)" value={f.email} onChangeText={set('email')} placeholder="for password reset by email" keyboardType="email-address" autoCapitalize="none" />
+      </Panel>
+      <Panel title="BATCH" right={<T v="small">optional</T>}>
+        {(batchList.data ?? []).length ? (
+          <Select value={batchId} onChange={setBatchId} options={[{ key: '', label: 'No batch yet' }, ...(batchList.data ?? []).map((b) => ({ key: String(b.id), label: `${b.name}${b.course ? ` · ${b.course}` : ''} · ${b.students} students` }))]} />
+        ) : <T v="small">No batches yet. Create one in Batches, then add students to it.</T>}
+        {batchId && (batchList.data ?? []).find((b) => String(b.id) === batchId)?.course ? <T v="small">The student is also added to this batch's course.</T> : null}
       </Panel>
       <Panel title="COURSES" right={<T v="small">{courseIds.length ? `${courseIds.length} chosen` : 'optional'}</T>}>
         <CoursePicker value={courseIds} onChange={setCourseIds} />

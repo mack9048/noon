@@ -134,7 +134,7 @@ function ReloadButton({ top }: { top?: number }) {
   };
   return (
     <Pressable accessibilityRole="button" accessibilityLabel="Reload" onPress={reload}
-      style={({ pressed, hovered }: any) => ({ ...(top !== undefined ? { position: 'absolute', top, left: '50%', marginLeft: -17 } : {}), width: 34, height: 34, borderRadius: 17,
+      style={({ pressed, hovered }: any) => ({ ...(top !== undefined ? { position: 'absolute', top, left: '58%', marginLeft: -17 } : {}), width: 34, height: 34, borderRadius: 17,
         backgroundColor: hovered || pressed ? '#FFF' : 'rgba(255,255,255,0.85)', borderWidth: 1, borderColor: colors.line, alignItems: 'center', justifyContent: 'center', ...shadow.card })}>
       <Ionicons name="refresh" size={17} color={colors.teal} />
     </Pressable>

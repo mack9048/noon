@@ -207,7 +207,7 @@ export function AdmissionFormScreen() {
 }
 
 /* ---------- Batches ---------- */
-type Batch = { id: number; cls: string; name: string; board: string; when: string; students: number; teachers: number; subjects: number; ct: string };
+type Batch = { id: number; cls: string; name: string; board: string; course?: string | null; when: string; students: number; teachers: number; subjects: number; ct: string };
 const BATCH_G: [string, string][] = [['#5B43E0', '#9B7BE8'], ['#0B5166', '#1F8AA8'], ['#14945A', '#4ED68A'], ['#FF9A3D', '#FF5E7E']];
 // Batches come from GET /admin/batches; one shared copy so the Teachers page and Batches page agree.
 let batches: Batch[] = [];
@@ -237,9 +237,9 @@ export function BatchesScreen() {
           <Card key={b.id} style={{ gap: 10 }}>
             <Row gap={12}>
               <LinearGradient colors={BATCH_G[bi % 4]} style={{ width: 54, height: 54, borderRadius: 16, alignItems: 'center', justifyContent: 'center' }}>
-                <Text style={{ color: '#FFF', fontSize: 9, fontFamily: fonts.semibold }}>CLASS</Text><Text style={{ color: '#FFF', fontSize: 20, fontFamily: fonts.fun, lineHeight: 22 }}>{b.cls}</Text>
+                <Text style={{ color: '#FFF', fontSize: 9, fontFamily: fonts.semibold }}>CLASS</Text><Text style={{ color: '#FFF', fontSize: 20, fontFamily: fonts.fun, lineHeight: 22 }}>{b.cls || '–'}</Text>
               </LinearGradient>
-              <View style={{ flex: 1 }}><T v="h3">{b.name}</T><T v="small">{b.board} · {b.when}</T></View>
+              <View style={{ flex: 1 }}><T v="h3">{b.name}</T><T v="small">{[b.course, b.board, b.when].filter(Boolean).join(' · ')}</T></View>
               <IconButton name="pencil-outline" label={`Edit ${b.name}`} size={40} tint="#F1F4F5" onPress={() => router.push('/admin/batches/new' as any)} />
             </Row>
             <Row gap={8}>
@@ -259,6 +259,10 @@ type Person = { id: number; name: string };
 
 export function BatchNewScreen() {
   const [step, setStep] = useState(0);
+  const [courseId, setCourseId] = useState('');
+  const courseList = useApi<{ id: number; title: string; enabled?: boolean; status?: string; madrasa_label?: string | null; format?: string }[]>('/courses');
+  const courses = (courseList.data ?? []).filter((c) => c.enabled && c.status !== 'draft');
+  const picked = courses.find((c) => String(c.id) === courseId);
   const [name, setName] = useState('Class 5 · Evening');
   const [board, setBoard] = useState('AP board');
   const [cls, setCls] = useState('5');
@@ -278,7 +282,7 @@ export function BatchNewScreen() {
     setBusy(true);
     try {
       const subject_teachers = Object.fromEntries(Object.entries(subjTeachers).filter(([, v]) => v).map(([k, v]) => [k, Number(v)]));
-      await api.post('/admin/batches', { name: name.trim(), board: board.split(' ')[0], cls, days, start_time: time, seats: Number(seats) || 30, class_teacher_id: ct ? Number(ct) : null, subject_teachers, student_ids: students });
+      await api.post('/admin/batches', { name: name.trim(), ...(picked ? { course_id: picked.id } : { board: board.split(' ')[0], cls }), days, start_time: time, seats: Number(seats) || 30, class_teacher_id: ct ? Number(ct) : null, subject_teachers, student_ids: students });
       await refreshBatches();
       demoNote(`Batch "${name.trim()}" created with ${students.length} students.`);
       router.replace('/admin/batches' as any);
@@ -293,8 +297,11 @@ export function BatchNewScreen() {
       <View style={{ marginTop: 12 }}><Stepper steps={['Details', 'Students', 'Teachers']} step={step} onStep={setStep} /></View>
       {step === 0 ? (
         <Panel>
+          <Select label="Course" value={courseId} onChange={(v) => { setCourseId(v); const c = courses.find((x) => String(x.id) === v); if (c) setName(`${c.title} · Batch 1`); }}
+            options={[{ key: '', label: 'No course · a madrasa class' }, ...courses.map((c) => ({ key: String(c.id), label: c.title }))]} />
+          {picked ? <T v="small">{picked.madrasa_label ? `Board and class come from the course: ${picked.madrasa_label}.` : 'This batch is for the course; no board or class needed.'}</T> : null}
           <Input label="Batch name" value={name} onChangeText={setName} />
-          <Row gap={10}><Select label="Board" value={board} options={['AP board', 'EK board', 'General']} onChange={setBoard} /><Select label="Class" value={cls} options={['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '+1', '+2']} onChange={setCls} /></Row>
+          {picked ? null : <Row gap={10}><Select label="Board" value={board} options={['AP board', 'EK board', 'General']} onChange={setBoard} /><Select label="Class" value={cls} options={['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '+1', '+2']} onChange={setCls} /></Row>}
           <T v="small" style={{ fontFamily: fonts.medium }}>Class days</T>
           <ToggleChips options={['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']} value={days} onChange={setDays} />
           <Row gap={10}><Input label="Start time" value={time} onChangeText={setTime} /><Input label="Seats" value={seats} onChangeText={setSeats} keyboardType="number-pad" /></Row>

@@ -11,7 +11,7 @@ class Batch extends Model
 {
     use BelongsToTenant;
 
-    protected $fillable = ['tenant_id', 'name', 'board', 'class_label', 'days', 'start_time', 'seats', 'class_teacher_id', 'subject_teachers'];
+    protected $fillable = ['tenant_id', 'course_id', 'name', 'board', 'class_label', 'days', 'start_time', 'seats', 'class_teacher_id', 'subject_teachers'];
 
     protected $casts = ['days' => 'array', 'subject_teachers' => 'array'];
 
@@ -35,6 +35,8 @@ class Batch extends Model
             'cls' => $this->class_label,
             'name' => $this->name,
             'board' => $this->board,
+            'course' => $this->course_id ? \App\Models\Course::withoutGlobalScopes()->whereKey($this->course_id)->value('title') : null,
+            'course_id' => $this->course_id,
             'when' => $days->isEmpty() ? $this->start_time : "{$days->first()}–{$days->last()} {$this->start_time}",
             'students' => $this->students_count ?? $this->students()->count(),
             'teachers' => collect($this->subject_teachers ?? [])->unique()->count(),
