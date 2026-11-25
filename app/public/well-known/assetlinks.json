@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.noonlearn.app",
+      "sha256_cert_fingerprints": [
+        "33:08:38:24:1B:12:D5:CF:0D:4E:27:D2:03:C9:8A:76:B6:4A:EB:1D:FF:F1:34:F7:BA:F4:32:55:31:5E:B4:3B"
+      ]
+    }
+  }
+]
