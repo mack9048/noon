@@ -1,4 +1,5 @@
 // Dashboards for the institution admin, super admin and teachers (students keep their own home).
+import { Logo as NoonLogo } from '@/components/Logo';
 import React from 'react';
 import { reloadApp } from '@/components/AppShell';
 import { Image, Linking, Pressable, View } from 'react-native';
@@ -160,7 +161,7 @@ export function SuperDashboard() {
   if (!d) return <Loading />;
   return (
     <DashPage>
-      <DashHeader badge="NL" title="Noon Learn" sub={`Super admin workspace · ${user?.name ?? ''}`}
+      <DashHeader badge="NL" logo={<View style={{ width: 46, height: 46, borderRadius: 15, backgroundColor: '#FFF', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#E6EEF0' }}><NoonLogo compact height={34} /></View>} title="Noon Learn" sub={`Super admin workspace · ${user?.name ?? ''}`}
         right={<>
           <HeadPill icon="add" label="New tenant" tone="green" onPress={go('/super/tenants/new')} />
           <HeadPill icon="refresh" onPress={reloadApp} />
