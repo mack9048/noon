@@ -10,6 +10,7 @@ import { api, ApiError } from '@/lib/api';
 import { useApi } from '@/lib/useApi';
 import { useAuth } from '@/lib/auth';
 import { colors, fonts } from '@/theme/tokens';
+import { ImageHint } from '@/components/ImageHint';
 
 export type Institution = {
   id: number; name: string; code: string; plan: string; active: boolean; phone: string | null; address: string | null;
@@ -95,7 +96,8 @@ export function AdminSettingsScreen() {
               </View>
               <View style={{ flex: 1, gap: 6 }}>
                 <T style={{ fontFamily: fonts.semibold }}>Logo</T>
-                <T v="small">Shown in the app, on receipts and to your students. Square PNG, JPG or WEBP, up to 2 MB.</T>
+                <T v="small">Shown in the app, on receipts and to your students.</T>
+                <ImageHint kind="logo" />
                 <Row gap={8}>
                   <Button title={inst.logo_url ? 'Change' : 'Upload'} icon="cloud-upload-outline" kind="ghost" loading={logoBusy} style={{ height: 38 }} onPress={() => uploadLogo()} />
                   {inst.logo_url ? <Button title="Remove" kind="ghost" style={{ height: 38 }} onPress={() => uploadLogo(true)} /> : null}

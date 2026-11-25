@@ -18,6 +18,7 @@ import type { BCourse, BItem, LiveClassRow } from '@/lib/courseBuilder';
 import { CourseStructure, LiveTimetable, ReviewTag } from './courseBuilder';
 import { setLivePass, type LivePass } from './liveRoom';
 import { colors, fonts } from '@/theme/tokens';
+import { ImageHint } from '@/components/ImageHint';
 
 const fail = (e: unknown, f: string) => say(e instanceof ApiError ? e.friendly : f);
 
@@ -285,7 +286,7 @@ function CourseDetails({ course, onSaved }: { course: BCourse; onSaved: (c: BCou
         <Pressable onPress={upload} accessibilityLabel="Change thumbnail" style={{ width: 160, aspectRatio: 16 / 9, borderRadius: 14, overflow: 'hidden', backgroundColor: '#F5FAFA', borderWidth: 1.5, borderStyle: thumb ? 'solid' : 'dashed', borderColor: colors.teal, alignItems: 'center', justifyContent: 'center' }}>
           {thumb ? <Image source={{ uri: thumb }} style={{ width: '100%', height: '100%' }} /> : <T style={{ color: colors.teal, fontFamily: fonts.semibold }}>Upload thumbnail</T>}
         </Pressable>
-        <T v="small" style={{ flex: 1 }}>The picture on the course card. Tap to change.</T>
+        <View style={{ flex: 1, gap: 2 }}><T v="small">The picture on the course card. Tap to change.</T><ImageHint kind="thumbnail" /></View>
       </Row>
       <Input label="Course name" value={f.title} onChangeText={(v) => setF({ ...f, title: v })} />
       <Input label="Short description" value={f.description} onChangeText={(v) => setF({ ...f, description: v })} multiline />

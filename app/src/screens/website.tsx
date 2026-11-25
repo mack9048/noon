@@ -11,6 +11,7 @@ import { Input, MiniStat } from '@/components/kit2';
 import { api, ApiError } from '@/lib/api';
 import { useApi } from '@/lib/useApi';
 import { colors, fonts } from '@/theme/tokens';
+import { ImageHint } from '@/components/ImageHint';
 
 type Field = { type: 'field'; key: string; kind: 'text' | 'long' | 'link' | 'image' | 'number'; label: string; value: string };
 type List = { type: 'list'; key: string; label: string; items: Field[][] };
@@ -299,6 +300,7 @@ function FieldEditor({ f, value, edited, onChange, site, label }: { f: Field; va
           </View>
           <View style={{ flex: 1, gap: 6 }}>
             <Button kind="ghost" title={up ? 'Uploading…' : 'Upload new image'} icon="cloud-upload-outline" onPress={pick} loading={up} />
+            <ImageHint kind="banner" />
             <T v="small" numberOfLines={1}>{value}</T>
           </View>
         </Row>

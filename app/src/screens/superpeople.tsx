@@ -13,6 +13,7 @@ import { useApi } from '@/lib/useApi';
 import { homeFor, useAuth } from '@/lib/auth';
 import { colors, fonts } from '@/theme/tokens';
 import { SetPasswordModal } from '@/screens/passwords';
+import { ImageHint } from '@/components/ImageHint';
 
 export interface TenantRow {
   id: number; name: string; code: string; plan: string; active: boolean; leave_quota?: number;
@@ -332,6 +333,7 @@ export function SuperTenantFormScreen() {
             </View>
             <View style={{ flex: 1, gap: 6 }}>
               <T style={{ fontFamily: fonts.semibold }}>Logo</T>
+              <ImageHint kind="logo" />
               <Row gap={8}>
                 <Button title={logo ? 'Change' : 'Upload'} icon="cloud-upload-outline" kind="ghost" loading={logoBusy} style={{ height: 38 }} onPress={() => uploadLogo()} />
                 {logo ? <Button title="Remove" kind="ghost" style={{ height: 38 }} onPress={() => uploadLogo(true)} /> : null}

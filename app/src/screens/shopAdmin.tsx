@@ -12,6 +12,7 @@ import { useApi } from '@/lib/useApi';
 import { CATEGORIES, catOf, Category, fileSize, Order, PAY_LABEL, Product, rupee, ShopSettings } from '@/lib/shop';
 import { colors, fonts, scriptFont } from '@/theme/tokens';
 import { StatusTag } from './shop';
+import { ImageHint } from '@/components/ImageHint';
 
 const errText = (e: unknown) => (e instanceof ApiError ? e.friendly : 'Could not save. Please try again.');
 type Picked = { uri: string; name?: string; mimeType?: string; size?: number; file?: File };
@@ -302,7 +303,7 @@ function ProductSheet({ product: p, onClose, onSaved }: { product: Product | nul
       </Row>
       <Card onPress={async () => { const f = await pick(['image/*']); if (f) setCover(f); }} tint={colors.surfaceSoft} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1.5, borderStyle: 'dashed', borderColor: '#9BB6BE' }}>
         <Ionicons name="image-outline" size={24} color={colors.violet} />
-        <View style={{ flex: 1 }}><T v="h3">{cover ? cover.name : p?.cover_url ? 'Replace cover picture' : 'Cover picture (optional)'}</T><T v="small">JPG, PNG or WEBP · up to 5 MB</T></View>
+        <View style={{ flex: 1 }}><T v="h3">{cover ? cover.name : p?.cover_url ? 'Replace cover picture' : 'Cover picture (optional)'}</T><ImageHint kind="product" /></View>
       </Card>
       {type === 'digital' ? (
         <Card onPress={async () => { const f = await pick(['application/pdf', 'audio/*', 'application/zip', 'image/*', '*/*']); if (f) setFile(f); }} tint={colors.surfaceSoft} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1.5, borderStyle: 'dashed', borderColor: '#9BB6BE' }}>

@@ -14,7 +14,7 @@ class CourseItem extends Model
         static::addGlobalScope(new Review);
     }
 
-    protected $fillable = ['course_id', 'course_lesson_id', 'kind', 'title', 'meta', 'url', 'body', 'file_path', 'file_size', 'starts_at', 'position', 'review_state', 'replaces_id', 'submitted_by'];
+    protected $fillable = ['course_id', 'course_lesson_id', 'kind', 'title', 'meta', 'url', 'body', 'file_path', 'file_size', 'thumbnail_path', 'starts_at', 'position', 'review_state', 'replaces_id', 'submitted_by'];
 
     protected $hidden = ['file_path'];
 

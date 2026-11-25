@@ -1,7 +1,7 @@
 // Course player: a progress sidebar with modules (subjects) and lessons, a big player for the
 // chosen content, the lesson's other content, its downloads, previous / next, and the certificate.
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Linking, Platform, Pressable, ScrollView, View } from 'react-native';
+import { Image, Linking, Platform, Pressable, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Button, ErrorBox, Loading, Row, Screen, T, TypeIcon } from '@/components/ui';
@@ -11,7 +11,6 @@ import { useApi } from '@/lib/useApi';
 import { useAuth } from '@/lib/auth';
 import { useBase } from '@/lib/useBase';
 import { useLayout } from '@/lib/useLayout';
-import { kindLabel } from '@/lib/courseBuilder';
 import type { CourseDetail, CourseItem, CourseLessonRow } from '@/lib/types';
 import { colors, fonts } from '@/theme/tokens';
 import { ContentViewerHost, openContent } from './courseBuilder';
@@ -183,22 +182,11 @@ export function CoursePlayerScreen() {
           </View>
         );
       })}
-      <Pressable accessibilityRole="button" accessibilityLabel={pct === 100 ? 'Download certificate' : 'Certificate: finish all lessons to unlock'}
-        onPress={() => (pct === 100 ? router.push(`${coursePage}/certificate` as any) : demoNote(`Finish all lessons to get your certificate. You have done ${pct}%.`))}
-        style={{ margin: 12, padding: 14, borderRadius: 18, borderWidth: 1.5, borderColor: pct === 100 ? '#CFC6F7' : colors.line, backgroundColor: pct === 100 ? '#F4F1FE' : '#F7FBFC', flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-        <View style={{ width: 42, height: 42, borderRadius: 12, backgroundColor: pct === 100 ? colors.violet : '#D9E3E7', alignItems: 'center', justifyContent: 'center' }}>
-          <Ionicons name={pct === 100 ? 'ribbon' : 'lock-closed'} size={20} color="#FFF" />
-        </View>
-        <View style={{ flex: 1 }}>
-          <T style={{ fontFamily: fonts.semibold }}>{pct === 100 ? 'Download Certificate' : 'Certificate'}</T>
-          <T v="small">{pct === 100 ? 'Get your certificate' : 'Finish all lessons to unlock'}</T>
-        </View>
-      </Pressable>
     </View>
   );
 
   const content = lesson ? (
-    <View style={{ gap: 16, width: '100%', maxWidth: 900, alignSelf: 'center' }}>
+    <View style={{ gap: 16, width: '100%', maxWidth: 1200, alignSelf: 'center' }}>
       <Pressable accessibilityRole="link" onPress={() => router.replace(coursePage as any)} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', paddingVertical: 4 }}>
         <Ionicons name="arrow-back" size={16} color={colors.violet} /><T style={{ color: colors.violet, fontFamily: fonts.semibold }}>Back to course</T>
       </Pressable>
@@ -219,8 +207,8 @@ export function CoursePlayerScreen() {
         : item ? <Player key={item.id} item={item} watermark={user?.phone || user?.email || user?.name || ''} onEnded={() => complete(item)} />
         : <View style={{ borderRadius: 20, backgroundColor: '#FFF', padding: 24 }}><T v="small">Nothing in this lesson yet.</T></View>}
       <View style={{ gap: 4 }}>
-        <T style={{ fontFamily: fonts.semibold, fontSize: 24, color: colors.ink }}>{item && lesson.items.length > 1 ? item.title : lesson.title}</T>
-        <T v="small">{lesson.title !== item?.title && lesson.items.length > 1 ? `${lesson.title} · ` : ''}{item ? kindLabel(item.kind) : ''}{item?.meta ? ` · ${item.meta}` : ''}</T>
+        <T style={{ fontFamily: fonts.semibold, fontSize: 24, color: colors.ink }}>{item && lesson.items.length > 1 ? cleanTitle(item.title) : cleanTitle(lesson.title)}</T>
+        {lesson.title !== item?.title && lesson.items.length > 1 ? <T v="small">{cleanTitle(lesson.title)}</T> : null}
         {lesson.description ? <T style={{ marginTop: 6, color: colors.muted }}>{lesson.description}</T> : null}
       </View>
       {item && !locked && c.enrolled ? (
@@ -230,7 +218,7 @@ export function CoursePlayerScreen() {
           ) : (
             <Button title="Mark as complete" icon="checkmark" kind="ghost" style={{ height: 40 }} onPress={() => complete(item)} />
           )}
-          {nextItem ? <Button title={`Next: ${nextItem.title}`} icon="arrow-forward" style={{ height: 40 }} onPress={() => go(lesson, nextItem)} /> : null}
+          {nextItem ? <Button title={`Next: ${cleanTitle(nextItem.title)}`} icon="arrow-forward" style={{ height: 40 }} onPress={() => go(lesson, nextItem)} /> : null}
         </Row>
       ) : null}
 
@@ -243,13 +231,12 @@ export function CoursePlayerScreen() {
           {lesson.items.map((it, i) => {
             const on = it.id === item?.id;
             return (
-              <Pressable key={it.id} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={`${i + 1}. ${it.title}`} onPress={() => go(lesson, it)}
+              <Pressable key={it.id} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={`${i + 1}. ${cleanTitle(it.title)}`} onPress={() => go(lesson, it)}
                 style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 10, borderRadius: 14, backgroundColor: on ? '#EEEBFB' : 'transparent' }}>
                 <T style={{ width: 20, textAlign: 'center', fontFamily: fonts.semibold, color: on ? colors.violet : colors.muted }}>{i + 1}</T>
-                <TypeIcon kind={it.kind} size={40} />
+                <ItemThumb item={it} size={40} />
                 <View style={{ flex: 1 }}>
-                  <T style={{ fontFamily: fonts.semibold, color: on ? colors.violet : colors.ink }} numberOfLines={1}>{it.title}</T>
-                  <T v="small">{kindLabel(it.kind)}{it.meta ? ` · ${it.meta}` : ''}</T>
+                  <T style={{ fontFamily: fonts.semibold, color: on ? colors.violet : colors.ink }} numberOfLines={2}>{cleanTitle(it.title)}</T>
                 </View>
                 {isDone(it) ? <Ionicons name="checkmark-circle" size={22} color={colors.green} accessibilityLabel="Done" /> : on ? <Ionicons name="play-circle" size={22} color={colors.violet} /> : null}
               </Pressable>
@@ -265,8 +252,8 @@ export function CoursePlayerScreen() {
           </Row>
           {downloads.map((it) => (
             <Row key={it.id} gap={12} style={{ borderWidth: 1, borderColor: colors.line, borderRadius: 16, padding: 10 }}>
-              <TypeIcon kind={it.kind} size={40} />
-              <View style={{ flex: 1 }}><T style={{ fontFamily: fonts.semibold }} numberOfLines={1}>{it.title}</T><T v="small">{kindLabel(it.kind)}</T></View>
+              <ItemThumb item={it} size={40} />
+              <View style={{ flex: 1 }}><T style={{ fontFamily: fonts.semibold }} numberOfLines={2}>{cleanTitle(it.title)}</T></View>
               <Button title="Download" icon="download-outline" kind="ghost" style={{ height: 38, paddingHorizontal: 12 }} disabled={locked} onPress={() => it.url && Linking.openURL(it.url)} />
             </Row>
           ))}
@@ -286,8 +273,8 @@ export function CoursePlayerScreen() {
       <ContentViewerHost />
       {wide ? (
         <View style={{ flex: 1, flexDirection: 'row' }}>
-          <ScrollView style={{ width: 340, flexGrow: 0, backgroundColor: '#FFF', borderRightWidth: 1, borderRightColor: colors.line }}>{sidebar}</ScrollView>
-          <ScrollView ref={main} style={{ flex: 1 }} contentContainerStyle={{ padding: 28, paddingBottom: 60 }}>{content}</ScrollView>
+          <ScrollView style={{ width: 270, flexGrow: 0, backgroundColor: '#FBFAFE', borderRightWidth: 1, borderRightColor: colors.line }}>{sidebar}</ScrollView>
+          <ScrollView ref={main} style={{ flex: 1 }} contentContainerStyle={{ padding: 24, paddingBottom: 60 }}>{content}</ScrollView>
         </View>
       ) : (
         <ScrollView ref={main} contentContainerStyle={{ padding: 16, paddingBottom: 130, gap: 18 }}>
@@ -298,6 +285,16 @@ export function CoursePlayerScreen() {
       )}
     </View>
   );
+}
+
+/** Students see the name only: no .pdf / .html and no type label. */
+export const cleanTitle = (t: string) => (t || '').replace(/\.(pdf|html?|mp4|mov|webm|mp3|wav|m4a|ogg|zip|png|jpe?g|webp|gif|docx?|pptx?|xlsx?)$/i, '').replace(/[_]+/g, ' ').trim();
+
+/** The thumbnail the teacher gave, or the type icon when there is none. */
+function ItemThumb({ item, size }: { item: CourseItem; size: number }) {
+  return item.thumbnail_url
+    ? <Image source={{ uri: item.thumbnail_url }} accessibilityLabel="" style={{ width: size * 1.6, height: size, borderRadius: 10, backgroundColor: '#EEEBFB' }} resizeMode="cover" />
+    : <TypeIcon kind={item.kind} size={size} />;
 }
 
 function TabPill({ on, icon, label, count, onPress }: { on: boolean; icon: any; label: string; count: number; onPress: () => void }) {
@@ -341,7 +338,18 @@ function Player({ item, watermark, onEnded }: { item: CourseItem; watermark: str
     if (item.kind !== 'html') return;
     api.get<{ url: string }>(`/course-items/${item.id}/open`).then((r) => setHtml(r.url)).catch((e) => setErr(errText(e, 'This lesson can not be opened right now.')));
   }, [item.id, item.kind]);
-  const frame = { position: 'relative' as const, width: '100%' as const, aspectRatio: 16 / 9, borderRadius: 20, overflow: 'hidden' as const, backgroundColor: '#000' };
+  const box = useRef<any>(null);
+  const goFull = () => { const n = box.current; const f = n?.requestFullscreen ?? n?.webkitRequestFullscreen; if (f) f.call(n); };
+  const video = { position: 'relative' as const, width: '100%' as const, aspectRatio: 16 / 9, borderRadius: 20, overflow: 'hidden' as const, backgroundColor: '#000' };
+  // Pages, games, PDFs and pictures fit the screen: the whole page shows without scrolling inside it.
+  const fit = { position: 'relative' as const, width: '100%' as const, height: 'calc(100vh - 150px)' as any, minHeight: 360, borderRadius: 20, overflow: 'hidden' as const, backgroundColor: '#FFF' };
+  const frame = video;
+  const fullBtn = (
+    <Pressable accessibilityRole="button" accessibilityLabel="Full screen" onPress={goFull}
+      style={{ position: 'absolute', top: 10, right: 10, height: 36, paddingHorizontal: 12, borderRadius: 18, backgroundColor: 'rgba(16,22,43,0.78)', flexDirection: 'row', alignItems: 'center', gap: 6, zIndex: 5 }}>
+      <Ionicons name="expand" size={16} color="#FFF" /><T style={{ color: '#FFF', fontSize: 13, fontFamily: fonts.semibold }}>Full screen</T>
+    </Pressable>
+  );
   const fill = { width: '100%', height: '100%', border: 0, display: 'block', background: '#000' };
   const noMenu = (e: any) => e.preventDefault();
 
@@ -350,7 +358,7 @@ function Player({ item, watermark, onEnded }: { item: CourseItem; watermark: str
     return (
       <View style={[frame, { alignItems: 'center', justifyContent: 'center', gap: 12, backgroundColor: '#10162B' }]}>
         <TypeIcon kind={item.kind} size={56} />
-        <Button title={`Open ${kindLabel(item.kind)}`} kind="yellow" onPress={() => { openContent(item); onEnded(); }} />
+        <Button title="Open" kind="yellow" onPress={() => { openContent(item); onEnded(); }} />
       </View>
     );
   }
@@ -358,7 +366,8 @@ function Player({ item, watermark, onEnded }: { item: CourseItem; watermark: str
   if (item.kind === 'video') {
     const yt = youTubeId(url); const vm = vimeoId(url);
     return (
-      <View style={frame}>
+      <View ref={box} style={frame}>
+        {!(yt || vm) && url ? fullBtn : null}
         {yt || vm ? el('iframe', { src: yt ? `https://www.youtube-nocookie.com/embed/${yt}?rel=0&modestbranding=1` : `https://player.vimeo.com/video/${vm}`, title: item.title, allow: 'autoplay; encrypted-media; picture-in-picture; fullscreen', allowFullScreen: true, style: fill })
           : url ? el('video', { src: url, controls: true, playsInline: true, controlsList: 'nodownload', disablePictureInPicture: true, onContextMenu: noMenu, onEnded, style: { ...fill, objectFit: 'contain' } })
           : <T style={{ color: '#FFF', margin: 20 }}>This video has no file yet.</T>}
@@ -371,20 +380,21 @@ function Player({ item, watermark, onEnded }: { item: CourseItem; watermark: str
       <View style={{ borderRadius: 20, padding: 22, gap: 16, backgroundColor: '#211A4D' }}>
         <Row gap={14}>
           <View style={{ width: 64, height: 64, borderRadius: 18, backgroundColor: '#5B43E0', alignItems: 'center', justifyContent: 'center' }}><Ionicons name="musical-notes" size={30} color="#FFF" /></View>
-          <View style={{ flex: 1 }}><T style={{ color: '#CFC6F7', fontSize: 12, fontFamily: fonts.semibold, letterSpacing: 1 }}>AUDIO</T><T style={{ color: '#FFF', fontFamily: fonts.semibold, fontSize: 18 }} numberOfLines={2}>{item.title}</T></View>
+          <View style={{ flex: 1 }}><T style={{ color: '#FFF', fontFamily: fonts.semibold, fontSize: 18 }} numberOfLines={2}>{cleanTitle(item.title)}</T></View>
         </Row>
         {url ? el('audio', { src: url, controls: true, controlsList: 'nodownload', onContextMenu: noMenu, onEnded, style: { width: '100%' } }) : <T style={{ color: '#FFF' }}>This audio has no file yet.</T>}
       </View>
     );
   }
   if (item.kind === 'pdf') {
-    return <View style={{ width: '100%', height: 640, maxHeight: 900, borderRadius: 20, overflow: 'hidden', backgroundColor: '#FFF' }}>{url ? el('iframe', { src: url, title: item.title, style: { ...fill, background: '#FFF' } }) : null}</View>;
+    return <View ref={box} style={fit}>{url ? fullBtn : null}{url ? el('iframe', { src: url, title: cleanTitle(item.title), style: { ...fill, background: '#FFF' } }) : null}</View>;
   }
   if (item.kind === 'html') {
     return (
-      <View style={[frame, { backgroundColor: '#FFF' }]}>
+      <View ref={box} style={fit}>
+        {html ? fullBtn : null}
         {html ? el('iframe', {
-          src: html, title: item.title,
+          src: html, title: cleanTitle(item.title),
           // No allow-same-origin: the page gets its own blank origin and can't touch the app or its login.
           sandbox: 'allow-scripts allow-pointer-lock allow-modals allow-forms', allow: 'autoplay; fullscreen', allowFullScreen: true, style: { ...fill, background: '#FFF' },
         }) : err ? <T style={{ margin: 20, color: colors.red }}>{err}</T> : <Loading />}
@@ -392,7 +402,7 @@ function Player({ item, watermark, onEnded }: { item: CourseItem; watermark: str
     );
   }
   if (item.kind === 'image' && url) {
-    return <View style={[frame, { backgroundColor: '#FFF' }]}>{el('img', { src: url, alt: item.title, style: { width: '100%', height: '100%', objectFit: 'contain' } })}</View>;
+    return <View ref={box} style={fit}>{fullBtn}{el('img', { src: url, alt: item.title, style: { width: '100%', height: '100%', objectFit: 'contain' } })}</View>;
   }
   if (item.kind === 'note') {
     return <View style={{ borderRadius: 20, backgroundColor: '#FFF', padding: 24, borderLeftWidth: 5, borderLeftColor: colors.pink[1] }}><T style={{ fontSize: 17, lineHeight: 28 }}>{item.body || 'Empty note.'}</T></View>;
@@ -402,7 +412,7 @@ function Player({ item, watermark, onEnded }: { item: CourseItem; watermark: str
   return (
     <View style={{ borderRadius: 20, padding: 24, gap: 14, backgroundColor: '#211A4D', alignItems: 'flex-start' }}>
       <TypeIcon kind={item.kind} size={56} />
-      <T style={{ color: '#FFF', fontFamily: fonts.semibold, fontSize: 20 }}>{item.title}</T>
+      <T style={{ color: '#FFF', fontFamily: fonts.semibold, fontSize: 20 }}>{cleanTitle(item.title)}</T>
       {when ? <T style={{ color: '#CFC6F7' }}>{when.toLocaleString([], { weekday: 'long', day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit' })}</T> : null}
       {url ? <Button title={item.kind === 'live' ? 'Join live class' : 'Open'} icon="open-outline" kind="yellow" onPress={() => { Linking.openURL(url); onEnded(); }} /> : <T style={{ color: '#CFC6F7' }}>The link will show here.</T>}
     </View>

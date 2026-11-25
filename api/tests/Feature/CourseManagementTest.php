@@ -115,4 +115,24 @@ class CourseManagementTest extends TestCase
         $this->actingAs($teacher)->postJson("/api/staff/assessments/{$a['id']}/results", ['results' => [['student_id' => $student->id, 'marks' => 4]]])->assertOk();
         $this->actingAs($student)->getJson("/api/courses/{$course->id}")->assertOk()->assertJsonPath('lessons.0.tests.0.done', true);
     }
+
+    public function test_content_item_thumbnail_admin_only(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('public');
+        $t = Tenant::create(['name' => 'Inst', 'code' => 'THM111']);
+        $admin = User::create(['name' => 'Adm', 'email' => 'ath@x.test', 'password' => 'secret123', 'role' => 'admin', 'tenant_id' => $t->id]);
+        $teacher = User::create(['name' => 'Tea', 'email' => 'tth@x.test', 'password' => 'secret123', 'role' => 'teacher', 'tenant_id' => $t->id]);
+        $course = Course::create(['title' => 'Little Muslim', 'category' => 'General', 'status' => 'published', 'tenant_id' => $t->id, 'visibility' => 'madrasa', 'is_free' => true, 'teacher_id' => $teacher->id]);
+        $t->courses()->attach($course->id, ['enabled' => true]);
+        $lesson = \App\Models\CourseLesson::create(['course_id' => $course->id, 'title' => 'Flower', 'position' => 1]);
+        $item = \App\Models\CourseItem::create(['course_id' => $course->id, 'course_lesson_id' => $lesson->id, 'kind' => 'video', 'title' => 'Flower song', 'position' => 1]);
+        $pic = \Illuminate\Http\UploadedFile::fake()->image('cover.png', 640, 360);
+
+        $this->actingAs($teacher)->post("/api/manage/course-items/{$item->id}/thumbnail", ['thumbnail' => $pic], ['Accept' => 'application/json'])->assertForbidden();
+        $this->actingAs($admin)->post("/api/manage/course-items/{$item->id}/thumbnail", ['thumbnail' => $pic], ['Accept' => 'application/json'])->assertOk();
+        $url = $this->actingAs($admin)->getJson("/api/manage/courses/{$course->id}")->assertOk()->json('lessons.0.items.0.thumbnail_url');
+        $this->assertNotNull($url);
+        $this->actingAs($admin)->post("/api/manage/course-items/{$item->id}/thumbnail", ['remove' => 1], ['Accept' => 'application/json'])->assertOk();
+        $this->assertNull($item->fresh()->thumbnail_path);
+    }
 }

@@ -24,6 +24,7 @@ import type { BCourse } from '@/lib/courseBuilder';
 import type { Board, SchoolClass } from '@/lib/types';
 import { CategoryField, CourseStructure, LiveTimetable } from './courseBuilder';
 import { colors, fonts } from '@/theme/tokens';
+import { ImageHint } from '@/components/ImageHint';
 
 const TINTS = [colors.lav, colors.sky, colors.mint, colors.pink, colors.butter];
 const initials = (n: string) => n.split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase();
@@ -653,6 +654,7 @@ export function CourseEditorScreen({ mode, id }: { mode: 'admin' | 'super'; id?:
             <Pressable accessibilityRole="button" onPress={pickLogo} style={{ height: 46, borderRadius: 16, borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.teal, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
               <Ionicons name="cloud-upload-outline" size={18} color={colors.teal} /><T style={{ color: colors.teal, fontFamily: fonts.semibold, fontSize: 13 }}>{logo ? 'Change logo' : 'Upload logo'}</T>
             </Pressable>
+            <ImageHint kind="logo" />
             {logo ? <Pressable accessibilityRole="button" onPress={() => { setLogo(null); setLogoFile(null); }}><T v="small" style={{ color: colors.red }}>Remove logo</T></Pressable> : null}
             <T v="small">Square PNG or JPG, at least 512 × 512, max 2 MB. A transparent background looks best.</T>
           </View>
@@ -678,7 +680,7 @@ export function CourseEditorScreen({ mode, id }: { mode: 'admin' | 'super'; id?:
           {thumb ? <Pressable accessibilityRole="button" onPress={pickThumb}><T v="small" style={{ color: colors.teal, fontFamily: fonts.semibold }}>Change</T></Pressable> : null}
           {thumb ? <Pressable accessibilityRole="button" onPress={() => { setThumb(null); setThumbFile(null); setThumbRemoved(true); }}><T v="small" style={{ color: colors.red }}>Remove</T></Pressable> : null}
         </Row>
-        <T v="small">A wide picture, 1280 × 720 works best. PNG, JPG or WEBP, max 4 MB.</T>
+        <ImageHint kind="thumbnail" />
       </Panel>
       <Panel title="Pricing" right={<T v="small">shown on the course card</T>}>
         <ChoiceChips value={pricing} onChange={setPricing} options={[{ key: 'free', label: 'Free' }, { key: 'once', label: 'One-time' }, { key: 'monthly', label: 'Monthly' }]} />

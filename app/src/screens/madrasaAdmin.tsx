@@ -10,6 +10,7 @@ import { useApi } from '@/lib/useApi';
 import { appendFile, pickImage } from '@/lib/pickImage';
 import { confirmBox, say } from '@/lib/dialog';
 import { colors, fonts } from '@/theme/tokens';
+import { ImageHint } from '@/components/ImageHint';
 
 type Syllabus = 'general' | 'english';
 type BoardRow = { id: number; code: string; name: string; full_name: string | null; logo_url: string | null; active: boolean; syllabi: { key: Syllabus; label: string; classes: number }[] };
@@ -51,6 +52,7 @@ function BoardCard({ b, onSaved, selected, onSelect }: { b: BoardRow; onSaved: (
         <View style={{ flex: 1 }}>
           <Row gap={8} style={{ alignItems: 'center' }}><T style={{ fontFamily: fonts.semibold, fontSize: 16 }}>{b.name}</T>{b.active ? null : <Tag text="Hidden from students" tone="butter" />}</Row>
           <T v="small">{b.full_name || 'No full name yet'}</T>
+          <ImageHint kind="logo" />
           <Row gap={6} style={{ marginTop: 6, flexWrap: 'wrap' }}>
             {b.syllabi.map((s) => <Tag key={s.key} text={`${s.label.replace(' Madrasa Syllabus', '')}: ${s.classes} classes`} tone={s.classes ? 'mint' : 'pink'} />)}
           </Row>
@@ -90,6 +92,7 @@ function SubjectTile({ s, onChanged }: { s: SubjectRow; onChanged: () => void })
       <Thumb url={s.thumbnail_url} letter={s.name} size={72} onPress={thumb} busy={busy} />
       <T style={{ fontFamily: fonts.medium, textAlign: 'center' }} numberOfLines={2}>{s.name}</T>
       <T v="small">{s.lessons_count} lessons</T>
+      <ImageHint kind="square" style={{ fontSize: 10, textAlign: 'center' }} />
       {s.thumbnail_url ? <Pressable onPress={async () => { const fd = new FormData(); fd.append('remove_thumbnail', '1'); await api.post(`/super/madrasa/subjects/${s.id}`, fd).catch((e) => err(e, 'Could not save.')); onChanged(); }}><T v="small" style={{ color: colors.muted, textDecorationLine: 'underline' }}>Remove picture</T></Pressable> : null}
       {s.lessons_count === 0 ? <Pressable accessibilityLabel={`Delete ${s.name}`} onPress={remove}><T v="small" style={{ color: colors.red }}>Delete</T></Pressable> : null}
     </View>

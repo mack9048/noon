@@ -249,6 +249,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::post('/course-lessons/{lesson}/items', [CourseBuilderController::class, 'storeItem']);
         Route::post('/course-lessons/{lesson}/order', [CourseBuilderController::class, 'reorderItems']);
         Route::post('/course-items/{item}', [CourseBuilderController::class, 'updateItem']);
+        Route::post('/course-items/{item}/thumbnail', [CourseBuilderController::class, 'itemThumbnail']);
         Route::post('/course-items/{item}/move', [CourseBuilderController::class, 'moveItem']);
         Route::delete('/course-items/{item}', [CourseBuilderController::class, 'destroyItem']);
         Route::post('/courses/{course}/live-slots', [CourseBuilderController::class, 'storeLiveSlot']);

@@ -97,6 +97,17 @@ class CourseBuilderController extends Controller
         return $this->show(Course::findOrFail($subject->course_id));
     }
 
+    /** A thumbnail for one piece of lesson content (shown instead of the type icon). */
+    public function itemThumbnail(Request $request, CourseItem $item)
+    {
+        $this->adminOnly($request);
+        $request->validate(['thumbnail' => ['nullable', 'file', 'max:2048', 'extensions:png,jpg,jpeg,webp'], 'remove' => ['sometimes', 'boolean']]);
+        $item->thumbnail_path && Storage::disk('public')->delete($item->thumbnail_path);
+        $item->update(['thumbnail_path' => $request->hasFile('thumbnail') ? $request->file('thumbnail')->store("courses/{$item->course_id}/items", 'public') : null]);
+
+        return $this->show(Course::findOrFail($item->course_id));
+    }
+
     /* ---------- Live course timetable ---------- */
 
     public function storeLiveSlot(Request $request, Course $course)
@@ -167,6 +178,7 @@ class CourseBuilderController extends Controller
             'body' => $i->kind === 'note' ? $i->body : null,
             'has_file' => (bool) $i->file_path,
             'file_size' => $i->file_size,
+            'thumbnail_url' => $i->thumbnail_path ? Storage::disk('public')->url($i->thumbnail_path) : null,
             'starts_at' => $i->starts_at?->toIso8601String(),
             'done' => in_array($i->id, $done, true),
             'review_state' => $i->review_state, 'replaces_id' => $i->replaces_id,
@@ -478,6 +490,7 @@ class CourseBuilderController extends Controller
         }
         $this->deleteFile($item);
         $this->deletePublicFile($item);
+        $item->thumbnail_path && Storage::disk('public')->delete($item->thumbnail_path);
         $item->delete();
 
         return response()->noContent();

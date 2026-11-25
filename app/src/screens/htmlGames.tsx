@@ -14,6 +14,7 @@ import { useApi } from '@/lib/useApi';
 import { useBase } from '@/lib/useBase';
 import { AGE_GROUPS, AUDIENCE_LABEL, fileSize, MODE_LABEL, saveGame, type GameAudience, type GameMode, type HtmlGame, type Picked } from '@/lib/games';
 import { colors, fonts } from '@/theme/tokens';
+import { ImageHint } from '@/components/ImageHint';
 
 const say = (m: string) => (Platform.OS === 'web' ? (globalThis as any).alert?.(m) : null);
 const GRADS: [string, string][] = [['#8A6CFF', '#5B43E0'], ['#3DD9A8', '#12A6A0'], ['#FF9A3D', '#FF5E7E'], ['#4C8DF6', '#1F5FE0'], ['#FF9EC7', '#E0368C']];
@@ -202,7 +203,7 @@ export function GameFormScreen() {
           {thumbUri ? <Image source={{ uri: thumbUri }} style={{ width: 96, height: 96, borderRadius: 20, backgroundColor: '#EEF3F5' }} />
             : <View style={{ width: 96, height: 96, borderRadius: 20, backgroundColor: '#EEF3F5', alignItems: 'center', justifyContent: 'center' }}><Ionicons name="image-outline" size={28} color={colors.muted} /></View>}
           <View style={{ flex: 1, gap: 8 }}>
-            <T v="small">A square picture works best (PNG, JPG or WebP, under 3 MB). Without one, a coloured tile is shown.</T>
+            <ImageHint kind="square" />
             <Row gap={8}>
               <Button title={thumbUri ? 'Change' : 'Choose image'} kind="ghost" icon="image-outline" onPress={pickThumb} />
               {thumbUri ? <Button title="Remove" kind="ghost" onPress={() => { setThumb(null); setDropThumb(true); }} /> : null}

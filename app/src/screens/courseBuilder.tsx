@@ -4,6 +4,7 @@
 import React, { useEffect, useState } from 'react';
 import { Image, Linking, Modal, Platform, Pressable, ScrollView, Switch, View } from 'react-native';
 import { appendFile, pickImage } from '@/lib/pickImage';
+import { ImageHint, hintText } from '@/components/ImageHint';
 import { joinLiveCourse } from '@/lib/liveJoin';
 import { useManage } from '@/lib/manage';
 import { Ionicons } from '@expo/vector-icons';
@@ -196,7 +197,7 @@ function SubjectThumb({ subject, onChange }: { subject: BSubject; onChange: (c: 
     } catch (e) { demoNote(e instanceof ApiError ? e.friendly : e instanceof Error ? e.message : 'Could not upload.'); } finally { setBusy(false); }
   };
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={`${subject.thumbnail_url ? 'Change' : 'Add'} picture for ${subject.title}`} onPress={pick} disabled={busy}
+    <Pressable accessibilityRole="button" accessibilityLabel={`${subject.thumbnail_url ? 'Change' : 'Add'} picture for ${subject.title}`} accessibilityHint={hintText('square')} {...({ title: hintText('square') } as any)} onPress={pick} disabled={busy}
       style={{ width: 44, height: 44, borderRadius: 12, overflow: 'hidden', backgroundColor: '#F1EDFF', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: subject.thumbnail_url ? colors.line : '#D9CCF7', borderStyle: subject.thumbnail_url ? 'solid' : 'dashed', opacity: busy ? 0.5 : 1 }}>
       {subject.thumbnail_url ? <Image source={{ uri: subject.thumbnail_url }} style={{ width: 44, height: 44 }} resizeMode="cover" /> : <Ionicons name="image-outline" size={20} color={colors.violet} />}
     </Pressable>
@@ -509,6 +510,37 @@ function itemSummary(it: BItem) {
 const pad = (n: number) => String(n).padStart(2, '0');
 
 /** Add or edit one piece of content. Audios etc. can be added one after another. */
+/** Thumbnail shown instead of the type icon in the student's lesson list (admin only). */
+function ItemThumbField({ item, onDone }: { item: BItem; onDone: () => void }) {
+  const M = useManage();
+  const [busy, setBusy] = useState(false);
+  const [thumb, setThumb] = useState<string | null>(item.thumbnail_url ?? null);
+  const send = async (f: any | null) => {
+    setBusy(true);
+    try {
+      const fd = new FormData();
+      if (f) appendFile(fd, 'thumbnail', f); else fd.append('remove', '1');
+      await api.post(`${M.api}/course-items/${item.id}/thumbnail`, fd);
+      setThumb(f ? f.uri : null);
+    } catch (e) { demoNote(e instanceof ApiError ? e.friendly : e instanceof Error ? e.message : 'Could not upload.'); } finally { setBusy(false); }
+  };
+  return (
+    <View style={{ gap: 6 }}>
+      <T v="small" style={{ fontFamily: fonts.medium }}>Thumbnail (optional)</T>
+      <Row gap={10}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Choose thumbnail" disabled={busy} onPress={async () => { const f = await pickImage(); if (f) await send(f); }}
+          style={{ width: 96, height: 54, borderRadius: 10, overflow: 'hidden', backgroundColor: '#F1EDFF', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderStyle: thumb ? 'solid' : 'dashed', borderColor: thumb ? colors.line : '#D9CCF7', opacity: busy ? 0.5 : 1 }}>
+          {thumb ? <Image source={{ uri: thumb }} style={{ width: 96, height: 54 }} resizeMode="cover" /> : <Ionicons name="image-outline" size={22} color={colors.violet} />}
+        </Pressable>
+        <View style={{ flex: 1, gap: 2 }}>
+          <ImageHint kind="thumbnail" />
+          {thumb ? <Pressable accessibilityRole="button" onPress={() => send(null)}><T v="small" style={{ color: colors.red }}>Remove thumbnail</T></Pressable> : null}
+        </View>
+      </Row>
+    </View>
+  );
+}
+
 function ItemSheet({ lessonId, kind, item, onClose, onSaved }: { lessonId: number; kind: ContentKind; item: BItem | null; onClose: () => void; onSaved: (again: boolean) => void }) {
   const M = useManage();
   const info = KINDS.find((k) => k.kind === kind) ?? { kind, label: kindLabel(kind), hint: '', link: true };
@@ -578,6 +610,7 @@ function ItemSheet({ lessonId, kind, item, onClose, onSaved }: { lessonId: numbe
           style={{ minHeight: kind === 'html' ? 200 : 140, fontFamily: kind === 'html' ? (Platform.OS === 'web' ? 'monospace' : undefined) : undefined, fontSize: kind === 'html' ? 13 : 15 }} />
       ) : null}
       {kind === 'live' ? <Row gap={10}><DateInput label="Date" value={date} onChange={setDate} /><DateInput label="Time" mode="time" value={time} onChange={setTime} /></Row> : null}
+      {item && M.role !== 'teacher' ? <ItemThumbField item={item} onDone={() => onSaved(false)} /> : null}
       {err ? <T style={{ color: colors.red }}>{err}</T> : null}
       <Row gap={8}>
         {!item && kind !== 'live' && kind !== 'note' ? <Button title="Save & add another" kind="ghost" style={{ flex: 1 }} loading={busy} onPress={() => save(true)} /> : null}

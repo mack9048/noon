@@ -7,7 +7,7 @@ import type { ContentKind } from '@/theme/tokens';
 export type BItem = {
   review_state?: 'new' | 'delete' | null; replaces_id?: number | null;
   id: number; course_id: number; lesson_id: number | null; kind: ContentKind; title: string; meta?: string | null;
-  url?: string | null; body?: string | null; has_file?: boolean; file_size?: number | null; starts_at?: string | null; done?: boolean;
+  url?: string | null; body?: string | null; has_file?: boolean; file_size?: number | null; starts_at?: string | null; done?: boolean; thumbnail_url?: string | null;
 };
 export type ReviewState = 'new' | 'delete' | null;
 export type BLesson = { id: number; subject_id: number | null; title: string; description?: string | null; duration?: string | null; free_preview: boolean; items: BItem[]; review_state?: ReviewState; pending?: Record<string, any> | null };
