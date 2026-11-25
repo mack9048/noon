@@ -4,7 +4,8 @@ plugins {
 
 // Noon Learn for Android = the website (https://www.noonlearn.com) opened full screen as a Trusted Web Activity.
 // Bump versionCode for every new upload to Google Play.
-def host = 'www.noonlearn.com'
+// The address the app opens. To use another one: gradle bundleRelease -PtwaHost=www.example.com
+def host = project.findProperty('twaHost') ?: 'www.noonlearn.com'
 
 android {
     namespace 'com.noonlearn.app'
