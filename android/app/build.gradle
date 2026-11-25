@@ -1,0 +1,53 @@
+plugins {
+    id 'com.android.application'
+}
+
+// Noon Learn for Android = the website (https://www.noonlearn.com) opened full screen as a Trusted Web Activity.
+// Bump versionCode for every new upload to Google Play.
+def host = 'www.noonlearn.com'
+
+android {
+    namespace 'com.noonlearn.app'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId 'com.noonlearn.app'
+        minSdk 23
+        targetSdk 36
+        versionCode 1
+        versionName '1.0.0'
+        manifestPlaceholders = [hostName: host, defaultUrl: "https://${host}/login"]
+        resValue 'string', 'asset_statements', """[{\"relation\":[\"delegate_permission/common.handle_all_urls\"],\"target\":{\"namespace\":\"web\",\"site\":\"https://${host}\"}}]"""
+    }
+
+    // The upload key is NOT in the repository. Put it next to this file as keystore.properties (ignored by git):
+    //   storeFile=/full/path/noon-upload-key.jks   storePassword=...   keyAlias=noon-upload   keyPassword=...
+    def props = new Properties()
+    def propsFile = rootProject.file('keystore.properties')
+    if (propsFile.exists()) props.load(new FileInputStream(propsFile))
+    signingConfigs {
+        release {
+            if (props['storeFile']) {
+                storeFile file(props['storeFile'])
+                storePassword props['storePassword']
+                keyAlias props['keyAlias']
+                keyPassword props['keyPassword']
+            }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (props['storeFile']) signingConfig signingConfigs.release
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    buildFeatures { resValues true }
+}
+
+dependencies {
+    implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.7.4'
+}

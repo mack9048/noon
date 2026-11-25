@@ -1,0 +1,6 @@
+<resources>
+    <style name="Theme.NoonLearn" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">#EAF2F4</item>
+        <item name="android:statusBarColor">@color/colorPrimary</item>
+    </style>
+</resources>
